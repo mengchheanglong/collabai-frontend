@@ -1,0 +1,12 @@
+{
+  "project": "CollabAI Frontend",
+  "repo_role": "frontend",
+  "root": ".",
+  "backend_root": "../collabai-backend",
+  "shared_docs_note": "This repo includes a local docs/ copy. If using a separate shared docs repo, place it beside this repo and reference ../collabai.",
+  "status": "separate_frontend_folder_created",
+  "code_scaffolded": false,
+  "api_base_url": "http://localhost:4000/api/v1",
+  "socket_url": "http://localhost:4000",
+  "next": "Generate Angular app and implement auth service/pages."
+}
