@@ -1,0 +1,84 @@
+Software Requirements Specification
+Project Name
+CollabAI
+Project Type
+Advanced Web Engineering Project
+Team Members
+ Long Mengchheang : Core Frontend Development, Kanban Board, Task Management  Lim Potkolbotey : User Interface Design, UX Flow, Dashboard, and Visual Polish
+ So Sereysokbotra : Backend Development, API, AI Integration, Real-time, and Database  Sokha Marady : Authentication Flow, Comments, Activity Log, and Supporting Frontend
+Features
+Institution
+Kirirom Institute of Technology Prepared By
+Long Mengchheang Date
+July 6 2026
+
+Table of Contents
+1. Introduction.....................................................................................................................3 1.1 Purpose.....................................................................................................................3 1.2 Project Scope............................................................................................................3 1.3 Definitions and Abbreviations....................................................................................4 1.4 Tools and Technologies.............................................................................................4
+2. Overall Description..........................................................................................................5 2.1 System Overview.......................................................................................................5 2.2 User Roles and Characteristics.................................................................................5 2.3 Operating Environment..............................................................................................6 2.4 Design Constraints....................................................................................................6 2.5 Assumptions and Dependencies...............................................................................7
+3. Functional Requirements................................................................................................7 3.1 User Authentication...................................................................................................7 3.2 Project Management.................................................................................................8 3.3 Task Management & Kanban Board.........................................................................8 3.4 AI-Powered Features................................................................................................9 3.5 Real-time Collaboration.............................................................................................9 3.6 Comments and Activity Log.....................................................................................10 3.7 Dashboard and Analytics.........................................................................................10
+4. Non-Functional Requirements.....................................................................................11 4.1 Performance............................................................................................................11 4.2 Security....................................................................................................................11 4.3 Usability...................................................................................................................11 4.4 Reliability.................................................................................................................12 4.5 Maintainability..........................................................................................................12
+5. System Architecture......................................................................................................13 5.1 Use Case Diagram...................................................................................................13 5.2 System Architecture Diagram..................................................................................13 5.3 ER Database Diagram.............................................................................................14
+6. Team Responsibility......................................................................................................15 7. Future Improvements....................................................................................................16 8. Conclusion.....................................................................................................................17
+
+1. Introduction
+1.1 Purpose
+The purpose of this Software Requirements Specification is to describe the requirements for CollabAI.
+CollabAI is an AI-powered collaborative project management platform designed to help teams manage projects, tasks, and workflows efficiently with real-time collaboration and artificial intelligence support.
+The system helps reduce manual task coordination and provides smart AI assistance for faster project execution.
+1.2 Project Scope
+CollabAI is a web-based platform that allows teams to create projects, manage tasks using Kanban boards, collaborate in real-time, and leverage AI to boost productivity.
+The system allows users to:  Create and manage projects  Create, assign, and track tasks  Use AI for task generation and suggestions  Collaborate with real-time updates  View project progress through dashboards
+ Add comments and track activity
+1.3 Definitions and Abbreviations AI ­ Artificial Intelligence API ­ Application Programming Interface JWT ­ JSON Web Token SRS ­ Software Requirements Specification RBAC ­ Role-Based Access Control
+Socket.io ­ Real-time communication library
+
+1.4 Tools and Technologies  Frontend: Angular (with TypeScript)  Backend: Node.js + Express  Database: MongoDB  Authentication: JWT  Real-time: Socket.io  AI Integration: Deepseek V4 Flash
+ UI Styling: Angular Material + Tailwind CSS
+2. Overall Description
+2.1 System Overview
+CollabAI is a cloud-based team collaboration platform that combines traditional project management with AI intelligence. It provides Kanban boards, task management, real-time updates, and AI assistance for task creation and optimization.
+2.2 User Roles and Characteristics
+2.3 Operating Environment Modern web browsers (Chrome, Edge, Firefox, Safari). Desktop, Laptop, and responsive on tablets/smartphones.
+Requires internet connection.
+2.4 Design Constraints  Must be a responsive web application  Must support real-time collaboration  Must integrate AI features  Role-based access control
+ Clean and modern user interface
+2.5 Assumptions and Dependencies  Users have stable internet access
+
+ AI features depend on external AI API
+ Real-time communication depends on Socket.io
+3. Functional Requirements
+3.1 User Authentication  Register new account  Login / Logout
+ Secure session management using JWT
+3.2 Project Management  Create, edit, and delete projects  Invite team members to projects
+ Project overview with members and status
+3.3 Task Management & Kanban Board  Create, assign, update, and delete tasks  Drag & drop Kanban board (To Do, In Progress, Done)  Set due dates, labels, and priorities
+ Task details modal
+3.4 AI-Powered Features  AI Task Description Generator  AI Subtask Suggestion  AI Smart Search and Recommendations
+ AI Task Prioritization
+3.5 Real-time Collaboration  Real-time task updates using Socket.io  Live activity feed
+ See when teammates are online or modifying tasks
+
+3.6 Comments and Activity Log  Comment on tasks  Activity history (who changed what)
+3.7 Dashboard and Analytics  Personal and project dashboards  Task completion statistics  Progress charts
+4. Non-Functional Requirements
+4.1 Performance  Pages should load within 2-3 seconds  Real-time updates should be near-instant
+4.2 Security  Secure authentication with JWT  Password encryption  Role-based access control  Protected project and task data
+4.3 Usability  Intuitive and modern interface  Responsive design  Easy navigation and clear instructions
+4.4 Reliability  Data must be saved properly  Graceful handling of AI API failures
+4.5 Maintainability
+
+ Modular code structure  Clean separation between frontend and backend
+5. System Architecture
+5.1 Use Case Diagram (Users interact with Projects, Tasks, AI Features, and Dashboard) 5.2 System Architecture Diagram
+ Angular Frontend  Node.js + Express Backend  MongoDB Database  Socket.io for real-time  External AI API 5.3 ER Database Diagram Main entities: Users, Projects, Tasks, Comments, Activities.
+6. Team Responsibility (Final Version)
+So Sereysokbotra (Backend Developer) Responsible for:
+ Backend architecture with Node.js + Express  RESTful API development  Database design and MongoDB integration  User authentication & authorization (JWT)
+
+ AI integration (task generation & suggestions)  Real-time features using Socket.io  API security and error handling Long Mengchheang (Frontend - Main) Responsible for:  Main Angular application architecture  Kanban Board (Drag & Drop functionality)  Task CRUD operations and complex task flows  Task detail modal and real-time updates  State management and core frontend logic Lim Potkolbotey (UX/UI & Frontend) Responsible for:  Overall UI/UX design and user experience  Dashboard layout and analytics interface  Responsive design across all devices  Project pages, navigation, and visual consistency  Styling and modern interface implementation Sokha Marady (Frontend) Responsible for:  User Authentication pages (Login, Register, Protected Routes)  Comments system on tasks
+
+ Activity Log and notification components  Supporting frontend components and features  Integration of UI components with main frontend logic
+7. Conclusion
+CollabAI provides a modern, intelligent platform for team collaboration by combining powerful task management with AI assistance and real-time features. It helps teams work more efficiently, stay organized, and complete projects faster.
+
+

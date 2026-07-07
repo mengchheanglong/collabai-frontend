@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Angular build output
+dist/
+.angular/
+out-tsc/
+
+# Local/editor
+.vscode/
+.idea/
+.DS_Store
+*.log
+npm-debug.log*
+
+# Hermes local attachments/session-only files
+.hermes/
+
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# External
+.Hermes
+.active
