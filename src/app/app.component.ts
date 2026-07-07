@@ -3,7 +3,7 @@ import { Component, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatRippleModule } from '@angular/material/core';
-import { activities, members, projects, suggestions, tasks as seedTasks } from './mock-data';
+import { activities, members, projects, tasks as seedTasks } from './mock-data';
 import { PageKey, Priority, Task, TaskStatus } from './app.models';
 
 @Component({
@@ -17,7 +17,7 @@ export class AppComponent {
   readonly members = members;
   readonly projects = projects;
   readonly activities = activities;
-  readonly suggestions = suggestions;
+
   readonly workspaces = signal<Array<{ id: string; name: string; icon: string; accent: string; projectNames: string[]; description: string }>>([
     { id: 'collabai', name: 'CollabAI Team', icon: 'C', accent: '#8a6cff', projectNames: ['CollabAI Platform'], description: 'Product sprint workspace' },
     { id: 'school', name: 'School Project', icon: 'S', accent: '#2fd39b', projectNames: ['School Management', 'Green Campus App'], description: 'Education and campus apps' },
@@ -29,7 +29,6 @@ export class AppComponent {
     { key: 'projects', label: 'Projects', icon: '□' },
     { key: 'tasks', label: 'Tasks', icon: '☷' },
     { key: 'team', label: 'Team', icon: '♟' },
-    { key: 'ai', label: 'AI Copilot', icon: '✦', badge: 'Beta' },
   ];
   readonly columns: Array<{ key: TaskStatus; label: string; tone: string }> = [
     { key: 'todo', label: 'To Do', tone: 'muted' },
@@ -42,7 +41,6 @@ export class AppComponent {
   selectedWorkspaceId = signal('collabai');
   isWorkspaceCreatorOpen = signal(false);
   newWorkspaceName = signal('');
-  isUserMenuOpen = signal(false);
   search = signal('');
   tasks = signal<Task[]>(seedTasks);
   selectedTask = signal<Task | null>(seedTasks[0]);
@@ -64,7 +62,6 @@ export class AppComponent {
 
   setPage(page: PageKey): void {
     this.currentPage.set(page);
-    this.isUserMenuOpen.set(false);
     if (page === 'projects' && !this.selectedTask()) this.selectedTask.set(this.workspaceTasks()[0] ?? null);
   }
 
@@ -73,13 +70,11 @@ export class AppComponent {
     this.search.set('');
     this.currentPage.set('dashboard');
     this.isWorkspaceCreatorOpen.set(false);
-    this.isUserMenuOpen.set(false);
     this.selectedTask.set(this.workspaceTasks()[0] ?? null);
   }
 
   toggleWorkspaceCreator(): void {
     this.isWorkspaceCreatorOpen.update((isOpen) => !isOpen);
-    this.isUserMenuOpen.set(false);
   }
 
   addWorkspace(rawName = this.newWorkspaceName()): void {
@@ -93,8 +88,8 @@ export class AppComponent {
     this.selectWorkspace(id);
   }
 
-  toggleUserMenu(): void {
-    this.isUserMenuOpen.update((isOpen) => !isOpen);
+  openProfile(): void {
+    this.currentPage.set('profile');
     this.isWorkspaceCreatorOpen.set(false);
   }
 

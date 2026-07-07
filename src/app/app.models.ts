@@ -1,4 +1,4 @@
-export type PageKey = 'dashboard' | 'projects' | 'tasks' | 'team' | 'ai' | 'calendar' | 'reports' | 'settings';
+export type PageKey = 'dashboard' | 'projects' | 'tasks' | 'team' | 'profile' | 'calendar' | 'reports' | 'settings';
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 

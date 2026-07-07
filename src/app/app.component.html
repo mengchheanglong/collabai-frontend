@@ -25,7 +25,7 @@
         </div>
       }
     </div>
-    <div class="user-area"><button matRipple type="button" class="user-card" (click)="toggleUserMenu()" [attr.aria-expanded]="isUserMenuOpen()"><div class="avatar">S</div><div><strong>Seoul</strong><small>seoul&#64;example.com</small></div><span>⌄</span></button>@if (isUserMenuOpen()) { <div class="user-menu"><button type="button">Profile</button><button type="button">Workspace settings</button><button type="button">Keyboard shortcuts</button><button type="button" class="danger">Sign out</button></div> }</div>
+    <div class="user-area"><button matRipple type="button" class="user-card" [class.active]="currentPage() === 'profile'" (click)="openProfile()" aria-label="Open profile page"><div class="avatar">S</div><div><strong>Seoul</strong><small>seoul&#64;example.com</small></div><span>›</span></button></div>
   </aside>
 
   <main class="main">
@@ -38,17 +38,7 @@
 
     @if (currentPage() === 'dashboard') {
       <section class="page dashboard-page">
-        <div class="dashboard-hero">
-          <section class="welcome-panel">
-            <span class="eyebrow">Today in CollabAI</span>
-            <h1>Ship the sprint without losing the thread.</h1>
-            <p>One calm workspace for boards, docs, comments, and AI help — built for teammates working separately but staying aligned.</p>
-            <div class="command-box">
-              <label class="ai-input"><span>✦</span><input placeholder="Ask AI to create subtasks, summarize blockers, or plan the next sprint..." /><button matRipple aria-label="Send AI prompt">↑</button></label>
-              <div class="prompt-chips"><span>Generate subtasks</span><span>Summarize blockers</span><span>Draft task description</span></div>
-            </div>
-          </section>
-
+        <div class="dashboard-hero board-only">
           <section class="board-preview">
             <div class="preview-header"><div><span class="kicker">Live board preview</span><strong>{{ activeProjectName() }}</strong></div><button matRipple class="primary-button small" (click)="setPage('projects')">Open board</button></div>
             <div class="preview-columns">
@@ -91,9 +81,10 @@
       <section class="page team-page"><div class="page-heading split"><div><span class="eyebrow">People & permissions</span><h1>Team collaboration</h1><p>Invite members, check workload, and keep roles clear.</p></div><button matRipple class="primary-button">+ Invite Members</button></div><nav class="tabs"><button class="active">Members</button><button>Roles</button><button>Invitations</button></nav><div class="stats-grid"><article class="stat-card"><span class="stat-icon purple">♟</span><small>Total Members</small><strong>12</strong><em>2 this month</em></article><article class="stat-card"><span class="stat-icon green">▣</span><small>Admins</small><strong>3</strong><em>25% of team</em></article><article class="stat-card"><span class="stat-icon blue">○</span><small>Members</small><strong>8</strong><em>67% of team</em></article><article class="stat-card"><span class="stat-icon orange">◉</span><small>Viewers</small><strong>1</strong><em>8% of team</em></article></div><div class="team-grid"><section class="panel table-panel"><div class="panel-head"><h2>Team Members</h2><button>Filter</button></div><table><thead><tr><th>Member</th><th>Role</th><th>Projects</th><th>Joined</th><th>Status</th></tr></thead><tbody>@for (member of members; track member.id) { <tr><td><span class="mini-avatar">{{ member.avatar }}</span><strong>{{ member.name }}</strong><small>{{ member.email }}</small></td><td><span class="tag">{{ member.role }}</span></td><td>{{ member.projects }}</td><td>{{ member.joined }}</td><td><span class="online-dot"></span>{{ member.status }}</td></tr> }</tbody></table></section><aside class="side-stack"><section class="panel invite-card"><h2>Invite Members</h2><p>Send a role-scoped invite to your workspace.</p><input placeholder="Enter email address"><select><option>Select role</option><option>Admin</option><option>Member</option><option>Viewer</option></select><textarea placeholder="Add a personal message"></textarea><button matRipple class="primary-button">Send Invitation</button></section><section class="panel"><h2>Roles</h2><p>Admin · 3 members ›</p><p>Member · 8 members ›</p><p>Viewer · 1 member ›</p></section></aside></div></section>
     }
 
-    @if (currentPage() === 'ai') {
-      <section class="page ai-page"><div class="page-heading split"><div><span class="eyebrow">Workspace copilot</span><h1>AI Copilot</h1><p>Generate subtasks, summarize blockers, and turn messy comments into next steps.</p></div><button matRipple class="ghost-button">↻ Refresh</button></div><section class="ai-hero"><div><span class="kicker">Ask before you act</span><h2>What should the team do next?</h2><p>AI uses task status, deadlines, comments, and activity context to suggest practical actions.</p><label class="ai-input"><span>✦</span><input placeholder="Generate 5 subtasks for Build login page..." /><button matRipple>↑</button></label></div><div class="bot">✦</div></section><div class="ai-grid"><section class="panel suggestion-list"><nav class="tabs"><button class="active">Suggestions <span class="tab-badge">{{ suggestions.length }}</span></button><button>Tasks</button><button>Risks</button><button>Team</button></nav><h2>Top suggestions</h2>@for (suggestion of suggestions; track suggestion.title) { <article class="suggestion"><span class="suggestion-icon">✦</span><div><h3>{{ suggestion.title }}</h3><p>{{ suggestion.body }}</p><small>{{ suggestion.category }}</small></div><div><span class="impact impact-{{ suggestion.impact.toLowerCase() }}">{{ suggestion.impact }} Impact</span><button matRipple class="ghost-button">{{ suggestion.action }}</button></div></article> }</section><aside class="side-stack"><section class="panel ai-summary"><h2>AI Summary</h2><p>Based on workspace data from May 20 - May 27, 2026</p><strong>{{ suggestions.length }} Suggestions</strong><strong>2 High impact</strong><strong>3 Risks detected</strong></section><section class="panel"><h2>Signals used</h2><p>✓ Task deadlines & dependencies</p><p>✓ Team workload & capacity</p><p>✓ Project progress & blockers</p><p>✓ Past performance patterns</p></section></aside></div></section>
+    @if (currentPage() === 'profile') {
+      <section class="page profile-page"><div class="page-heading split"><div><span class="eyebrow">Account</span><h1>Profile</h1><p>Manage your personal account, workspace identity, and preferences.</p></div><button matRipple class="ghost-button" (click)="setPage('dashboard')">Back to dashboard</button></div><div class="profile-grid"><section class="panel profile-card"><div class="profile-hero"><div class="profile-avatar">S</div><div><span class="tag">Active</span><h2>Seoul</h2><p>seoul&#64;example.com</p></div></div><div class="profile-actions"><button matRipple class="primary-button">Edit profile</button><button matRipple class="ghost-button">Change password</button></div></section><section class="panel profile-details"><h2>Account details</h2><div class="detail-row"><span>Display name</span><strong>Seoul</strong></div><div class="detail-row"><span>Email</span><strong>seoul&#64;example.com</strong></div><div class="detail-row"><span>Current workspace</span><strong>{{ activeWorkspace().name }}</strong></div><div class="detail-row"><span>Role</span><strong>Workspace admin</strong></div></section><section class="panel profile-details"><h2>Preferences</h2><div class="detail-row"><span>Theme</span><strong>Dark</strong></div><div class="detail-row"><span>Notifications</span><strong>Enabled</strong></div><div class="detail-row"><span>Language</span><strong>English</strong></div></section></div></section>
     }
+
   </main>
 </div>
 
