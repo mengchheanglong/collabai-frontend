@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common';
 import { Component, computed, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
 import { MatRippleModule } from '@angular/material/core';
 import { activities, members, projects, tasks as seedTasks } from './mock-data';
@@ -9,7 +8,7 @@ import { PageKey, Priority, Task, TaskStatus } from './app.models';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, MatRippleModule],
+  imports: [CommonModule, DragDropModule, MatRippleModule],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
@@ -41,7 +40,6 @@ export class AppComponent {
   selectedWorkspaceId = signal('collabai');
   isWorkspaceCreatorOpen = signal(false);
   newWorkspaceName = signal('');
-  search = signal('');
   tasks = signal<Task[]>(seedTasks);
   selectedTask = signal<Task | null>(seedTasks[0]);
 
@@ -53,12 +51,7 @@ export class AppComponent {
   doneTasks = computed(() => this.workspaceTasks().filter((task) => task.status === 'done').length);
   inProgressTasks = computed(() => this.workspaceTasks().filter((task) => task.status === 'in_progress').length);
   completionRate = computed(() => Math.round((this.doneTasks() / Math.max(this.totalTasks(), 1)) * 100));
-  filteredTasks = computed(() => {
-    const q = this.search().toLowerCase().trim();
-    const tasks = this.workspaceTasks();
-    if (!q) return tasks;
-    return tasks.filter((task) => [task.title, task.assignee, task.project, task.tags.join(' ')].join(' ').toLowerCase().includes(q));
-  });
+  filteredTasks = computed(() => this.workspaceTasks());
 
   setPage(page: PageKey): void {
     this.currentPage.set(page);
@@ -67,7 +60,6 @@ export class AppComponent {
 
   selectWorkspace(workspaceId: string): void {
     this.selectedWorkspaceId.set(workspaceId);
-    this.search.set('');
     this.currentPage.set('dashboard');
     this.isWorkspaceCreatorOpen.set(false);
     this.selectedTask.set(this.workspaceTasks()[0] ?? null);
@@ -75,6 +67,10 @@ export class AppComponent {
 
   toggleWorkspaceCreator(): void {
     this.isWorkspaceCreatorOpen.update((isOpen) => !isOpen);
+  }
+
+  openWorkspaceCreator(): void {
+    this.isWorkspaceCreatorOpen.set(true);
   }
 
   addWorkspace(rawName = this.newWorkspaceName()): void {

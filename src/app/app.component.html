@@ -32,8 +32,7 @@
     <header class="topbar">
       <div class="mobile-brand"><div class="brand-mark">C</div><strong>CollabAI</strong></div>
       <div class="topbar-left"><span>Workspace</span><span>›</span><strong>{{ activeWorkspace().name }}</strong></div>
-      <label class="search-box"><span>⌕</span><input [ngModel]="search()" (ngModelChange)="search.set($event)" placeholder="Search tasks, people, docs..." /><kbd>⌘ K</kbd></label>
-      <div class="top-actions"><button matRipple class="icon-button" aria-label="Notifications">🔔<span class="dot"></span></button><button matRipple class="icon-button" aria-label="Help">?</button><div class="avatar">S</div></div>
+      <button matRipple type="button" class="topbar-create-workspace" (click)="openWorkspaceCreator()" aria-label="Create workspace">+</button>
     </header>
 
     @if (currentPage() === 'dashboard') {
@@ -59,7 +58,6 @@
         <div class="dashboard-grid">
           <section class="panel projects-panel"><div class="panel-head"><div><span class="kicker">Project spaces</span><h2>Pages your team owns</h2></div><button>View all →</button></div><div class="project-grid">@for (project of filteredProjects(); track project.id) { <article matRipple class="project-card" (click)="setPage('projects')"><div class="project-top"><span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span><button>⋮</button></div><h3>{{ project.name }}</h3><p>{{ project.team }}</p><div class="progress-line"><span [style.width.%]="project.progress" [style.background]="project.accent"></span></div><div class="project-meta"><div class="avatar-stack">@for (m of project.members.slice(0, 4); track m) { <span>{{ m }}</span> }</div><strong>{{ project.progress }}%</strong></div></article> } @empty { <article class="empty-card"><strong>No projects yet</strong><p>Create a project to start planning in this workspace.</p></article> }</div></section>
           <aside class="panel activity-panel"><div class="panel-head"><div><span class="kicker">Recent movement</span><h2>Activity</h2></div><button>View all</button></div>@for (activity of activities; track activity.text) { <div class="activity-item"><span class="mini-avatar">{{ initials(activity.actor) }}</span><div><strong>{{ activity.actor }}</strong><p>{{ activity.text }}</p></div><small>{{ activity.time }}</small></div> }</aside>
-          <section class="panel chart-panel"><div class="panel-head"><div><span class="kicker">Sprint health</span><h2>Tasks overview</h2></div><button>This week ⌄</button></div><div class="chart-content"><div class="donut" [style.--done]="completionRate()"><strong>{{ totalTasks() }}</strong><span>Total</span></div><div class="legend"><span><i class="todo"></i>To Do</span><span><i class="progress"></i>In Progress</span><span><i class="review"></i>Review</span><span><i class="done"></i>Done</span></div></div></section>
           <aside class="panel upcoming-panel"><div class="panel-head"><div><span class="kicker">Next best actions</span><h2>Upcoming</h2></div><button>View all</button></div>@for (task of workspaceTasks().slice(0, 4); track task.id) { <button matRipple class="upcoming" (click)="selectTask(task); setPage('projects')"><i [class]="priorityClass(task.priority)"></i><span>{{ task.title }}</span><small>{{ task.dueDate }}</small></button> } @empty { <p class="empty-copy">No upcoming tasks in this workspace yet.</p> }</aside>
         </div>
       </section>
