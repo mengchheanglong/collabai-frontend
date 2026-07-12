@@ -4,6 +4,15 @@ This is the Angular/TypeScript frontend for CollabAI.
 
 ## Current implementation slice
 
+Application code is organized under `src/app` by feature and domain:
+
+- `core/` — shell layout, toast, workspace context, mock-era domain stores
+- `features/` — dashboard, board, team, profile pages
+- `shared/` — domain models and pure helpers
+- `data/mock/` — seed data until API services are wired
+
+Routing uses Angular Router (`app.routes.ts` + `app.config.ts`).
+
 The first working UI slice implements a polished mock-data frontend based on:
 
 - `docs/SRS-EXTRACTED.txt` from the attached SRS PDF.

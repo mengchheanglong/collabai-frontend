@@ -1,0 +1,42 @@
+<div class="card table-card">
+  <table>
+    <thead>
+      <tr>
+        <th>Task</th>
+        <th>Assignee</th>
+        <th>Status</th>
+        <th>Priority</th>
+        <th>Due</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (task of tasks.filteredTasks(); track task.id) {
+        <tr [class.selected]="tasks.selectedTask()?.id === task.id" (click)="tasks.selectTask(task)">
+          <td>
+            <span class="task-id">{{ task.id }}</span>
+            <strong>{{ task.title }}</strong>
+          </td>
+          <td>
+            <span class="inline-person">
+              <span class="avatar sm" [style.background]="members.memberColor(task.assignee)">
+                {{ members.initials(task.assignee) }}
+              </span>
+              {{ task.assignee }}
+            </span>
+          </td>
+          <td>
+            <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
+          </td>
+          <td>
+            <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
+          </td>
+          <td>{{ task.dueDate }}</td>
+        </tr>
+      } @empty {
+        <tr>
+          <td colspan="5" class="empty">No matching tasks.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
+</div>

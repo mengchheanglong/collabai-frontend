@@ -1,0 +1,74 @@
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a class="brand" routerLink="/dashboard" aria-label="CollabAI home">
+      <img src="logo-wordmark.svg" alt="Collab AI" class="brand-logo" />
+    </a>
+
+    <nav class="nav" aria-label="Main">
+      @for (page of pages; track page.key) {
+        <a
+          class="nav-item"
+          [routerLink]="'/' + page.key"
+          routerLinkActive="active"
+          #navLink="routerLinkActive"
+          matRipple
+        >
+          <span class="material-symbols-rounded" [class.filled]="navLink.isActive">{{ page.icon }}</span>
+          {{ page.label }}
+        </a>
+      }
+    </nav>
+
+    <div class="workspaces">
+      <div class="section-label">
+        <span>Workspaces</span>
+        <button
+          type="button"
+          class="icon-btn"
+          (click)="workspace.toggleWorkspaceCreator()"
+          matTooltip="New workspace"
+          aria-label="New workspace"
+        >
+          <span class="material-symbols-rounded sm">add</span>
+        </button>
+      </div>
+
+      @for (ws of workspace.workspaces(); track ws.id) {
+        <button
+          type="button"
+          class="ws-item"
+          [class.active]="workspace.selectedWorkspaceId() === ws.id"
+          (click)="selectWorkspace(ws.id)"
+          matRipple
+        >
+          <span class="ws-dot" [style.background]="ws.accent"></span>
+          <span class="ws-name">{{ ws.name }}</span>
+        </button>
+      }
+
+      @if (workspace.isWorkspaceCreatorOpen()) {
+        <div class="ws-create">
+          <input
+            #wsInput
+            [value]="workspace.newWorkspaceName()"
+            (input)="workspace.newWorkspaceName.set(wsInput.value)"
+            (keydown.enter)="addWorkspace(wsInput.value)"
+            placeholder="Workspace name"
+          />
+          <div class="ws-create-actions">
+            <button type="button" class="btn ghost sm" (click)="workspace.toggleWorkspaceCreator()">Cancel</button>
+            <button type="button" class="btn primary sm" (click)="addWorkspace(wsInput.value)">Add</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple>
+    <span class="avatar" [style.background]="currentUser.color">{{ currentUser.avatar }}</span>
+    <span class="user-info">
+      <strong>{{ currentUser.name }}</strong>
+      <small>{{ currentUser.email }}</small>
+    </span>
+  </a>
+</aside>

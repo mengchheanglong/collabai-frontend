@@ -64,6 +64,7 @@
   font-size: 13px;
   font-weight: 500;
   text-align: left;
+  text-decoration: none;
   transition: 0.15s var(--ease);
 
   .material-symbols-rounded {
@@ -183,6 +184,8 @@
   border-radius: 8px;
   border: 1px solid var(--line);
   text-align: left;
+  text-decoration: none;
+  color: inherit;
   transition: 0.15s var(--ease);
 
   &:hover,
@@ -328,10 +331,15 @@
   color: var(--brand-hover);
   font-size: 13px;
   font-weight: 600;
+  text-decoration: none;
 
   &:hover {
     text-decoration: underline;
   }
+}
+
+a.btn {
+  text-decoration: none;
 }
 
 /* Stats — simple, no icons clutter */
@@ -405,6 +413,8 @@
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   text-align: left;
+  text-decoration: none;
+  color: inherit;
   transition: 0.12s var(--ease);
 
   &:hover {
@@ -663,7 +673,9 @@
   border-radius: var(--radius-sm);
 }
 
-.task-card {
+.task-card,
+app-task-card.task-card {
+  display: block;
   background: var(--panel-2);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1257,6 +1269,7 @@ tbody tr {
     background: rgba(12, 12, 14, 0.94);
     backdrop-filter: blur(12px);
 
+    a,
     button {
       display: grid;
       place-items: center;
@@ -1266,6 +1279,7 @@ tbody tr {
       color: var(--muted);
       font-size: 10px;
       font-weight: 600;
+      text-decoration: none;
 
       &.active {
         color: var(--text);

@@ -1,0 +1,108 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Home</h1>
+      <p>
+        {{ workspace.activeWorkspace().name }} · {{ tasks.totalTasks() }} tasks ·
+        {{ tasks.completionRate() }}% done
+      </p>
+    </div>
+    <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+      <span class="material-symbols-rounded sm">add</span>
+      New task
+    </button>
+  </header>
+
+  <div class="stats">
+    <div class="stat">
+      <span class="stat-label">Projects</span>
+      <strong>{{ workspace.filteredProjects().length }}</strong>
+    </div>
+    <div class="stat">
+      <span class="stat-label">In progress</span>
+      <strong>{{ tasks.inProgressTasks() }}</strong>
+    </div>
+    <div class="stat">
+      <span class="stat-label">Done</span>
+      <strong>{{ tasks.doneTasks() }}</strong>
+    </div>
+  </div>
+
+  <div class="home-grid">
+    <section class="card">
+      <div class="card-head">
+        <h2>Projects</h2>
+        <a class="link" routerLink="/board">Open board</a>
+      </div>
+      <div class="project-list">
+        @for (project of workspace.filteredProjects(); track project.id) {
+          <a class="project-row" routerLink="/board" matRipple>
+            <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
+            <span class="project-body">
+              <strong>{{ project.name }}</strong>
+              <small>{{ project.team }}</small>
+            </span>
+            <span class="project-pct">{{ project.progress }}%</span>
+          </a>
+        } @empty {
+          <p class="empty">No projects in this workspace yet.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Up next</h2>
+      </div>
+      <div class="simple-list">
+        @for (task of tasks.upcomingTasks(); track task.id) {
+          <button type="button" class="list-row" (click)="openTaskOnBoard(task)" matRipple>
+            <span class="prio-dot" [class]="tasks.priorityClass(task.priority)"></span>
+            <span class="list-title">{{ task.title }}</span>
+            <span class="list-meta">{{ task.dueDate }}</span>
+          </button>
+        } @empty {
+          <p class="empty">No open tasks.</p>
+        }
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Activity</h2>
+      </div>
+      <div class="simple-list">
+        @for (activity of activities.activities().slice(0, 5); track $index) {
+          <div class="activity-row">
+            <span class="avatar sm" [style.background]="members.memberColor(activity.actor)">
+              {{ members.initials(activity.actor) }}
+            </span>
+            <div>
+              <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
+              <small>{{ activity.time }}</small>
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    @if (suggestions.suggestions().length) {
+      <section class="card">
+        <div class="card-head">
+          <h2>Suggestions</h2>
+        </div>
+        <div class="simple-list">
+          @for (s of suggestions.suggestions(); track s.id) {
+            <div class="suggestion-row">
+              <div>
+                <strong>{{ s.title }}</strong>
+                <p>{{ s.body }}</p>
+              </div>
+              <button type="button" class="btn ghost sm" (click)="suggestions.applySuggestion(s)">Apply</button>
+            </div>
+          }
+        </div>
+      </section>
+    }
+  </div>
+</section>
