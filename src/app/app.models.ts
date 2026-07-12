@@ -1,4 +1,5 @@
-export type PageKey = 'dashboard' | 'projects' | 'tasks' | 'team' | 'profile' | 'calendar' | 'reports' | 'settings';
+export type PageKey = 'dashboard' | 'board' | 'team' | 'profile';
+export type BoardView = 'kanban' | 'list';
 export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
 export type Priority = 'low' | 'medium' | 'high' | 'critical';
 
@@ -11,6 +12,7 @@ export interface Member {
   status: 'Active' | 'Away' | 'Offline';
   projects: number;
   joined: string;
+  color: string;
 }
 
 export interface Project {
@@ -21,6 +23,7 @@ export interface Project {
   icon: string;
   accent: string;
   members: string[];
+  description?: string;
 }
 
 export interface Subtask {
@@ -51,9 +54,31 @@ export interface Activity {
 }
 
 export interface Suggestion {
+  id: string;
   title: string;
   body: string;
   category: 'Timeline' | 'Workload' | 'Tasks' | 'Risk' | 'Team';
   impact: 'High' | 'Medium' | 'Low';
   action: string;
+}
+
+export interface CommentPreview {
+  author: string;
+  body: string;
+  time: string;
+}
+
+export interface NavItem {
+  key: PageKey;
+  label: string;
+  icon: string;
+}
+
+export interface Workspace {
+  id: string;
+  name: string;
+  icon: string;
+  accent: string;
+  projectNames: string[];
+  description: string;
 }

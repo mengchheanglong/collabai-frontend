@@ -1,93 +1,529 @@
 <div class="app-shell">
   <aside class="sidebar">
-    <div class="brand"><div class="brand-mark">C</div><span>CollabAI</span></div>
+    <div class="sidebar-top">
+      <a class="brand" href="/" (click)="$event.preventDefault(); setPage('dashboard')" aria-label="CollabAI home">
+        <img src="logo-wordmark.svg" alt="Collab AI" class="brand-logo" />
+      </a>
 
-    <nav class="nav-list" aria-label="Primary navigation">
-      @for (page of pages; track page.key) {
-        <button matRipple class="nav-item" [class.active]="currentPage() === page.key" (click)="setPage(page.key)">
-          <span class="nav-icon">{{ page.icon }}</span><span>{{ page.label }}</span>@if (page.badge) { <small>{{ page.badge }}</small> }
-        </button>
-      }
-    </nav>
+      <nav class="nav" aria-label="Main">
+        @for (page of pages; track page.key) {
+          <button
+            type="button"
+            class="nav-item"
+            [class.active]="currentPage() === page.key"
+            (click)="setPage(page.key)"
+            matRipple
+          >
+            <span class="material-symbols-rounded" [class.filled]="currentPage() === page.key">{{ page.icon }}</span>
+            {{ page.label }}
+          </button>
+        }
+      </nav>
 
-    <div class="workspace-block">
-      <div class="block-title"><span>Workspaces</span><button type="button" (click)="toggleWorkspaceCreator()" aria-label="Create workspace">+</button></div>
-      @for (workspace of workspaces(); track workspace.id) {
-        <button matRipple class="workspace" [class.active]="selectedWorkspaceId() === workspace.id" [attr.aria-pressed]="selectedWorkspaceId() === workspace.id" (click)="selectWorkspace(workspace.id)">
-          <span [style.background]="workspace.accent">{{ workspace.icon }}</span>
-          <div><strong>{{ workspace.name }}</strong><small>{{ workspace.description }}</small></div>
-        </button>
-      }
-      @if (isWorkspaceCreatorOpen()) {
-        <div class="workspace-creator">
-          <input #workspaceInput [value]="newWorkspaceName()" (input)="newWorkspaceName.set(workspaceInput.value)" (keydown.enter)="addWorkspace(workspaceInput.value)" placeholder="New workspace name" />
-          <div><button type="button" class="ghost-button" (pointerdown)="toggleWorkspaceCreator()" (keydown.enter)="toggleWorkspaceCreator()">Cancel</button><button type="button" class="primary-button" (pointerdown)="addWorkspace(workspaceInput.value)" (keydown.enter)="addWorkspace(workspaceInput.value)">Create</button></div>
+      <div class="workspaces">
+        <div class="section-label">
+          <span>Workspaces</span>
+          <button type="button" class="icon-btn" (click)="toggleWorkspaceCreator()" matTooltip="New workspace" aria-label="New workspace">
+            <span class="material-symbols-rounded sm">add</span>
+          </button>
         </div>
-      }
+
+        @for (ws of workspaces(); track ws.id) {
+          <button
+            type="button"
+            class="ws-item"
+            [class.active]="selectedWorkspaceId() === ws.id"
+            (click)="selectWorkspace(ws.id)"
+            matRipple
+          >
+            <span class="ws-dot" [style.background]="ws.accent"></span>
+            <span class="ws-name">{{ ws.name }}</span>
+          </button>
+        }
+
+        @if (isWorkspaceCreatorOpen()) {
+          <div class="ws-create">
+            <input
+              #wsInput
+              [value]="newWorkspaceName()"
+              (input)="newWorkspaceName.set(wsInput.value)"
+              (keydown.enter)="addWorkspace(wsInput.value)"
+              placeholder="Workspace name"
+            />
+            <div class="ws-create-actions">
+              <button type="button" class="btn ghost sm" (click)="toggleWorkspaceCreator()">Cancel</button>
+              <button type="button" class="btn primary sm" (click)="addWorkspace(wsInput.value)">Add</button>
+            </div>
+          </div>
+        }
+      </div>
     </div>
-    <div class="user-area"><button matRipple type="button" class="user-card" [class.active]="currentPage() === 'profile'" (click)="openProfile()" aria-label="Open profile page"><div class="avatar">S</div><div><strong>Seoul</strong><small>seoul&#64;example.com</small></div><span>›</span></button></div>
+
+    <button type="button" class="user-btn" [class.active]="currentPage() === 'profile'" (click)="openProfile()" matRipple>
+      <span class="avatar" [style.background]="currentUser.color">{{ currentUser.avatar }}</span>
+      <span class="user-info">
+        <strong>{{ currentUser.name }}</strong>
+        <small>{{ currentUser.email }}</small>
+      </span>
+    </button>
   </aside>
 
   <main class="main">
-    <header class="topbar">
-      <div class="mobile-brand"><div class="brand-mark">C</div><strong>CollabAI</strong></div>
-      <div class="topbar-left"><span>Workspace</span><span>›</span><strong>{{ activeWorkspace().name }}</strong></div>
-      <button matRipple type="button" class="topbar-create-workspace" (click)="openWorkspaceCreator()" aria-label="Create workspace">+</button>
-    </header>
-
+    <!-- HOME -->
     @if (currentPage() === 'dashboard') {
-      <section class="page dashboard-page">
-        <div class="dashboard-hero board-only">
-          <section class="board-preview">
-            <div class="preview-header"><div><span class="kicker">Live board preview</span><strong>{{ activeProjectName() }}</strong></div><button matRipple class="primary-button small" (click)="setPage('projects')">Open board</button></div>
-            <div class="preview-columns">
-              @for (column of columns.slice(0, 3); track column.key) {
-                <div class="preview-col"><header><span><i [class]="column.tone"></i>{{ column.label }}</span><span>{{ tasksByStatus(column.key).length }}</span></header>@for (task of tasksByStatus(column.key).slice(0, 2); track task.id) { <div class="preview-card"><strong>{{ task.title }}</strong><small>{{ task.assignee }} · {{ task.dueDate }}</small></div> }</div>
+      <section class="page">
+        <header class="page-header">
+          <div>
+            <h1>Home</h1>
+            <p>{{ activeWorkspace().name }} · {{ totalTasks() }} tasks · {{ completionRate() }}% done</p>
+          </div>
+          <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+            <span class="material-symbols-rounded sm">add</span>
+            New task
+          </button>
+        </header>
+
+        <div class="stats">
+          <div class="stat">
+            <span class="stat-label">Projects</span>
+            <strong>{{ filteredProjects().length }}</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">In progress</span>
+            <strong>{{ inProgressTasks() }}</strong>
+          </div>
+          <div class="stat">
+            <span class="stat-label">Done</span>
+            <strong>{{ doneTasks() }}</strong>
+          </div>
+        </div>
+
+        <div class="home-grid">
+          <section class="card">
+            <div class="card-head">
+              <h2>Projects</h2>
+              <button type="button" class="link" (click)="setPage('board')">Open board</button>
+            </div>
+            <div class="project-list">
+              @for (project of filteredProjects(); track project.id) {
+                <button type="button" class="project-row" (click)="setPage('board')" matRipple>
+                  <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
+                  <span class="project-body">
+                    <strong>{{ project.name }}</strong>
+                    <small>{{ project.team }}</small>
+                  </span>
+                  <span class="project-pct">{{ project.progress }}%</span>
+                </button>
+              } @empty {
+                <p class="empty">No projects in this workspace yet.</p>
               }
             </div>
           </section>
-        </div>
 
-        <div class="stats-grid">
-          <article class="stat-card"><span class="stat-icon purple">□</span><small>Projects</small><strong>{{ filteredProjects().length }}</strong><em>{{ activeWorkspace().name }}</em></article>
-          <article class="stat-card"><span class="stat-icon blue">●</span><small>Total Tasks</small><strong>{{ totalTasks() }}</strong><em>tracked this sprint</em></article>
-          <article class="stat-card"><span class="stat-icon green">◎</span><small>In Progress</small><strong>{{ inProgressTasks() }}</strong><em>live right now</em></article>
-          <article class="stat-card"><span class="stat-icon orange">◒</span><small>Completed</small><strong>{{ doneTasks() }}</strong><em>{{ completionRate() }}% completion</em></article>
-        </div>
+          <section class="card">
+            <div class="card-head">
+              <h2>Up next</h2>
+            </div>
+            <div class="simple-list">
+              @for (task of upcomingTasks(); track task.id) {
+                <button type="button" class="list-row" (click)="openTaskOnBoard(task)" matRipple>
+                  <span class="prio-dot" [class]="priorityClass(task.priority)"></span>
+                  <span class="list-title">{{ task.title }}</span>
+                  <span class="list-meta">{{ task.dueDate }}</span>
+                </button>
+              } @empty {
+                <p class="empty">No open tasks.</p>
+              }
+            </div>
+          </section>
 
-        <div class="dashboard-grid">
-          <section class="panel projects-panel"><div class="panel-head"><div><span class="kicker">Project spaces</span><h2>Pages your team owns</h2></div><button>View all →</button></div><div class="project-grid">@for (project of filteredProjects(); track project.id) { <article matRipple class="project-card" (click)="setPage('projects')"><div class="project-top"><span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span><button>⋮</button></div><h3>{{ project.name }}</h3><p>{{ project.team }}</p><div class="progress-line"><span [style.width.%]="project.progress" [style.background]="project.accent"></span></div><div class="project-meta"><div class="avatar-stack">@for (m of project.members.slice(0, 4); track m) { <span>{{ m }}</span> }</div><strong>{{ project.progress }}%</strong></div></article> } @empty { <article class="empty-card"><strong>No projects yet</strong><p>Create a project to start planning in this workspace.</p></article> }</div></section>
-          <aside class="panel activity-panel"><div class="panel-head"><div><span class="kicker">Recent movement</span><h2>Activity</h2></div><button>View all</button></div>@for (activity of activities; track activity.text) { <div class="activity-item"><span class="mini-avatar">{{ initials(activity.actor) }}</span><div><strong>{{ activity.actor }}</strong><p>{{ activity.text }}</p></div><small>{{ activity.time }}</small></div> }</aside>
-          <aside class="panel upcoming-panel"><div class="panel-head"><div><span class="kicker">Next best actions</span><h2>Upcoming</h2></div><button>View all</button></div>@for (task of workspaceTasks().slice(0, 4); track task.id) { <button matRipple class="upcoming" (click)="selectTask(task); setPage('projects')"><i [class]="priorityClass(task.priority)"></i><span>{{ task.title }}</span><small>{{ task.dueDate }}</small></button> } @empty { <p class="empty-copy">No upcoming tasks in this workspace yet.</p> }</aside>
+          <section class="card">
+            <div class="card-head">
+              <h2>Activity</h2>
+            </div>
+            <div class="simple-list">
+              @for (activity of activities().slice(0, 5); track $index) {
+                <div class="activity-row">
+                  <span class="avatar sm" [style.background]="memberColor(activity.actor)">{{ initials(activity.actor) }}</span>
+                  <div>
+                    <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
+                    <small>{{ activity.time }}</small>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+
+          @if (suggestions().length) {
+            <section class="card">
+              <div class="card-head">
+                <h2>Suggestions</h2>
+              </div>
+              <div class="simple-list">
+                @for (s of suggestions(); track s.id) {
+                  <div class="suggestion-row">
+                    <div>
+                      <strong>{{ s.title }}</strong>
+                      <p>{{ s.body }}</p>
+                    </div>
+                    <button type="button" class="btn ghost sm" (click)="applySuggestion(s)">Apply</button>
+                  </div>
+                }
+              </div>
+            </section>
+          }
         </div>
       </section>
     }
 
-    @if (currentPage() === 'projects') {
-      <section class="page board-layout">
-        <div class="workspace-header"><div><a>‹ Projects</a><h1>{{ activeProjectName() }}</h1><p>Kanban board for {{ activeWorkspace().name }}.</p><nav><button class="active">Board</button><button (click)="setPage('tasks')">Database</button><button>Timeline</button><button>Calendar</button><button>Docs</button></nav></div><div class="member-row"><div class="avatar-stack">@for (m of members.slice(0, 4); track m.id) { <span>{{ m.avatar }}</span> }</div><button matRipple class="primary-button small">Invite</button><button matRipple class="ghost-button">⋯</button></div></div>
-        <div class="toolbar"><button matRipple class="ghost-button">⌯ Filter</button><button matRipple class="ghost-button">Group: Status ⌄</button><button matRipple class="ghost-button">⇅ Sort ⌄</button><span></span><button matRipple class="ghost-button">⚡ Automations</button><button matRipple class="primary-button">+ Add Task</button></div>
-        <div class="board-with-panel"><div class="kanban-board" cdkDropListGroup>@for (column of columns; track column.key) { <section class="kanban-column" cdkDropList [cdkDropListData]="tasksByStatus(column.key)" (cdkDropListDropped)="drop($event, column.key)"><header><div><i [class]="column.tone"></i><strong>{{ column.label }}</strong></div><span>{{ tasksByStatus(column.key).length }}</span></header><button class="add-link">+ Add Task</button>@for (task of tasksByStatus(column.key); track task.id) { <article matRipple class="task-card" cdkDrag [cdkDragData]="task" [class.selected]="selectedTask()?.id === task.id" (click)="selectTask(task)"><h3>{{ task.title }}</h3><span class="pill" [class]="priorityClass(task.priority)">{{ task.priority }}</span><footer><span class="mini-avatar">{{ initials(task.assignee) }}</span><small>▣ {{ task.dueDate }}</small><small>☰ {{ task.comments }}</small></footer></article> }</section> }</div><ng-container *ngTemplateOutlet="taskDrawer"></ng-container></div>
+    <!-- BOARD -->
+    @if (currentPage() === 'board') {
+      <section class="page board-page">
+        <header class="page-header">
+          <div>
+            <h1>{{ activeProjectName() }}</h1>
+            <p>{{ activeWorkspace().name }}</p>
+          </div>
+          <div class="header-actions">
+            <div class="segmented" role="tablist" aria-label="Board view">
+              <button type="button" [class.active]="boardView() === 'kanban'" (click)="setBoardView('kanban')">Board</button>
+              <button type="button" [class.active]="boardView() === 'list'" (click)="setBoardView('list')">List</button>
+            </div>
+            <div class="search-field">
+              <span class="material-symbols-rounded sm">search</span>
+              <input
+                [value]="searchQuery()"
+                (input)="searchQuery.set($any($event.target).value)"
+                placeholder="Search tasks"
+                aria-label="Search tasks"
+              />
+            </div>
+            <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+              <span class="material-symbols-rounded sm">add</span>
+              Task
+            </button>
+          </div>
+        </header>
+
+        <div class="board-layout" [class.with-drawer]="!!selectedTask()">
+          @if (boardView() === 'kanban') {
+            <div class="kanban" cdkDropListGroup>
+              @for (column of columns; track column.key) {
+                <section class="column">
+                  <header>
+                    <span>{{ column.label }}</span>
+                    <span class="count">{{ tasksByStatus(column.key).length }}</span>
+                  </header>
+                  <div
+                    class="column-body"
+                    cdkDropList
+                    [id]="'col-' + column.key"
+                    [cdkDropListData]="tasksByStatus(column.key)"
+                    [cdkDropListConnectedTo]="columnConnectedTo()"
+                    (cdkDropListDropped)="drop($event, column.key)"
+                  >
+                    @for (task of tasksByStatus(column.key); track task.id) {
+                      <article
+                        class="task-card"
+                        cdkDrag
+                        [cdkDragData]="task"
+                        [class.selected]="selectedTask()?.id === task.id"
+                        (click)="selectTask(task)"
+                      >
+                        <div class="task-top">
+                          <span class="task-id">{{ task.id }}</span>
+                          <span class="pill" [class]="priorityClass(task.priority)">{{ task.priority }}</span>
+                        </div>
+                        <h3>{{ task.title }}</h3>
+                        @if (task.tags.length) {
+                          <div class="tags">
+                            @for (tag of task.tags.slice(0, 2); track tag) {
+                              <span class="tag">{{ tag }}</span>
+                            }
+                          </div>
+                        }
+                        <footer>
+                          <span class="avatar sm" [style.background]="memberColor(task.assignee)" [matTooltip]="task.assignee">
+                            {{ initials(task.assignee) }}
+                          </span>
+                          <span class="meta">{{ task.dueDate }}</span>
+                          @if (task.comments) {
+                            <span class="meta">
+                              <span class="material-symbols-rounded sm">chat_bubble</span>
+                              {{ task.comments }}
+                            </span>
+                          }
+                        </footer>
+                      </article>
+                    } @empty {
+                      <div class="column-empty">Drop here</div>
+                    }
+                  </div>
+                </section>
+              }
+            </div>
+          } @else {
+            <div class="card table-card">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Assignee</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Due</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (task of filteredTasks(); track task.id) {
+                    <tr [class.selected]="selectedTask()?.id === task.id" (click)="selectTask(task)">
+                      <td>
+                        <span class="task-id">{{ task.id }}</span>
+                        <strong>{{ task.title }}</strong>
+                      </td>
+                      <td>
+                        <span class="inline-person">
+                          <span class="avatar sm" [style.background]="memberColor(task.assignee)">{{ initials(task.assignee) }}</span>
+                          {{ task.assignee }}
+                        </span>
+                      </td>
+                      <td><span class="status" [attr.data-status]="task.status">{{ statusLabel(task.status) }}</span></td>
+                      <td><span class="pill" [class]="priorityClass(task.priority)">{{ task.priority }}</span></td>
+                      <td>{{ task.dueDate }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5" class="empty">No matching tasks.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          @if (selectedTask(); as task) {
+            <aside class="drawer">
+              <header class="drawer-head">
+                <span class="task-id">{{ task.id }}</span>
+                <button type="button" class="icon-btn" (click)="closeTask()" aria-label="Close">
+                  <span class="material-symbols-rounded">close</span>
+                </button>
+              </header>
+
+              <h2>{{ task.title }}</h2>
+
+              <div class="drawer-chips">
+                <span class="status" [attr.data-status]="task.status">{{ statusLabel(task.status) }}</span>
+                <span class="pill" [class]="priorityClass(task.priority)">{{ task.priority }}</span>
+              </div>
+
+              <div class="ai-row">
+                <button type="button" class="btn ghost sm" [disabled]="isGeneratingSubtasks()" (click)="generateSubtasks(task)">
+                  {{ isGeneratingSubtasks() ? 'Generating…' : 'AI subtasks' }}
+                </button>
+                <button type="button" class="btn ghost sm" [disabled]="isImprovingDescription()" (click)="improveDescription(task)">
+                  {{ isImprovingDescription() ? 'Improving…' : 'Improve text' }}
+                </button>
+              </div>
+
+              <dl class="props">
+                <div>
+                  <dt>Assignee</dt>
+                  <dd>
+                    <span class="inline-person">
+                      <span class="avatar sm" [style.background]="memberColor(task.assignee)">{{ initials(task.assignee) }}</span>
+                      {{ task.assignee }}
+                    </span>
+                  </dd>
+                </div>
+                <div>
+                  <dt>Due</dt>
+                  <dd>{{ task.dueDate }}</dd>
+                </div>
+                <div>
+                  <dt>Project</dt>
+                  <dd>{{ task.project }}</dd>
+                </div>
+              </dl>
+
+              <section class="block">
+                <h3>Description</h3>
+                <p class="desc">{{ task.description }}</p>
+              </section>
+
+              <section class="block">
+                <div class="block-head">
+                  <h3>Subtasks</h3>
+                  <small>{{ completedSubtasks(task) }}/{{ task.subtasks.length }}</small>
+                </div>
+                @if (task.subtasks.length) {
+                  <mat-progress-bar mode="determinate" [value]="subtaskProgress(task)"></mat-progress-bar>
+                }
+                <div class="subtasks">
+                  @for (sub of task.subtasks; track sub.title; let i = $index) {
+                    <label class="check" [class.done]="sub.done">
+                      <input type="checkbox" [checked]="sub.done" (change)="toggleSubtask(task, i)" />
+                      <span>{{ sub.title }}</span>
+                    </label>
+                  } @empty {
+                    <p class="empty">No subtasks yet.</p>
+                  }
+                </div>
+              </section>
+
+              <section class="block">
+                <h3>Comments</h3>
+                <div class="comments">
+                  @for (c of selectedTaskComments().slice(0, 4); track $index) {
+                    <div class="comment">
+                      <span class="avatar sm" [style.background]="memberColor(c.author)">{{ initials(c.author) }}</span>
+                      <div>
+                        <strong>{{ c.author }}</strong>
+                        <small>{{ c.time }}</small>
+                        <p>{{ c.body }}</p>
+                      </div>
+                    </div>
+                  } @empty {
+                    <p class="empty">No comments yet.</p>
+                  }
+                </div>
+                <div class="comment-input">
+                  <input
+                    [value]="commentDraft()"
+                    (input)="commentDraft.set($any($event.target).value)"
+                    (keydown.enter)="postComment(task)"
+                    placeholder="Write a comment"
+                  />
+                  <button type="button" class="btn primary sm" (click)="postComment(task)">Send</button>
+                </div>
+              </section>
+            </aside>
+          }
+        </div>
       </section>
     }
 
-    @if (currentPage() === 'tasks') {
-      <section class="page tasks-page"><div class="workspace-header"><div><a>‹ {{ activeProjectName() }}</a><h1>Task database</h1><p>Notion-style list view for assignments, due dates, status, and labels.</p><nav><button (click)="setPage('projects')">Board</button><button class="active">Database</button><button>Timeline</button><button>Calendar</button><button>Docs</button></nav></div><button matRipple class="primary-button">+ Add Task</button></div><div class="toolbar"><button matRipple class="ghost-button">⌯ Filter</button><button matRipple class="ghost-button">Status: All ⌄</button><button matRipple class="ghost-button">Priority: All ⌄</button><button matRipple class="ghost-button">Assignee: All ⌄</button></div><div class="task-list-with-panel"><section class="panel table-panel"><table><thead><tr><th>Task</th><th>Assignee</th><th>Status</th><th>Priority</th><th>Due Date</th><th>Tags</th></tr></thead><tbody>@for (task of filteredTasks(); track task.id) { <tr (click)="selectTask(task)"><td><strong>{{ task.title }}</strong><small>☰ {{ task.comments }}</small></td><td>{{ task.assignee }}</td><td><span class="status-pill status-{{task.status}}">{{ statusLabel(task.status) }}</span></td><td><span class="priority-text" [class]="priorityClass(task.priority)">↑ {{ task.priority }}</span></td><td>{{ task.dueDate }}</td><td><span class="tag">{{ task.tags[0] }}</span></td></tr> } @empty { <tr><td colspan="6"><p class="empty-copy">No tasks match this workspace yet.</p></td></tr> }</tbody></table></section><ng-container *ngTemplateOutlet="taskDrawer"></ng-container></div></section>
-    }
-
+    <!-- TEAM -->
     @if (currentPage() === 'team') {
-      <section class="page team-page"><div class="page-heading split"><div><span class="eyebrow">People & permissions</span><h1>Team collaboration</h1><p>Invite members, check workload, and keep roles clear.</p></div><button matRipple class="primary-button">+ Invite Members</button></div><nav class="tabs"><button class="active">Members</button><button>Roles</button><button>Invitations</button></nav><div class="stats-grid"><article class="stat-card"><span class="stat-icon purple">♟</span><small>Total Members</small><strong>12</strong><em>2 this month</em></article><article class="stat-card"><span class="stat-icon green">▣</span><small>Admins</small><strong>3</strong><em>25% of team</em></article><article class="stat-card"><span class="stat-icon blue">○</span><small>Members</small><strong>8</strong><em>67% of team</em></article><article class="stat-card"><span class="stat-icon orange">◉</span><small>Viewers</small><strong>1</strong><em>8% of team</em></article></div><div class="team-grid"><section class="panel table-panel"><div class="panel-head"><h2>Team Members</h2><button>Filter</button></div><table><thead><tr><th>Member</th><th>Role</th><th>Projects</th><th>Joined</th><th>Status</th></tr></thead><tbody>@for (member of members; track member.id) { <tr><td><span class="mini-avatar">{{ member.avatar }}</span><strong>{{ member.name }}</strong><small>{{ member.email }}</small></td><td><span class="tag">{{ member.role }}</span></td><td>{{ member.projects }}</td><td>{{ member.joined }}</td><td><span class="online-dot"></span>{{ member.status }}</td></tr> }</tbody></table></section><aside class="side-stack"><section class="panel invite-card"><h2>Invite Members</h2><p>Send a role-scoped invite to your workspace.</p><input placeholder="Enter email address"><select><option>Select role</option><option>Admin</option><option>Member</option><option>Viewer</option></select><textarea placeholder="Add a personal message"></textarea><button matRipple class="primary-button">Send Invitation</button></section><section class="panel"><h2>Roles</h2><p>Admin · 3 members ›</p><p>Member · 8 members ›</p><p>Viewer · 1 member ›</p></section></aside></div></section>
+      <section class="page">
+        <header class="page-header">
+          <div>
+            <h1>Team</h1>
+            <p>{{ members.length }} members in {{ activeWorkspace().name }}</p>
+          </div>
+        </header>
+
+        <div class="team-layout">
+          <section class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Member</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (member of members; track member.id) {
+                  <tr>
+                    <td>
+                      <span class="inline-person">
+                        <span class="avatar" [style.background]="member.color">{{ member.avatar }}</span>
+                        <span>
+                          <strong>{{ member.name }}</strong>
+                          <small class="sub">{{ member.email }}</small>
+                        </span>
+                      </span>
+                    </td>
+                    <td><span class="tag">{{ member.role }}</span></td>
+                    <td>
+                      <span class="presence" [attr.data-status]="member.status">{{ member.status }}</span>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </section>
+
+          <section class="card invite">
+            <h2>Invite</h2>
+            <p>Add someone to this workspace.</p>
+            <label class="field">
+              <span>Email</span>
+              <input
+                [value]="inviteEmail()"
+                (input)="inviteEmail.set($any($event.target).value)"
+                placeholder="name@example.com"
+              />
+            </label>
+            <label class="field">
+              <span>Role</span>
+              <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
+                <option>Admin</option>
+                <option>Member</option>
+                <option>Viewer</option>
+              </select>
+            </label>
+            <button type="button" class="btn primary" matRipple (click)="sendInvite()">Send invite</button>
+          </section>
+        </div>
+      </section>
     }
 
+    <!-- PROFILE -->
     @if (currentPage() === 'profile') {
-      <section class="page profile-page"><div class="page-heading split"><div><span class="eyebrow">Account</span><h1>Profile</h1><p>Manage your personal account, workspace identity, and preferences.</p></div><button matRipple class="ghost-button" (click)="setPage('dashboard')">Back to dashboard</button></div><div class="profile-grid"><section class="panel profile-card"><div class="profile-hero"><div class="profile-avatar">S</div><div><span class="tag">Active</span><h2>Seoul</h2><p>seoul&#64;example.com</p></div></div><div class="profile-actions"><button matRipple class="primary-button">Edit profile</button><button matRipple class="ghost-button">Change password</button></div></section><section class="panel profile-details"><h2>Account details</h2><div class="detail-row"><span>Display name</span><strong>Seoul</strong></div><div class="detail-row"><span>Email</span><strong>seoul&#64;example.com</strong></div><div class="detail-row"><span>Current workspace</span><strong>{{ activeWorkspace().name }}</strong></div><div class="detail-row"><span>Role</span><strong>Workspace admin</strong></div></section><section class="panel profile-details"><h2>Preferences</h2><div class="detail-row"><span>Theme</span><strong>Dark</strong></div><div class="detail-row"><span>Notifications</span><strong>Enabled</strong></div><div class="detail-row"><span>Language</span><strong>English</strong></div></section></div></section>
-    }
+      <section class="page">
+        <header class="page-header">
+          <div>
+            <h1>Profile</h1>
+            <p>Your account in this mock UI</p>
+          </div>
+          <button type="button" class="btn ghost" (click)="setPage('dashboard')">Back</button>
+        </header>
 
+        <div class="profile-layout">
+          <section class="card profile-card">
+            <img src="logo-wordmark.svg" alt="Collab AI" class="profile-logo" />
+            <div class="avatar xl" [style.background]="currentUser.color">{{ currentUser.avatar }}</div>
+            <h2>{{ currentUser.name }}</h2>
+            <p>{{ currentUser.email }}</p>
+            <span class="tag">{{ currentUser.role }}</span>
+          </section>
+
+          <section class="card">
+            <h2>Details</h2>
+            <div class="detail">
+              <span>Workspace</span>
+              <strong>{{ activeWorkspace().name }}</strong>
+            </div>
+            <div class="detail">
+              <span>Theme</span>
+              <strong>Dark</strong>
+            </div>
+            <div class="detail">
+              <span>Notifications</span>
+              <strong>On</strong>
+            </div>
+          </section>
+        </div>
+      </section>
+    }
   </main>
+
+  <nav class="mobile-nav" aria-label="Mobile">
+    @for (page of pages; track page.key) {
+      <button type="button" [class.active]="currentPage() === page.key" (click)="setPage(page.key)">
+        <span class="material-symbols-rounded" [class.filled]="currentPage() === page.key">{{ page.icon }}</span>
+        <span>{{ page.label }}</span>
+      </button>
+    }
+    <button type="button" [class.active]="currentPage() === 'profile'" (click)="openProfile()">
+      <span class="material-symbols-rounded" [class.filled]="currentPage() === 'profile'">person</span>
+      <span>You</span>
+    </button>
+  </nav>
 </div>
 
-<ng-template #taskDrawer>
-  @if (selectedTask(); as task) {
-    <aside class="task-drawer"><header><span class="tag">{{ task.id }}</span><button matRipple (click)="selectedTask.set(null)" aria-label="Close task drawer">×</button></header><h2>{{ task.title }}</h2><div class="drawer-meta"><span class="status-pill status-{{task.status}}">{{ statusLabel(task.status) }}</span><span class="pill" [class]="priorityClass(task.priority)">{{ task.priority }}</span><span class="meta-chip">{{ task.dueDate }}</span><span class="mini-avatar">{{ initials(task.assignee) }}</span></div><dl><div><dt>Assignee</dt><dd>{{ task.assignee }}</dd></div><div><dt>Reporter</dt><dd>{{ task.reporter }}</dd></div><div><dt>Project</dt><dd>{{ task.project }}</dd></div></dl><section><h3>Description</h3><p>{{ task.description }}</p></section><section><div class="panel-head flush"><h3>Subtasks</h3><small>{{ completedSubtasks(task) }}/{{ task.subtasks.length }}</small></div><div class="progress-line"><span [style.width.%]="subtaskProgress(task)"></span></div>@for (subtask of task.subtasks; track subtask.title; let i = $index) { <label class="check-row"><input type="checkbox" [checked]="subtask.done" (change)="toggleSubtask(task, i)"><span>{{ subtask.title }}</span></label> }<button class="add-link">+ Add subtask</button></section><section><div class="panel-head flush"><h3>Activity</h3><button>View all</button></div>@for (activity of activities.slice(0, 3); track activity.text) { <div class="activity-item compact"><span class="mini-avatar">{{ initials(activity.actor) }}</span><div><strong>{{ activity.actor }}</strong><p>{{ activity.text }}</p></div></div> }<label class="comment-box"><input placeholder="Ask or write a comment..."><button matRipple>↑</button></label></section></aside>
-  }
-</ng-template>
+@if (toast(); as t) {
+  <div class="toast" [attr.data-tone]="t.tone" role="status">{{ t.message }}</div>
+}
