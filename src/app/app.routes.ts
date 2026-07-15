@@ -3,6 +3,11 @@ import { ShellComponent } from './core/layout/shell.component';
 
 export const routes: Routes = [
   {
+    path: 'landing',
+    loadComponent: () =>
+      import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     children: [
