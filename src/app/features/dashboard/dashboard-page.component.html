@@ -1,46 +1,110 @@
-<section class="page">
-  <header class="page-header">
-    <div>
-      <h1>Home</h1>
-      <p>
+<section class="page dashboard-page">
+  <!-- Hero -->
+  <header class="dash-hero">
+    <div class="dash-hero-copy">
+      <p class="dash-kicker">
+        <span class="material-symbols-rounded sm filled">auto_awesome</span>
+        CollabAI Copilot
+      </p>
+      <h1>
+        {{ greeting() }},
+        <span class="dash-name">{{ members.currentUser.name }}</span>
+      </h1>
+      <p class="dash-sub">
         {{ workspace.activeWorkspace().name }} · {{ tasks.totalTasks() }} tasks ·
-        {{ tasks.completionRate() }}% done
+        {{ tasks.completionRate() }}% complete
       </p>
     </div>
-    <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
-      <span class="material-symbols-rounded sm">add</span>
-      New task
-    </button>
+    <div class="header-actions">
+      <a class="btn ghost" routerLink="/board" matRipple>
+        <span class="material-symbols-rounded sm">view_kanban</span>
+        Open board
+      </a>
+      <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+        <span class="material-symbols-rounded sm">add</span>
+        New task
+      </button>
+    </div>
   </header>
 
-  <div class="stats">
-    <div class="stat">
-      <span class="stat-label">Projects</span>
+  <!-- AI Smart Search -->
+  <section class="dash-ai card ai-surface" aria-label="AI smart search">
+    <div class="ai-surface-head">
+      <div>
+        <h2>
+          <span class="material-symbols-rounded md filled">psychology</span>
+          Smart task search
+        </h2>
+        <p>Describe what you need in plain English. AI maps it to filters and finds matching work.</p>
+      </div>
+      <span class="ai-live-badge">
+        <span class="ai-live-dot"></span>
+        Live mock
+      </span>
+    </div>
+
+    <app-smart-search
+      variant="hero"
+      placeholder="e.g. frontend tasks due this week that are not done"
+      (taskSelected)="openTaskOnBoard($event)"
+    />
+  </section>
+
+  <!-- Stats -->
+  <div class="stats dash-stats">
+    <div class="stat stat-rich">
+      <div class="stat-top">
+        <span class="stat-icon brand"><span class="material-symbols-rounded sm">folder</span></span>
+        <span class="stat-label">Projects</span>
+      </div>
       <strong>{{ workspace.filteredProjects().length }}</strong>
+      <span class="stat-hint">In this workspace</span>
     </div>
-    <div class="stat">
-      <span class="stat-label">In progress</span>
+    <div class="stat stat-rich">
+      <div class="stat-top">
+        <span class="stat-icon cyan"><span class="material-symbols-rounded sm">progress_activity</span></span>
+        <span class="stat-label">In progress</span>
+      </div>
       <strong>{{ tasks.inProgressTasks() }}</strong>
+      <span class="stat-hint">{{ reviewTasks() }} in review</span>
     </div>
-    <div class="stat">
-      <span class="stat-label">Done</span>
+    <div class="stat stat-rich">
+      <div class="stat-top">
+        <span class="stat-icon green"><span class="material-symbols-rounded sm">check_circle</span></span>
+        <span class="stat-label">Done</span>
+      </div>
       <strong>{{ tasks.doneTasks() }}</strong>
+      <div class="stat-bar">
+        <mat-progress-bar mode="determinate" [value]="tasks.completionRate()"></mat-progress-bar>
+      </div>
+    </div>
+    <div class="stat stat-rich">
+      <div class="stat-top">
+        <span class="stat-icon amber"><span class="material-symbols-rounded sm">priority_high</span></span>
+        <span class="stat-label">High priority</span>
+      </div>
+      <strong>{{ highPriorityOpen() }}</strong>
+      <span class="stat-hint">Open critical &amp; high</span>
     </div>
   </div>
 
-  <div class="home-grid">
-    <section class="card">
+  <div class="home-grid dash-grid">
+    <!-- Projects -->
+    <section class="card dash-card">
       <div class="card-head">
         <h2>Projects</h2>
         <a class="link" routerLink="/board">Open board</a>
       </div>
       <div class="project-list">
         @for (project of workspace.filteredProjects(); track project.id) {
-          <a class="project-row" routerLink="/board" matRipple>
+          <a class="project-row project-row-rich" routerLink="/board" matRipple>
             <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
             <span class="project-body">
               <strong>{{ project.name }}</strong>
               <small>{{ project.team }}</small>
+              <div class="project-progress">
+                <mat-progress-bar mode="determinate" [value]="project.progress"></mat-progress-bar>
+              </div>
             </span>
             <span class="project-pct">{{ project.progress }}%</span>
           </a>
@@ -50,59 +114,107 @@
       </div>
     </section>
 
-    <section class="card">
+    <!-- Up next -->
+    <section class="card dash-card">
       <div class="card-head">
         <h2>Up next</h2>
+        <button type="button" class="link" (click)="openBoard()">View all</button>
       </div>
       <div class="simple-list">
         @for (task of tasks.upcomingTasks(); track task.id) {
-          <button type="button" class="list-row" (click)="openTaskOnBoard(task)" matRipple>
+          <button type="button" class="list-row up-next-row" (click)="openTaskOnBoard(task)" matRipple>
             <span class="prio-dot" [class]="tasks.priorityClass(task.priority)"></span>
-            <span class="list-title">{{ task.title }}</span>
+            <span class="list-title">
+              <span class="task-id">{{ task.id }}</span>
+              {{ task.title }}
+            </span>
+            <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
             <span class="list-meta">{{ task.dueDate }}</span>
           </button>
         } @empty {
-          <p class="empty">No open tasks.</p>
+          <p class="empty">No open tasks. Create one to get started.</p>
         }
       </div>
     </section>
 
-    <section class="card">
+    <!-- AI Suggestions copilot -->
+    <section class="card dash-card ai-surface suggestions-card">
+      <div class="card-head">
+        <h2>
+          <span class="material-symbols-rounded md filled">auto_awesome</span>
+          AI suggestions
+        </h2>
+        <span class="muted-count">{{ suggestions.suggestions().length }} active</span>
+      </div>
+
+      @if (suggestions.suggestions().length) {
+        <div class="suggestion-list">
+          @for (s of suggestions.suggestions(); track s.id) {
+            <article class="suggestion-card">
+              <div class="suggestion-card-top">
+                <span class="suggestion-cat">
+                  <span class="material-symbols-rounded sm">{{ categoryIcon(s.category) }}</span>
+                  {{ s.category }}
+                </span>
+                <span class="impact-pill" [class]="impactClass(s.impact)">{{ s.impact }} impact</span>
+              </div>
+              <strong>{{ s.title }}</strong>
+              <p>{{ s.body }}</p>
+              <div class="suggestion-actions">
+                <button type="button" class="btn primary sm" matRipple (click)="suggestions.applySuggestion(s)">
+                  <span class="material-symbols-rounded sm">bolt</span>
+                  {{ s.action }}
+                </button>
+                <button
+                  type="button"
+                  class="btn ghost sm"
+                  matTooltip="Dismiss"
+                  (click)="suggestions.dismissSuggestion(s)"
+                >
+                  Dismiss
+                </button>
+              </div>
+            </article>
+          }
+        </div>
+      } @else {
+        <div class="smart-empty">
+          <span class="material-symbols-rounded">verified</span>
+          <p>You're all caught up. New AI suggestions will appear as the board changes.</p>
+        </div>
+      }
+    </section>
+
+    <!-- Activity -->
+    <section class="card dash-card">
       <div class="card-head">
         <h2>Activity</h2>
       </div>
       <div class="simple-list">
-        @for (activity of activities.activities().slice(0, 5); track $index) {
-          <div class="activity-row">
-            <span class="avatar sm" [style.background]="members.memberColor(activity.actor)">
-              {{ members.initials(activity.actor) }}
+        @for (activity of recentActivities(); track $index) {
+          <div class="activity-row" [class.ai-activity]="activity.type === 'ai'">
+            <span
+              class="avatar sm"
+              [class.ai-avatar]="activity.type === 'ai'"
+              [style.background]="activity.type === 'ai' ? null : members.memberColor(activity.actor)"
+            >
+              @if (activity.type === 'ai') {
+                <span class="material-symbols-rounded sm filled">auto_awesome</span>
+              } @else {
+                {{ members.initials(activity.actor) }}
+              }
             </span>
             <div>
-              <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
+              <p>
+                <strong>{{ activity.actor }}</strong> {{ activity.text }}
+              </p>
               <small>{{ activity.time }}</small>
             </div>
           </div>
+        } @empty {
+          <p class="empty">No recent activity.</p>
         }
       </div>
     </section>
-
-    @if (suggestions.suggestions().length) {
-      <section class="card">
-        <div class="card-head">
-          <h2>Suggestions</h2>
-        </div>
-        <div class="simple-list">
-          @for (s of suggestions.suggestions(); track s.id) {
-            <div class="suggestion-row">
-              <div>
-                <strong>{{ s.title }}</strong>
-                <p>{{ s.body }}</p>
-              </div>
-              <button type="button" class="btn ghost sm" (click)="suggestions.applySuggestion(s)">Apply</button>
-            </div>
-          }
-        </div>
-      </section>
-    }
   </div>
 </section>

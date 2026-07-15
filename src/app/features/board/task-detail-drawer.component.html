@@ -14,21 +14,27 @@
       <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
     </div>
 
-    <div class="ai-row">
+    <div class="ai-row ai-toolbar">
       <button
         type="button"
-        class="btn ghost sm"
+        class="btn ai-btn sm"
         [disabled]="tasks.isGeneratingSubtasks()"
         (click)="tasks.generateSubtasks(task)"
       >
+        <span class="material-symbols-rounded sm" [class.spin]="tasks.isGeneratingSubtasks()">
+          {{ tasks.isGeneratingSubtasks() ? 'progress_activity' : 'account_tree' }}
+        </span>
         {{ tasks.isGeneratingSubtasks() ? 'Generating…' : 'AI subtasks' }}
       </button>
       <button
         type="button"
-        class="btn ghost sm"
+        class="btn ai-btn sm"
         [disabled]="tasks.isImprovingDescription()"
         (click)="tasks.improveDescription(task)"
       >
+        <span class="material-symbols-rounded sm" [class.spin]="tasks.isImprovingDescription()">
+          {{ tasks.isImprovingDescription() ? 'progress_activity' : 'edit_note' }}
+        </span>
         {{ tasks.isImprovingDescription() ? 'Improving…' : 'Improve text' }}
       </button>
     </div>
@@ -75,13 +81,40 @@
             <span>{{ sub.title }}</span>
           </label>
         } @empty {
-          <p class="empty">No subtasks yet.</p>
+          <p class="empty">No subtasks yet. Try AI subtasks.</p>
         }
       </div>
     </section>
 
     <section class="block">
-      <h3>Comments</h3>
+      <div class="block-head">
+        <h3>Comments</h3>
+        <button
+          type="button"
+          class="btn ai-btn sm"
+          [disabled]="tasks.isSummarizingComments() || !comments.selectedTaskComments().length"
+          (click)="tasks.summarizeComments(task, comments.selectedTaskComments())"
+        >
+          <span class="material-symbols-rounded sm" [class.spin]="tasks.isSummarizingComments()">
+            {{ tasks.isSummarizingComments() ? 'progress_activity' : 'summarize' }}
+          </span>
+          {{ tasks.isSummarizingComments() ? 'Summarizing…' : 'Summarize' }}
+        </button>
+      </div>
+
+      @if (tasks.commentSummary(); as summary) {
+        <div class="ai-summary">
+          <div class="ai-summary-head">
+            <span class="material-symbols-rounded sm filled">auto_awesome</span>
+            <strong>AI summary</strong>
+            <button type="button" class="icon-btn" (click)="tasks.clearCommentSummary()" aria-label="Dismiss summary">
+              <span class="material-symbols-rounded sm">close</span>
+            </button>
+          </div>
+          <p>{{ summary }}</p>
+        </div>
+      }
+
       <div class="comments">
         @for (c of comments.selectedTaskComments().slice(0, 4); track $index) {
           <div class="comment">
