@@ -24,10 +24,10 @@ export class AppComponent {
     { id: 'personal', name: 'Personal', icon: 'P', accent: '#67a7ff', projectNames: ['Research Assistant'], description: 'Personal AI experiments' },
   ]);
   readonly pages: Array<{ key: PageKey; label: string; icon: string; badge?: string }> = [
-    { key: 'dashboard', label: 'Dashboard', icon: '⌂' },
-    { key: 'projects', label: 'Projects', icon: '□' },
-    { key: 'tasks', label: 'Tasks', icon: '☷' },
-    { key: 'team', label: 'Team', icon: '♟' },
+    { key: 'dashboard', label: 'Dashboard', icon: 'D' },
+    { key: 'projects', label: 'Projects', icon: 'P' },
+    { key: 'tasks', label: 'Tasks', icon: 'T' },
+    { key: 'team', label: 'Team', icon: 'M' },
   ];
   readonly columns: Array<{ key: TaskStatus; label: string; tone: string }> = [
     { key: 'todo', label: 'To Do', tone: 'muted' },
@@ -37,11 +37,11 @@ export class AppComponent {
   ];
 
   currentPage = signal<PageKey>('dashboard');
-  selectedWorkspaceId = signal('collabai');
+  selectedWorkspaceId = signal('marketing');
   isWorkspaceCreatorOpen = signal(false);
   newWorkspaceName = signal('');
   tasks = signal<Task[]>(seedTasks);
-  selectedTask = signal<Task | null>(seedTasks[0]);
+  selectedTask = signal<Task | null>(seedTasks.find((task) => task.project === 'Marketing Website') ?? seedTasks[0]);
 
   activeWorkspace = computed(() => this.workspaces().find((workspace) => workspace.id === this.selectedWorkspaceId()) ?? this.workspaces()[0]);
   filteredProjects = computed(() => this.projects.filter((project) => this.activeWorkspace().projectNames.includes(project.name)));

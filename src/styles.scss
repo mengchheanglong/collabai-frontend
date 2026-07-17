@@ -1,15 +1,15 @@
 :root {
   color-scheme: dark;
   --bg: #0b0b0f;
-  --bg-2: #111116;
-  --sidebar: #0f0f14;
-  --panel: #16161d;
-  --panel-2: #1b1b23;
-  --panel-3: #20212a;
-  --text: #f4f2ea;
-  --text-2: #d7d2c5;
-  --muted: #9b968d;
-  --muted-2: #716d66;
+  --bg-2: #101119;
+  --sidebar: #0f1017;
+  --panel: #171821;
+  --panel-2: #1c1d28;
+  --panel-3: #232536;
+  --text: #f6f7fb;
+  --text-2: #d9ddea;
+  --muted: #9ca3b5;
+  --muted-2: #71798d;
   --line: rgba(255, 255, 255, 0.08);
   --line-2: rgba(255, 255, 255, 0.13);
   --brand: #8a6cff;
@@ -36,10 +36,7 @@ body {
   margin: 0;
   font-family: var(--font);
   color: var(--text);
-  background:
-    radial-gradient(circle at 16% -10%, rgba(138, 108, 255, 0.16), transparent 28%),
-    radial-gradient(circle at 92% 8%, rgba(47, 211, 155, 0.10), transparent 24%),
-    linear-gradient(180deg, #0b0b0f 0%, #0a0a0d 100%);
+  background: linear-gradient(180deg, #0c0d13 0%, #090a0f 100%);
   font-feature-settings: "cv01", "ss03";
   -webkit-font-smoothing: antialiased;
 }
