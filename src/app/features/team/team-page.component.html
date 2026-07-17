@@ -1,0 +1,63 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Team</h1>
+      <p>{{ members.members.length }} members in {{ workspace.activeWorkspace().name }}</p>
+    </div>
+  </header>
+
+  <div class="team-layout">
+    <section class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>Member</th>
+            <th>Role</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (member of members.members; track member.id) {
+            <tr>
+              <td>
+                <span class="inline-person">
+                  <span class="avatar" [style.background]="member.color">{{ member.avatar }}</span>
+                  <span>
+                    <strong>{{ member.name }}</strong>
+                    <small class="sub">{{ member.email }}</small>
+                  </span>
+                </span>
+              </td>
+              <td><span class="tag">{{ member.role }}</span></td>
+              <td>
+                <span class="presence" [attr.data-status]="member.status">{{ member.status }}</span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section class="card invite">
+      <h2>Invite</h2>
+      <p>Add someone to this workspace.</p>
+      <label class="field">
+        <span>Email</span>
+        <input
+          [value]="inviteEmail()"
+          (input)="inviteEmail.set($any($event.target).value)"
+          placeholder="name@example.com"
+        />
+      </label>
+      <label class="field">
+        <span>Role</span>
+        <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
+          <option>Admin</option>
+          <option>Member</option>
+          <option>Viewer</option>
+        </select>
+      </label>
+      <button type="button" class="btn primary" matRipple (click)="sendInvite()">Send invite</button>
+    </section>
+  </div>
+</section>

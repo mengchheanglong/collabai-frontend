@@ -1,0 +1,353 @@
+<main class="lp">
+  <!-- ─── Ambient background ─── -->
+  <div class="ambient">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="grid-overlay"></div>
+  </div>
+
+  <!-- ─── Navigation ─── -->
+  <header class="nav" id="top">
+    <a class="nav-logo" routerLink="/landing" aria-label="CollabAI home">
+      <span class="logo-icon">
+        <span class="material-symbols-rounded filled">hub</span>
+      </span>
+      <span class="logo-text">CollabAI</span>
+    </a>
+
+    <nav class="nav-links" aria-label="Primary">
+      <a href="#features">Features</a>
+      <a href="#ai">AI Copilot</a>
+      <a href="#workflow">Workflow</a>
+      <a href="#docs">Resources</a>
+    </nav>
+
+    <div class="nav-actions">
+      <a class="nav-link-login" routerLink="/dashboard">Log in</a>
+      <a class="btn btn-primary btn-sm" routerLink="/dashboard">
+        Get Started
+        <span class="material-symbols-rounded" style="font-size:16px">arrow_forward</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- ─── Hero ─── -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      Introducing AI workspace agents
+    </div>
+
+    <h1 id="hero-title" class="hero-title">
+      Plan smarter.<br>
+      Ship faster.<br>
+      <span class="hero-gradient">Together.</span>
+    </h1>
+
+    <p class="hero-subtitle">
+      The intelligent workspace that centralizes projects, tasks, and team
+      collaboration — powered by AI that actually understands your work.
+    </p>
+
+    <div class="hero-actions">
+      <a class="btn btn-primary btn-lg" routerLink="/dashboard">
+        Start for free
+        <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
+      </a>
+      <a class="btn btn-ghost btn-lg" href="#features">
+        <span class="play-icon">
+          <span class="material-symbols-rounded filled" style="font-size:14px">play_arrow</span>
+        </span>
+        Watch demo
+      </a>
+    </div>
+
+    <!-- Product window -->
+    <div class="product-frame">
+      <div class="frame-glow"></div>
+      <div class="frame-chrome">
+        <div class="chrome-dots"><i></i><i></i><i></i></div>
+        <div class="chrome-bar">
+          <span class="material-symbols-rounded" style="font-size:14px;color:#71717a">lock</span>
+          <span class="chrome-url">app.collabai.dev</span>
+        </div>
+      </div>
+      <div class="frame-body">
+        <!-- Mini sidebar -->
+        <aside class="mini-sidebar">
+          <div class="ms-logo"><span class="material-symbols-rounded filled" style="font-size:16px;color:#3b82f6">hub</span></div>
+          <div class="ms-item active"><span class="material-symbols-rounded filled" style="font-size:16px">dashboard</span></div>
+          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">view_kanban</span></div>
+          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">group</span></div>
+          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">insights</span></div>
+          <div class="ms-spacer"></div>
+          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">settings</span></div>
+          <div class="ms-avatar">D</div>
+        </aside>
+
+        <!-- Mini main content -->
+        <div class="mini-main">
+          <!-- Top bar -->
+          <div class="mini-topbar">
+            <span class="mt-title">CollabAI Platform</span>
+            <div class="mt-search">
+              <span class="material-symbols-rounded" style="font-size:14px;color:#71717a">search</span>
+              <span style="color:#52525b;font-size:11px">Search tasks...</span>
+            </div>
+            <div class="mt-avatars">
+              <span class="mt-av" style="background:#3b82f6">D</span>
+              <span class="mt-av" style="background:#22c55e">S</span>
+              <span class="mt-av" style="background:#f59e0b">B</span>
+              <span class="mt-av mt-av-more">+3</span>
+            </div>
+          </div>
+
+          <!-- Kanban columns -->
+          <div class="mini-board">
+            <div class="mb-col">
+              <div class="mb-col-head"><span class="mb-dot" style="background:#71717a"></span> To Do <span class="mb-count">4</span></div>
+              <div class="mb-card"><span class="mb-tag blue">Frontend</span><span class="mb-text">Design landing page UI</span><div class="mb-meta"><span class="mt-av" style="background:#f59e0b;width:18px;height:18px;font-size:8px">L</span><span class="material-symbols-rounded" style="font-size:12px;color:#52525b">chat_bubble</span><span style="color:#52525b;font-size:10px">2</span></div></div>
+              <div class="mb-card"><span class="mb-tag amber">Docs</span><span class="mb-text">Write API documentation</span></div>
+              <div class="mb-card dim"><span class="mb-tag gray">Testing</span><span class="mb-text">Test AI summaries</span></div>
+            </div>
+            <div class="mb-col">
+              <div class="mb-col-head"><span class="mb-dot" style="background:#3b82f6"></span> In Progress <span class="mb-count">3</span></div>
+              <div class="mb-card highlight"><span class="mb-tag purple">Backend</span><span class="mb-text">Build auth module</span><div class="mb-progress"><div class="mb-progress-fill" style="width:65%"></div></div><div class="mb-meta"><span class="mt-av" style="background:#22c55e;width:18px;height:18px;font-size:8px">B</span><span style="color:#3b82f6;font-size:10px;font-weight:600">65%</span></div></div>
+              <div class="mb-card"><span class="mb-tag purple">Backend</span><span class="mb-text">Project management API</span></div>
+              <div class="mb-card"><span class="mb-tag blue">Frontend</span><span class="mb-text">Task drag and drop</span></div>
+            </div>
+            <div class="mb-col">
+              <div class="mb-col-head"><span class="mb-dot" style="background:#22c55e"></span> Done <span class="mb-count">2</span></div>
+              <div class="mb-card done"><span class="mb-tag green">Setup</span><span class="mb-text">Initialize project</span><div class="mb-meta"><span class="material-symbols-rounded filled" style="font-size:12px;color:#22c55e">check_circle</span></div></div>
+              <div class="mb-card done"><span class="mb-tag green">Database</span><span class="mb-text">Setup MongoDB schema</span></div>
+            </div>
+          </div>
+
+          <!-- AI overlay -->
+          <div class="mini-ai-bar">
+            <span class="material-symbols-rounded filled" style="font-size:14px;color:#a78bfa">auto_awesome</span>
+            <span style="font-size:10px;color:#a1a1aa">AI detected 2 blockers — </span>
+            <span style="font-size:10px;color:#a78bfa;font-weight:600">View suggestions</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── Social proof ─── -->
+  <section class="proof" aria-label="Social proof">
+    <p class="proof-label">Trusted by forward-thinking teams</p>
+    <div class="proof-logos">
+      <span>Velocity</span>
+      <span>FlowState</span>
+      <span>SynthEdge</span>
+      <span>NexusCore</span>
+      <span>ArcLabs</span>
+    </div>
+  </section>
+
+  <!-- ─── Features ─── -->
+  <section class="features" id="features">
+    <div class="section-header">
+      <span class="section-label">Capabilities</span>
+      <h2 class="section-title">Everything your team needs,<br>nothing it doesn't.</h2>
+      <p class="section-desc">A single platform to plan, track, collaborate, and ship — with AI woven into every workflow.</p>
+    </div>
+
+    <div class="feature-grid">
+      <!-- Card 1: Dashboard -->
+      <article class="f-card f-card-wide">
+        <div class="f-card-content">
+          <div class="f-icon blue"><span class="material-symbols-rounded">dashboard</span></div>
+          <h3>Centralized Dashboard</h3>
+          <p>Track project health, velocity, and upcoming milestones from a single, unified overview.</p>
+        </div>
+        <div class="f-card-visual">
+          <div class="stat-grid">
+            <div class="stat"><span class="stat-num">82<small>%</small></span><span class="stat-label">Sprint Complete</span><div class="stat-bar"><div class="stat-bar-fill" style="width:82%;background:var(--green)"></div></div></div>
+            <div class="stat"><span class="stat-num">9</span><span class="stat-label">Active Tasks</span><div class="stat-bar"><div class="stat-bar-fill" style="width:56%;background:var(--brand)"></div></div></div>
+            <div class="stat"><span class="stat-num">4</span><span class="stat-label">In Progress</span><div class="stat-bar"><div class="stat-bar-fill" style="width:44%;background:var(--amber)"></div></div></div>
+            <div class="stat"><span class="stat-num stat-up">+12%</span><span class="stat-label">This Week</span><div class="stat-bar"><div class="stat-bar-fill" style="width:68%;background:var(--cyan)"></div></div></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 2: Workspaces -->
+      <article class="f-card">
+        <div class="f-card-content">
+          <div class="f-icon purple"><span class="material-symbols-rounded">workspaces</span></div>
+          <h3>Organized Workspaces</h3>
+          <p>Keep teams and projects clearly separated with dedicated spaces.</p>
+        </div>
+        <div class="f-card-visual">
+          <div class="ws-list">
+            <div class="ws-item active"><span class="ws-badge" style="background:#3b82f6">M</span><span class="ws-name">Marketing<small>12 projects</small></span></div>
+            <div class="ws-item"><span class="ws-badge" style="background:#a78bfa">P</span><span class="ws-name">Product Design<small>4 projects</small></span></div>
+            <div class="ws-item"><span class="ws-badge" style="background:#22c55e">D</span><span class="ws-name">Development<small>24 projects</small></span></div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 3: Real-time -->
+      <article class="f-card">
+        <div class="f-card-content">
+          <div class="f-icon green"><span class="material-symbols-rounded">bolt</span></div>
+          <h3>Real-time Collaboration</h3>
+          <p>See who's working on what, as it happens. No refresh needed.</p>
+        </div>
+        <div class="f-card-visual">
+          <div class="collab-demo">
+            <div class="collab-avatars">
+              <span style="background:#3b82f6">D</span>
+              <span style="background:#22c55e">S</span>
+              <span style="background:#f59e0b">B</span>
+            </div>
+            <div class="collab-pulse"></div>
+            <span class="collab-label">3 collaborators active</span>
+          </div>
+          <div class="collab-event">
+            <span class="material-symbols-rounded" style="font-size:14px;color:#22c55e">arrow_forward</span>
+            <span><strong>Dara</strong> moved <em>Design Homepage</em> to Review</span>
+          </div>
+        </div>
+      </article>
+
+      <!-- Card 4: Kanban -->
+      <article class="f-card f-card-wide">
+        <div class="f-card-content">
+          <div class="f-icon amber"><span class="material-symbols-rounded">view_kanban</span></div>
+          <h3>Smart Kanban Board</h3>
+          <p>Fluid drag-and-drop task management with AI-powered priority suggestions and automatic status sync.</p>
+        </div>
+        <div class="f-card-visual">
+          <div class="kanban-demo">
+            <div class="kd-col"><span class="kd-head">To Do</span><div class="kd-card"></div><div class="kd-card"></div></div>
+            <div class="kd-col"><span class="kd-head">In Progress</span><div class="kd-card active"></div><div class="kd-card"></div></div>
+            <div class="kd-col"><span class="kd-head">Review</span><div class="kd-card"></div></div>
+            <div class="kd-col"><span class="kd-head">Done</span><div class="kd-card done"></div><div class="kd-card done"></div></div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ─── AI Section ─── -->
+  <section class="ai-section" id="ai">
+    <div class="ai-content">
+      <span class="section-label">AI-Powered</span>
+      <h2 class="section-title">Your AI copilot<br>for project management.</h2>
+      <p class="section-desc">CollabAI Assistant doesn't just chat — it executes. Integrated deep into your project context to eliminate busywork.</p>
+
+      <div class="ai-features">
+        <div class="ai-feat">
+          <div class="ai-feat-icon"><span class="material-symbols-rounded">auto_awesome</span></div>
+          <div>
+            <strong>Contextual Generation</strong>
+            <span>Draft task specs and documentation that match your project's voice and standards.</span>
+          </div>
+        </div>
+        <div class="ai-feat">
+          <div class="ai-feat-icon"><span class="material-symbols-rounded">account_tree</span></div>
+          <div>
+            <strong>Smart Decomposition</strong>
+            <span>Break complex features into actionable subtasks with one click.</span>
+          </div>
+        </div>
+        <div class="ai-feat">
+          <div class="ai-feat-icon"><span class="material-symbols-rounded">summarize</span></div>
+          <div>
+            <strong>Thread Summaries</strong>
+            <span>Get instant summaries of long comment threads and discussions.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-header">
+        <span class="material-symbols-rounded filled" style="font-size:16px;color:#a78bfa">auto_awesome</span>
+        <b>CollabAI Copilot</b>
+        <span class="ai-active-badge">Active</span>
+      </div>
+      <div class="ai-card-msg">
+        I see you're starting the Q4 Roadmap. Would you like me to draft core milestones based on your team's velocity data?
+      </div>
+      <button class="ai-card-action">
+        <span class="material-symbols-rounded" style="font-size:16px">auto_awesome</span>
+        Generate roadmap structure
+      </button>
+      <button class="ai-card-action">
+        <span class="material-symbols-rounded" style="font-size:16px">warning</span>
+        Identify potential blockers
+      </button>
+      <div class="ai-card-input">
+        <input type="text" placeholder="Ask anything about your workspace..." readonly>
+        <span class="ai-send"><span class="material-symbols-rounded" style="font-size:16px">arrow_upward</span></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ─── -->
+  <section class="cta" id="workflow">
+    <div class="cta-glow"></div>
+    <span class="section-label">Get Started</span>
+    <h2 class="cta-title">Ready to organize<br>your chaos?</h2>
+    <p class="cta-desc">Join thousands of teams who ship faster with CollabAI. Start your free trial today — no credit card required.</p>
+    <div class="cta-actions">
+      <a class="btn btn-white btn-lg" routerLink="/dashboard">
+        Get Started Free
+        <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
+      </a>
+      <a class="btn btn-ghost-light btn-lg" href="#docs">Talk to Sales</a>
+    </div>
+    <p class="cta-note">Free forever for small teams · Enterprise ready · SOC 2 compliant</p>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <footer class="footer" id="docs">
+    <div class="footer-brand">
+      <div class="footer-logo">
+        <span class="logo-icon"><span class="material-symbols-rounded filled" style="font-size:16px">hub</span></span>
+        <span class="logo-text">CollabAI</span>
+      </div>
+      <p>The modern workspace for teams that move fast. AI-powered project management for everyone.</p>
+      <div class="footer-socials">
+        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">code</span></span>
+        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">mail</span></span>
+        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">language</span></span>
+      </div>
+    </div>
+    <nav class="footer-nav">
+      <strong>Product</strong>
+      <a href="#features">Features</a>
+      <a href="#ai">AI Copilot</a>
+      <a>Security</a>
+      <a>Integrations</a>
+    </nav>
+    <nav class="footer-nav">
+      <strong>Company</strong>
+      <a>About Us</a>
+      <a>Careers</a>
+      <a>Press</a>
+      <a>Contact</a>
+    </nav>
+    <nav class="footer-nav">
+      <strong>Resources</strong>
+      <a href="#docs">Documentation</a>
+      <a>Blog</a>
+      <a>Help Center</a>
+      <a>Community</a>
+    </nav>
+    <nav class="footer-nav">
+      <strong>Legal</strong>
+      <a>Privacy</a>
+      <a>Terms</a>
+      <a>Cookies</a>
+    </nav>
+    <div class="footer-bottom">
+      <p>© 2025 CollabAI Inc. All rights reserved.</p>
+      <span class="status-badge"><i></i> All systems operational</span>
+    </div>
+  </footer>
+</main>

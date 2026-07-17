@@ -1,0 +1,69 @@
+<section class="page board-page">
+  <header class="page-header">
+    <div>
+      <h1>{{ workspace.activeProjectName() }}</h1>
+      <p>{{ workspace.activeWorkspace().name }}</p>
+    </div>
+    <div class="header-actions board-actions">
+      <div class="segmented" role="tablist" aria-label="Board view">
+        <button type="button" [class.active]="tasks.boardView() === 'kanban'" (click)="setBoardView('kanban')">
+          Board
+        </button>
+        <button type="button" [class.active]="tasks.boardView() === 'list'" (click)="setBoardView('list')">
+          List
+        </button>
+      </div>
+
+      <div class="board-smart-wrap">
+        <app-smart-search
+          variant="compact"
+          placeholder="AI search tasks…"
+          [showPrompts]="false"
+          [showResults]="false"
+          (searched)="onSmartSearch()"
+          (taskSelected)="openTask($event)"
+          (cleared)="tasks.searchQuery.set('')"
+        />
+      </div>
+
+      <div class="search-field">
+        <span class="material-symbols-rounded sm">filter_list</span>
+        <input
+          [value]="tasks.searchQuery()"
+          (input)="onFilterInput($any($event.target).value)"
+          placeholder="Filter board"
+          aria-label="Filter board"
+        />
+      </div>
+
+      <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+        <span class="material-symbols-rounded sm">add</span>
+        Task
+      </button>
+    </div>
+  </header>
+
+  @if (tasks.smartFilterIds(); as ids) {
+    <div class="board-ai-banner">
+      <span class="material-symbols-rounded sm filled">auto_awesome</span>
+      <span>
+        AI filter active · showing
+        <strong>{{ ids.length }}</strong>
+        match{{ ids.length === 1 ? '' : 'es' }}
+      </span>
+      <button type="button" class="btn ghost sm" (click)="clearAiFilter()">Clear AI filter</button>
+    </div>
+  }
+
+  <div class="board-layout" [class.with-drawer]="!!tasks.selectedTask()">
+    @if (tasks.boardView() === 'kanban') {
+      <app-kanban-board />
+    } @else {
+      <app-task-list-view />
+    }
+
+    @if (tasks.selectedTask()) {
+      <app-task-detail-drawer />
+    }
+  </div>
+</section>

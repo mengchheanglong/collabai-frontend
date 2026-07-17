@@ -1,0 +1,35 @@
+<section class="page">
+  <header class="page-header">
+    <div>
+      <h1>Profile</h1>
+      <p>Your account in this mock UI</p>
+    </div>
+    <a class="btn ghost" routerLink="/dashboard">Back</a>
+  </header>
+
+  <div class="profile-layout">
+    <section class="card profile-card">
+      <img src="logo-wordmark.svg" alt="Collab AI" class="profile-logo" />
+      <div class="avatar xl" [style.background]="currentUser.color">{{ currentUser.avatar }}</div>
+      <h2>{{ currentUser.name }}</h2>
+      <p>{{ currentUser.email }}</p>
+      <span class="tag">{{ currentUser.role }}</span>
+    </section>
+
+    <section class="card">
+      <h2>Details</h2>
+      <div class="detail">
+        <span>Workspace</span>
+        <strong>{{ workspace.activeWorkspace().name }}</strong>
+      </div>
+      <div class="detail">
+        <span>Theme</span>
+        <strong>Dark</strong>
+      </div>
+      <div class="detail">
+        <span>Notifications</span>
+        <strong>On</strong>
+      </div>
+    </section>
+  </div>
+</section>

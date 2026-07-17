@@ -1,0 +1,145 @@
+@if (tasks.selectedTask(); as task) {
+  <aside class="drawer">
+    <header class="drawer-head">
+      <span class="task-id">{{ task.id }}</span>
+      <button type="button" class="icon-btn" (click)="tasks.closeTask()" aria-label="Close">
+        <span class="material-symbols-rounded">close</span>
+      </button>
+    </header>
+
+    <h2>{{ task.title }}</h2>
+
+    <div class="drawer-chips">
+      <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
+      <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
+    </div>
+
+    <div class="ai-row ai-toolbar">
+      <button
+        type="button"
+        class="btn ai-btn sm"
+        [disabled]="tasks.isGeneratingSubtasks()"
+        (click)="tasks.generateSubtasks(task)"
+      >
+        <span class="material-symbols-rounded sm" [class.spin]="tasks.isGeneratingSubtasks()">
+          {{ tasks.isGeneratingSubtasks() ? 'progress_activity' : 'account_tree' }}
+        </span>
+        {{ tasks.isGeneratingSubtasks() ? 'Generating…' : 'AI subtasks' }}
+      </button>
+      <button
+        type="button"
+        class="btn ai-btn sm"
+        [disabled]="tasks.isImprovingDescription()"
+        (click)="tasks.improveDescription(task)"
+      >
+        <span class="material-symbols-rounded sm" [class.spin]="tasks.isImprovingDescription()">
+          {{ tasks.isImprovingDescription() ? 'progress_activity' : 'edit_note' }}
+        </span>
+        {{ tasks.isImprovingDescription() ? 'Improving…' : 'Improve text' }}
+      </button>
+    </div>
+
+    <dl class="props">
+      <div>
+        <dt>Assignee</dt>
+        <dd>
+          <span class="inline-person">
+            <span class="avatar sm" [style.background]="members.memberColor(task.assignee)">
+              {{ members.initials(task.assignee) }}
+            </span>
+            {{ task.assignee }}
+          </span>
+        </dd>
+      </div>
+      <div>
+        <dt>Due</dt>
+        <dd>{{ task.dueDate }}</dd>
+      </div>
+      <div>
+        <dt>Project</dt>
+        <dd>{{ task.project }}</dd>
+      </div>
+    </dl>
+
+    <section class="block">
+      <h3>Description</h3>
+      <p class="desc">{{ task.description }}</p>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Subtasks</h3>
+        <small>{{ tasks.completedSubtasks(task) }}/{{ task.subtasks.length }}</small>
+      </div>
+      @if (task.subtasks.length) {
+        <mat-progress-bar mode="determinate" [value]="tasks.subtaskProgress(task)"></mat-progress-bar>
+      }
+      <div class="subtasks">
+        @for (sub of task.subtasks; track sub.title; let i = $index) {
+          <label class="check" [class.done]="sub.done">
+            <input type="checkbox" [checked]="sub.done" (change)="tasks.toggleSubtask(task, i)" />
+            <span>{{ sub.title }}</span>
+          </label>
+        } @empty {
+          <p class="empty">No subtasks yet. Try AI subtasks.</p>
+        }
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="block-head">
+        <h3>Comments</h3>
+        <button
+          type="button"
+          class="btn ai-btn sm"
+          [disabled]="tasks.isSummarizingComments() || !comments.selectedTaskComments().length"
+          (click)="tasks.summarizeComments(task, comments.selectedTaskComments())"
+        >
+          <span class="material-symbols-rounded sm" [class.spin]="tasks.isSummarizingComments()">
+            {{ tasks.isSummarizingComments() ? 'progress_activity' : 'summarize' }}
+          </span>
+          {{ tasks.isSummarizingComments() ? 'Summarizing…' : 'Summarize' }}
+        </button>
+      </div>
+
+      @if (tasks.commentSummary(); as summary) {
+        <div class="ai-summary">
+          <div class="ai-summary-head">
+            <span class="material-symbols-rounded sm filled">auto_awesome</span>
+            <strong>AI summary</strong>
+            <button type="button" class="icon-btn" (click)="tasks.clearCommentSummary()" aria-label="Dismiss summary">
+              <span class="material-symbols-rounded sm">close</span>
+            </button>
+          </div>
+          <p>{{ summary }}</p>
+        </div>
+      }
+
+      <div class="comments">
+        @for (c of comments.selectedTaskComments().slice(0, 4); track $index) {
+          <div class="comment">
+            <span class="avatar sm" [style.background]="members.memberColor(c.author)">
+              {{ members.initials(c.author) }}
+            </span>
+            <div>
+              <strong>{{ c.author }}</strong>
+              <small>{{ c.time }}</small>
+              <p>{{ c.body }}</p>
+            </div>
+          </div>
+        } @empty {
+          <p class="empty">No comments yet.</p>
+        }
+      </div>
+      <div class="comment-input">
+        <input
+          [value]="comments.commentDraft()"
+          (input)="comments.commentDraft.set($any($event.target).value)"
+          (keydown.enter)="comments.postComment(task)"
+          placeholder="Write a comment"
+        />
+        <button type="button" class="btn primary sm" (click)="comments.postComment(task)">Send</button>
+      </div>
+    </section>
+  </aside>
+}

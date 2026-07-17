@@ -1,0 +1,32 @@
+<div class="kanban" cdkDropListGroup>
+  @for (column of tasks.columns; track column.key) {
+    <section class="column">
+      <header>
+        <span>{{ column.label }}</span>
+        <span class="count">{{ tasks.tasksByStatus(column.key).length }}</span>
+      </header>
+      <div
+        class="column-body"
+        cdkDropList
+        [id]="'col-' + column.key"
+        [cdkDropListData]="tasks.tasksByStatus(column.key)"
+        [cdkDropListConnectedTo]="tasks.columnConnectedTo()"
+        (cdkDropListDropped)="tasks.drop($event, column.key)"
+      >
+        @for (task of tasks.tasksByStatus(column.key); track task.id) {
+          <app-task-card
+            cdkDrag
+            [cdkDragData]="task"
+            [task]="task"
+            [selected]="tasks.selectedTask()?.id === task.id"
+            [memberColor]="memberColor"
+            [initials]="initials"
+            (select)="tasks.selectTask($event)"
+          />
+        } @empty {
+          <div class="column-empty">Drop here</div>
+        }
+      </div>
+    </section>
+  }
+</div>

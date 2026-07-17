@@ -1,0 +1,106 @@
+<div class="smart-search" [class.variant-hero]="variant === 'hero'" [class.variant-compact]="variant === 'compact'">
+  <div class="smart-search-shell" [class.searching]="isSearching()">
+    <span class="smart-search-icon material-symbols-rounded" [class.spin]="isSearching()">
+      {{ isSearching() ? 'progress_activity' : 'auto_awesome' }}
+    </span>
+
+    <input
+      type="search"
+      class="smart-search-input"
+      [value]="query()"
+      (input)="query.set($any($event.target).value)"
+      (keydown)="onKeydown($event)"
+      [placeholder]="placeholder"
+      [attr.aria-label]="placeholder"
+      [attr.autofocus]="autofocus ? true : null"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    @if (query()) {
+      <button type="button" class="icon-btn smart-clear" (click)="clear()" aria-label="Clear search">
+        <span class="material-symbols-rounded sm">close</span>
+      </button>
+    }
+
+    <button
+      type="button"
+      class="btn primary sm smart-go"
+      matRipple
+      [disabled]="!query().trim() || isSearching()"
+      (click)="runSearch()"
+      matTooltip="Search with AI"
+    >
+      @if (isSearching()) {
+        Searching…
+      } @else {
+        <span class="material-symbols-rounded sm">search</span>
+        Search
+      }
+    </button>
+  </div>
+
+  @if (showPrompts && !hasSearched() && variant === 'hero') {
+    <div class="smart-prompts" role="list">
+      @for (p of prompts; track p) {
+        <button type="button" class="smart-prompt" role="listitem" matRipple (click)="usePrompt(p)">
+          <span class="material-symbols-rounded sm">bolt</span>
+          {{ p }}
+        </button>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <div class="smart-error" role="alert">
+      <span class="material-symbols-rounded sm">error</span>
+      <span>{{ error() }}</span>
+      <button type="button" class="btn ghost sm" (click)="runSearch()">Retry</button>
+    </div>
+  }
+
+  @if (hasSearched() && chips().length) {
+    <div class="smart-chips" aria-label="Interpreted filters">
+      <span class="smart-chips-label">
+        <span class="material-symbols-rounded sm">tune</span>
+        AI understood
+      </span>
+      @for (chip of chips(); track chip.key) {
+        <span class="ai-chip" [attr.data-tone]="chip.tone ?? 'default'">{{ chip.label }}</span>
+      }
+    </div>
+  }
+
+  @if (showResults && hasSearched()) {
+    <div class="smart-results card">
+      <div class="card-head">
+        <h2>
+          Results
+          <span class="smart-count">{{ results().length }}</span>
+        </h2>
+        <button type="button" class="link" (click)="clear()">Clear</button>
+      </div>
+
+      @if (results().length) {
+        <div class="simple-list">
+          @for (task of results(); track task.id) {
+            <button type="button" class="list-row smart-result-row" matRipple (click)="selectTask(task)">
+              <span class="prio-dot" [class]="'priority-' + task.priority"></span>
+              <span class="list-title">
+                <span class="task-id">{{ task.id }}</span>
+                {{ task.title }}
+              </span>
+              <span class="status" [attr.data-status]="task.status">{{ task.status.replace('_', ' ') }}</span>
+              <span class="list-meta">{{ task.assignee }}</span>
+            </button>
+          }
+        </div>
+      } @else {
+        <div class="smart-empty">
+          <span class="material-symbols-rounded">manage_search</span>
+          <p>No tasks match that query. Try a different prompt or clear filters.</p>
+        </div>
+      }
+    </div>
+  }
+</div>
