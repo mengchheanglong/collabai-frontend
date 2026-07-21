@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, HostListener, inject } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { CommentStoreService } from '../../core/state/comment-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
@@ -14,4 +14,11 @@ export class TaskDetailDrawerComponent {
   readonly tasks = inject(TaskStoreService);
   readonly comments = inject(CommentStoreService);
   readonly members = inject(MemberDirectoryService);
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.tasks.selectedTask()) {
+      this.tasks.closeTask();
+    }
+  }
 }

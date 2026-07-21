@@ -90,6 +90,7 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
+html { scroll-behavior: smooth; }
 
 body {
   margin: 0;
@@ -98,6 +99,8 @@ body {
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   letter-spacing: -0.011em;
+  text-wrap: pretty;
+  min-width: 0;
 }
 
 :root[data-theme='light'] body {

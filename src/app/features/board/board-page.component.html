@@ -7,28 +7,16 @@
     <div class="header-actions board-actions">
       <app-theme-toggle />
       <div class="segmented" role="tablist" aria-label="Board view">
-        <button type="button" [class.active]="tasks.boardView() === 'kanban'" (click)="setBoardView('kanban')">
+        <button type="button" [class.active]="tasks.boardView() === 'kanban'" (click)="setBoardView('kanban')" [attr.aria-selected]="tasks.boardView() === 'kanban'" role="tab">
           Board
         </button>
-        <button type="button" [class.active]="tasks.boardView() === 'list'" (click)="setBoardView('list')">
+        <button type="button" [class.active]="tasks.boardView() === 'list'" (click)="setBoardView('list')" [attr.aria-selected]="tasks.boardView() === 'list'" role="tab">
           List
         </button>
       </div>
 
-      <div class="board-smart-wrap">
-        <app-smart-search
-          variant="compact"
-          placeholder="AI search tasks…"
-          [showPrompts]="false"
-          [showResults]="false"
-          (searched)="onSmartSearch()"
-          (taskSelected)="openTask($event)"
-          (cleared)="tasks.searchQuery.set('')"
-        />
-      </div>
-
       <div class="search-field">
-        <span class="material-symbols-rounded sm">filter_list</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">filter_list</span>
         <input
           [value]="tasks.searchQuery()"
           (input)="onFilterInput($any($event.target).value)"
@@ -38,15 +26,15 @@
       </div>
 
       <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
-        <span class="material-symbols-rounded sm">add</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         Task
       </button>
     </div>
   </header>
 
   @if (tasks.smartFilterIds(); as ids) {
-    <div class="board-ai-banner">
-      <span class="material-symbols-rounded sm filled">auto_awesome</span>
+    <div class="board-ai-banner" role="status" aria-live="polite">
+      <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
       <span>
         AI filter active · showing
         <strong>{{ ids.length }}</strong>
@@ -56,15 +44,15 @@
     </div>
   }
 
-  <div class="board-layout" [class.with-drawer]="!!tasks.selectedTask()">
+  <div class="board-layout">
     @if (tasks.boardView() === 'kanban') {
       <app-kanban-board />
     } @else {
       <app-task-list-view />
     }
-
-    @if (tasks.selectedTask()) {
-      <app-task-detail-drawer />
-    }
   </div>
+
+  @if (tasks.selectedTask()) {
+    <app-task-detail-drawer />
+  }
 </section>

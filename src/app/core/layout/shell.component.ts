@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
+import { AiCopilotComponent } from '../../features/ai/ai-copilot.component';
 import { ToastComponent } from '../toast/toast.component';
 import { MobileNavComponent } from './mobile-nav.component';
 import { SidebarComponent } from './sidebar.component';
@@ -7,7 +8,13 @@ import { SidebarComponent } from './sidebar.component';
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, SidebarComponent, MobileNavComponent, ToastComponent],
+  imports: [
+    RouterOutlet,
+    SidebarComponent,
+    MobileNavComponent,
+    ToastComponent,
+    AiCopilotComponent,
+  ],
   templateUrl: './shell.component.html',
 })
 export class ShellComponent {}

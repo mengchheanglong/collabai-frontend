@@ -1,3 +1,3 @@
 @if (toastService.toast(); as t) {
-  <div class="toast" [attr.data-tone]="t.tone" role="status">{{ t.message }}</div>
+  <div class="toast" [attr.data-tone]="t.tone" [attr.aria-live]="t.tone === 'success' ? 'polite' : 'polite'" role="status">{{ t.message }}</div>
 }

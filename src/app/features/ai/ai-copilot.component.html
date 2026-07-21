@@ -1,0 +1,137 @@
+<div class="ai-copilot" [class.is-open]="open()">
+  @if (open()) {
+    <section class="ai-copilot-panel" role="dialog" aria-label="CollabAI chat" aria-modal="false">
+      <header class="ai-copilot-head">
+        <div class="ai-copilot-title">
+          <span class="ai-copilot-orb" aria-hidden="true">
+            <span class="material-symbols-rounded filled">auto_awesome</span>
+          </span>
+          <div>
+            <strong>CollabAI</strong>
+            <small>Ask anything about your work</small>
+          </div>
+        </div>
+        <div class="ai-copilot-head-actions">
+          <button
+            type="button"
+            class="icon-btn"
+            matTooltip="Clear chat"
+            aria-label="Clear chat"
+            (click)="clearChat()"
+          >
+            <span class="material-symbols-rounded sm">refresh</span>
+          </button>
+          <button
+            type="button"
+            class="icon-btn"
+            matTooltip="Close"
+            aria-label="Close AI chat"
+            (click)="close()"
+          >
+            <span class="material-symbols-rounded sm">close</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="ai-copilot-thread" #thread aria-live="polite" aria-atomic="false">
+        @for (msg of messages(); track msg.id) {
+          <div class="ai-msg" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
+            @if (msg.role === 'assistant') {
+              <span class="ai-msg-avatar" aria-hidden="true">
+                <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
+              </span>
+            }
+            <div class="ai-msg-body">
+              <p [class.pending]="msg.pending">{{ msg.text }}</p>
+
+              @if (msg.chips?.length) {
+                <div class="smart-chips ai-msg-chips" aria-label="Interpreted filters">
+                  @for (chip of msg.chips; track chip.key) {
+                    <span class="ai-chip" [attr.data-tone]="chip.tone ?? 'default'">{{ chip.label }}</span>
+                  }
+                </div>
+              }
+
+              @if (msg.tasks?.length) {
+                <div class="ai-msg-tasks">
+                  @for (task of msg.tasks; track task.id) {
+                    <button type="button" class="ai-task-row" matRipple (click)="openTask(task)" [title]="task.title">
+                      <span class="prio-dot" [class]="'priority-' + task.priority"></span>
+                      <span class="ai-task-copy">
+                        <span class="task-id">{{ task.id }}</span>
+                        <strong>{{ task.title }}</strong>
+                      </span>
+                      <span class="status" [attr.data-status]="task.status">
+                        {{ task.status.replace('_', ' ') }}
+                      </span>
+                    </button>
+                  }
+
+                  <button
+                    type="button"
+                    class="btn primary sm ai-filter-btn"
+                    matRipple
+                    (click)="filterBoard(msg.tasks!.map((t) => t.id), msg.queryLabel || 'AI filter')"
+                  >
+                    <span class="material-symbols-rounded sm" aria-hidden="true">filter_alt</span>
+                    Show on board
+                  </button>
+                </div>
+              }
+            </div>
+          </div>
+        }
+
+        @if (messages().length <= 1) {
+          <div class="ai-copilot-prompts" role="list">
+            @for (p of prompts; track p) {
+              <button type="button" class="smart-prompt" role="listitem" matRipple (click)="usePrompt(p)">
+                <span class="material-symbols-rounded sm" aria-hidden="true">bolt</span>
+                {{ p }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <footer class="ai-copilot-composer">
+        <textarea
+          #composer
+          rows="1"
+          [value]="draft()"
+          (input)="draft.set($any($event.target).value)"
+          (keydown)="onKeydown($event)"
+          placeholder="Ask CollabAI…"
+          aria-label="Message CollabAI"
+        ></textarea>
+        <button
+          type="button"
+          class="ai-send"
+          matRipple
+          [disabled]="!draft().trim() || sending()"
+          (click)="send()"
+          matTooltip="Send"
+          [attr.aria-label]="sending() ? 'Sending message' : 'Send message'"
+        >
+          <span class="material-symbols-rounded sm" [class.spin]="sending()" aria-hidden="true">{{ sending() ? 'progress_activity' : 'arrow_upward' }}</span>
+        </button>
+      </footer>
+    </section>
+  }
+
+  <button
+    type="button"
+    class="ai-copilot-fab"
+    [class.is-open]="open()"
+    (click)="toggle()"
+    [attr.aria-expanded]="open()"
+    [attr.aria-label]="open() ? 'Close CollabAI' : 'Open CollabAI'"
+    matTooltip="{{ open() ? 'Close' : 'Ask CollabAI' }}"
+    matTooltipPosition="left"
+  >
+    <span class="ai-copilot-fab-ring" aria-hidden="true"></span>
+    <span class="material-symbols-rounded filled">
+      {{ open() ? 'close' : 'auto_awesome' }}
+    </span>
+  </button>
+</div>

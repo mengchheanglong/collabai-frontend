@@ -1,12 +1,12 @@
 <nav class="mobile-nav" aria-label="Mobile">
   @for (page of pages; track page.key) {
-    <a [routerLink]="'/' + page.key" routerLinkActive="active" #navLink="routerLinkActive">
-      <span class="material-symbols-rounded" [class.filled]="navLink.isActive">{{ page.icon }}</span>
+    <a [routerLink]="'/' + page.key" routerLinkActive="active" #navLink="routerLinkActive" [attr.aria-current]="navLink.isActive ? 'page' : null">
+      <span class="material-symbols-rounded" [class.filled]="navLink.isActive" aria-hidden="true">{{ page.icon }}</span>
       <span>{{ page.label }}</span>
     </a>
   }
-  <a routerLink="/profile" routerLinkActive="active" #profileLink="routerLinkActive">
-    <span class="material-symbols-rounded" [class.filled]="profileLink.isActive">person</span>
+  <a routerLink="/profile" routerLinkActive="active" #profileLink="routerLinkActive" [attr.aria-current]="profileLink.isActive ? 'page' : null">
+    <span class="material-symbols-rounded" [class.filled]="profileLink.isActive" aria-hidden="true">person</span>
     <span>You</span>
   </a>
 </nav>

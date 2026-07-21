@@ -1,86 +1,211 @@
-<section class="page">
-  <header class="page-header">
+<section class="page team-page">
+  <header class="page-header team-header">
     <div>
-      <h1>Team</h1>
-      <p>{{ displayedMembers().length }} members in {{ workspace.activeWorkspace().name }}</p>
+      <h1>People</h1>
+      <p>{{ workspace.activeWorkspace().name }} · {{ members.memberCount() }} members</p>
     </div>
     <div class="header-actions">
       <app-theme-toggle />
       <button type="button" class="btn primary" matRipple (click)="openInvite()">
-        <span class="material-symbols-rounded sm">person_add</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">person_add</span>
         Invite
       </button>
     </div>
   </header>
 
-  <div class="team-layout">
-    <section class="card">
-      <table>
-        <thead>
-          <tr>
-            <th>Member</th>
-            <th>Role</th>
-            <th>Status</th>
-            <th class="action-col">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (member of displayedMembers(); track member.id) {
-            <tr>
-              <td>
-                <span class="inline-person">
-                  <span class="avatar" [style.background]="member.color">{{ member.avatar }}</span>
-                  <span>
-                    <strong>{{ member.name }}</strong>
-                    <small class="sub">{{ member.email }}</small>
-                  </span>
-                </span>
-              </td>
-              <td><span class="tag">{{ member.role }}</span></td>
-              <td>
-                <span class="presence" [attr.data-status]="member.status">{{ member.status }}</span>
-              </td>
-              <td class="action-cell">
+  <section class="team-directory" aria-label="Workspace members">
+    <div class="team-toolbar">
+      <div class="team-search">
+        <span class="material-symbols-rounded sm" aria-hidden="true">search</span>
+        <input
+          type="search"
+          [value]="searchQuery()"
+          (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search people…"
+          aria-label="Search members"
+        />
+      </div>
+
+      <div class="team-filters" role="tablist" aria-label="Filter by role">
+        <button type="button" [class.active]="roleFilter() === 'all'" (click)="setRoleFilter('all')">
+          All
+        </button>
+        <button type="button" [class.active]="roleFilter() === 'Admin'" (click)="setRoleFilter('Admin')">
+          Admin
+        </button>
+        <button type="button" [class.active]="roleFilter() === 'Member'" (click)="setRoleFilter('Member')">
+          Member
+        </button>
+        <button type="button" [class.active]="roleFilter() === 'Viewer'" (click)="setRoleFilter('Viewer')">
+          Viewer
+        </button>
+      </div>
+    </div>
+
+    <div class="member-list" role="list">
+      @for (member of filteredMembers(); track member.id) {
+        <article class="member-row" role="listitem">
+          <div class="member-person">
+            <span class="avatar-wrap">
+              <span class="avatar" [style.background]="member.color" aria-hidden="true">{{ member.avatar }}</span>
+              <span class="presence-dot" [attr.data-status]="member.status" [matTooltip]="member.status" aria-hidden="true"></span>
+            </span>
+            <div class="member-main">
+              <div class="member-name-line">
+                <strong [title]="member.name">{{ member.name }}</strong>
+                @if (isYou(member)) {
+                  <span class="you-badge">you</span>
+                }
+              </div>
+              <small [title]="member.email">{{ member.email }}</small>
+            </div>
+          </div>
+
+          <label class="role-select-wrap">
+            <span class="sr-only">Role for {{ member.name }}</span>
+            <select
+              class="role-select"
+              [value]="member.role"
+              [disabled]="isYou(member) && members.adminCount() <= 1 && member.role === 'Admin'"
+              (change)="onRoleChange(member, $any($event.target).value)"
+            >
+              @for (role of roles; track role) {
+                <option [value]="role">{{ role }}</option>
+              }
+            </select>
+          </label>
+
+          <div class="member-actions" (click)="$event.stopPropagation()">
+            @if (!isYou(member)) {
+              <div class="menu-wrap">
                 <button
                   type="button"
-                  class="icon-btn danger"
-                  matRipple
-                  (click)="removeMember(member.id)"
-                  [attr.aria-label]="'Delete ' + member.name"
+                  class="icon-btn member-more"
+                  [class.active]="menuOpenId() === member.id"
+                  [attr.aria-expanded]="menuOpenId() === member.id"
+                  aria-haspopup="menu"
+                  [attr.aria-label]="'More actions for ' + member.name"
+                  (click)="toggleMenu($event, member.id)"
                 >
-                  <span class="material-symbols-rounded sm">delete</span>
+                  <span class="material-symbols-rounded sm" aria-hidden="true">more_horiz</span>
                 </button>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    </section>
-  </div>
 
-  @if (isInviteOpen()) {
-    <div class="modal-backdrop" (click)="closeInvite()">
-      <section class="card invite invite-modal" (click)="$event.stopPropagation()">
-        <h2>Invite</h2>
-        <p>Add someone to this workspace.</p>
+                @if (menuOpenId() === member.id) {
+                  <div class="member-menu" role="menu">
+                    <button
+                      type="button"
+                      class="member-menu-item danger"
+                      role="menuitem"
+                      (click)="openRemoveDialog($event, member)"
+                    >
+                      Remove from workspace
+                    </button>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </article>
+      } @empty {
+        <div class="team-empty">
+          <p>
+            @if (searchQuery() || roleFilter() !== 'all') {
+              No people match your search.
+            } @else {
+              No members yet.
+            }
+          </p>
+          @if (searchQuery() || roleFilter() !== 'all') {
+            <button type="button" class="link" (click)="clearFilters()">Clear filters</button>
+          } @else {
+            <button type="button" class="link" (click)="openInvite()">Invite someone</button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+</section>
+
+@if (inviteOpen()) {
+  <div class="team-dialog-overlay" role="presentation" (click)="closeInvite()">
+    <div
+      class="team-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="invite-dialog-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="team-dialog-head">
+        <h2 id="invite-dialog-title">Invite people</h2>
+        <button type="button" class="icon-btn" (click)="closeInvite()" aria-label="Close">
+          <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="team-dialog-body">
         <label class="field">
           <span>Email</span>
           <input
+            type="email"
             [value]="inviteEmail()"
             (input)="inviteEmail.set($any($event.target).value)"
+            (keydown.enter)="sendInvite()"
             placeholder="name@example.com"
+            autocomplete="email"
           />
         </label>
         <label class="field">
           <span>Role</span>
           <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
-            <option>Admin</option>
-            <option>Member</option>
-            <option>Viewer</option>
+            @for (role of roles; track role) {
+              <option [value]="role">{{ role }}</option>
+            }
           </select>
         </label>
-        <button type="button" class="btn primary" matRipple (click)="sendInvite()">Send invite</button>
-      </section>
+      </div>
+
+      <footer class="team-dialog-footer">
+        <button type="button" class="btn ghost sm" matRipple (click)="closeInvite()">Cancel</button>
+        <button type="button" class="btn primary sm" matRipple (click)="sendInvite()">Send invite</button>
+      </footer>
     </div>
-  }
-</section>
+  </div>
+}
+
+@if (removeTarget(); as target) {
+  <div class="team-dialog-overlay" role="presentation" (click)="closeRemoveDialog()">
+    <div
+      class="team-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="remove-dialog-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="team-dialog-head">
+        <h2 id="remove-dialog-title">Remove {{ target.name }}?</h2>
+        <button type="button" class="icon-btn" (click)="closeRemoveDialog()" aria-label="Close">
+          <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="team-dialog-body">
+        <p class="team-dialog-copy">
+          They’ll lose access to <strong>{{ workspace.activeWorkspace().name }}</strong>
+          and its boards.
+        </p>
+        <div class="remove-preview">
+          <span class="avatar" [style.background]="target.color" aria-hidden="true">{{ target.avatar }}</span>
+          <div>
+            <strong>{{ target.name }}</strong>
+            <small>{{ target.email }}</small>
+          </div>
+        </div>
+      </div>
+
+      <footer class="team-dialog-footer">
+        <button type="button" class="btn ghost sm" matRipple (click)="closeRemoveDialog()">Cancel</button>
+        <button type="button" class="btn danger sm" matRipple (click)="confirmRemove()">Remove</button>
+      </footer>
+    </div>
+  </div>
+}

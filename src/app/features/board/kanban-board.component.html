@@ -1,6 +1,6 @@
-<div class="kanban" cdkDropListGroup>
+<div class="kanban" cdkDropListGroup role="region" aria-label="Kanban board">
   @for (column of tasks.columns; track column.key) {
-    <section class="column">
+    <section class="column" [attr.aria-label]="column.label + ' column'">
       <header>
         <span>{{ column.label }}</span>
         <span class="count">{{ tasks.tasksByStatus(column.key).length }}</span>
@@ -12,6 +12,8 @@
         [cdkDropListData]="tasks.tasksByStatus(column.key)"
         [cdkDropListConnectedTo]="tasks.columnConnectedTo()"
         (cdkDropListDropped)="tasks.drop($event, column.key)"
+        role="list"
+        [attr.aria-label]="column.label + ' tasks'"
       >
         @for (task of tasks.tasksByStatus(column.key); track task.id) {
           <app-task-card
@@ -22,6 +24,7 @@
             [memberColor]="memberColor"
             [initials]="initials"
             (select)="tasks.selectTask($event)"
+            role="listitem"
           />
         } @empty {
           <div class="column-empty">Drop here</div>

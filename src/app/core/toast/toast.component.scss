@@ -12,13 +12,24 @@
   font-size: 13px;
   font-weight: 500;
   animation: toast-in 0.2s var(--ease);
+  max-width: min(90vw, 480px);
+  text-align: center;
+  line-height: 1.4;
+  word-break: break-word;
 
   &[data-tone='ai'] {
     border-color: var(--brand-border);
+    background: linear-gradient(135deg, rgba(24, 24, 27, 0.98), rgba(39, 30, 60, 0.95));
   }
 
   &[data-tone='success'] {
     border-color: rgba(34, 197, 94, 0.4);
+  }
+
+  &[data-tone='error'] {
+    border-color: rgba(239, 68, 68, 0.4);
+    background: var(--red-soft);
+    color: #fca5a5;
   }
 }
 

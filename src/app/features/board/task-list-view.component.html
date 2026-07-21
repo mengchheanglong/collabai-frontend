@@ -11,14 +11,14 @@
     </thead>
     <tbody>
       @for (task of tasks.filteredTasks(); track task.id) {
-        <tr [class.selected]="tasks.selectedTask()?.id === task.id" (click)="tasks.selectTask(task)">
+        <tr [class.selected]="tasks.selectedTask()?.id === task.id" (click)="tasks.selectTask(task)" tabindex="0" [title]="task.title">
           <td>
             <span class="task-id">{{ task.id }}</span>
             <strong>{{ task.title }}</strong>
           </td>
           <td>
             <span class="inline-person">
-              <span class="avatar sm" [style.background]="members.memberColor(task.assignee)">
+              <span class="avatar sm" [style.background]="members.memberColor(task.assignee)" aria-hidden="true">
                 {{ members.initials(task.assignee) }}
               </span>
               {{ task.assignee }}
@@ -34,7 +34,10 @@
         </tr>
       } @empty {
         <tr>
-          <td colspan="5" class="empty">No matching tasks.</td>
+          <td colspan="5" class="empty">
+            <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
+            <p>No matching tasks.</p>
+          </td>
         </tr>
       }
     </tbody>

@@ -18,44 +18,21 @@
     <div class="header-actions">
       <app-theme-toggle />
       <a class="btn ghost" routerLink="/board" matRipple>
-        <span class="material-symbols-rounded sm">view_kanban</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">view_kanban</span>
         Open board
       </a>
       <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
-        <span class="material-symbols-rounded sm">add</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         New task
       </button>
     </div>
   </header>
 
-  <!-- AI Smart Search -->
-  <section class="dash-ai card ai-surface" aria-label="AI smart search">
-    <div class="ai-surface-head">
-      <div>
-        <h2>
-          <span class="material-symbols-rounded md filled">psychology</span>
-          Smart task search
-        </h2>
-        <p>Describe what you need in plain English. AI maps it to filters and finds matching work.</p>
-      </div>
-      <span class="ai-live-badge">
-        <span class="ai-live-dot"></span>
-        Live mock
-      </span>
-    </div>
-
-    <app-smart-search
-      variant="hero"
-      placeholder="e.g. frontend tasks due this week that are not done"
-      (taskSelected)="openTaskOnBoard($event)"
-    />
-  </section>
-
   <!-- Stats -->
-  <div class="stats dash-stats">
+  <div class="stats dash-stats" role="region" aria-label="Workspace stats">
     <div class="stat stat-rich">
       <div class="stat-top">
-        <span class="stat-icon brand"><span class="material-symbols-rounded sm">folder</span></span>
+        <span class="stat-icon brand"><span class="material-symbols-rounded sm" aria-hidden="true">folder</span></span>
         <span class="stat-label">Projects</span>
       </div>
       <strong>{{ workspace.filteredProjects().length }}</strong>
@@ -63,7 +40,7 @@
     </div>
     <div class="stat stat-rich">
       <div class="stat-top">
-        <span class="stat-icon cyan"><span class="material-symbols-rounded sm">progress_activity</span></span>
+        <span class="stat-icon cyan"><span class="material-symbols-rounded sm" aria-hidden="true">progress_activity</span></span>
         <span class="stat-label">In progress</span>
       </div>
       <strong>{{ tasks.inProgressTasks() }}</strong>
@@ -71,17 +48,17 @@
     </div>
     <div class="stat stat-rich">
       <div class="stat-top">
-        <span class="stat-icon green"><span class="material-symbols-rounded sm">check_circle</span></span>
+        <span class="stat-icon green"><span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span></span>
         <span class="stat-label">Done</span>
       </div>
       <strong>{{ tasks.doneTasks() }}</strong>
-      <div class="stat-bar">
+      <div class="stat-bar" [attr.aria-label]="'Completion rate: ' + tasks.completionRate() + '%'">
         <mat-progress-bar mode="determinate" [value]="tasks.completionRate()"></mat-progress-bar>
       </div>
     </div>
     <div class="stat stat-rich">
       <div class="stat-top">
-        <span class="stat-icon amber"><span class="material-symbols-rounded sm">priority_high</span></span>
+        <span class="stat-icon amber"><span class="material-symbols-rounded sm" aria-hidden="true">priority_high</span></span>
         <span class="stat-label">High priority</span>
       </div>
       <strong>{{ highPriorityOpen() }}</strong>
@@ -98,19 +75,22 @@
       </div>
       <div class="project-list">
         @for (project of workspace.filteredProjects(); track project.id) {
-          <a class="project-row project-row-rich" routerLink="/board" matRipple>
+          <a class="project-row project-row-rich" routerLink="/board" [title]="project.name + ' — ' + project.team" matRipple>
             <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
             <span class="project-body">
               <strong>{{ project.name }}</strong>
               <small>{{ project.team }}</small>
-              <div class="project-progress">
+              <div class="project-progress" [attr.aria-label]="'Progress: ' + project.progress + '%'">
                 <mat-progress-bar mode="determinate" [value]="project.progress"></mat-progress-bar>
               </div>
             </span>
             <span class="project-pct">{{ project.progress }}%</span>
           </a>
         } @empty {
-          <p class="empty">No projects in this workspace yet.</p>
+          <div class="empty">
+            <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
+            <p>No projects in this workspace yet.</p>
+          </div>
         }
       </div>
     </section>
@@ -123,7 +103,7 @@
       </div>
       <div class="simple-list">
         @for (task of tasks.upcomingTasks(); track task.id) {
-          <button type="button" class="list-row up-next-row" (click)="openTaskOnBoard(task)" matRipple>
+          <button type="button" class="list-row up-next-row" (click)="openTaskOnBoard(task)" [title]="task.title" matRipple>
             <span class="prio-dot" [class]="tasks.priorityClass(task.priority)"></span>
             <span class="list-title">
               <span class="task-id">{{ task.id }}</span>
@@ -133,7 +113,10 @@
             <span class="list-meta">{{ task.dueDate }}</span>
           </button>
         } @empty {
-          <p class="empty">No open tasks. Create one to get started.</p>
+          <div class="empty">
+            <span class="material-symbols-rounded" aria-hidden="true">inbox</span>
+            <p>No open tasks. Create one to get started.</p>
+          </div>
         }
       </div>
     </section>
@@ -142,7 +125,7 @@
     <section class="card dash-card ai-surface suggestions-card">
       <div class="card-head">
         <h2>
-          <span class="material-symbols-rounded md filled">auto_awesome</span>
+          <span class="material-symbols-rounded md filled" aria-hidden="true">auto_awesome</span>
           AI suggestions
         </h2>
         <span class="muted-count">{{ suggestions.suggestions().length }} active</span>
@@ -154,7 +137,7 @@
             <article class="suggestion-card">
               <div class="suggestion-card-top">
                 <span class="suggestion-cat">
-                  <span class="material-symbols-rounded sm">{{ categoryIcon(s.category) }}</span>
+                  <span class="material-symbols-rounded sm" aria-hidden="true">{{ categoryIcon(s.category) }}</span>
                   {{ s.category }}
                 </span>
                 <span class="impact-pill" [class]="impactClass(s.impact)">{{ s.impact }} impact</span>
@@ -163,7 +146,7 @@
               <p>{{ s.body }}</p>
               <div class="suggestion-actions">
                 <button type="button" class="btn primary sm" matRipple (click)="suggestions.applySuggestion(s)">
-                  <span class="material-symbols-rounded sm">bolt</span>
+                  <span class="material-symbols-rounded sm" aria-hidden="true">bolt</span>
                   {{ s.action }}
                 </button>
                 <button
@@ -180,7 +163,7 @@
         </div>
       } @else {
         <div class="smart-empty">
-          <span class="material-symbols-rounded">verified</span>
+          <span class="material-symbols-rounded" aria-hidden="true">verified</span>
           <p>You're all caught up. New AI suggestions will appear as the board changes.</p>
         </div>
       }
@@ -198,9 +181,10 @@
               class="avatar sm"
               [class.ai-avatar]="activity.type === 'ai'"
               [style.background]="activity.type === 'ai' ? null : members.memberColor(activity.actor)"
+              aria-hidden="true"
             >
               @if (activity.type === 'ai') {
-                <span class="material-symbols-rounded sm filled">auto_awesome</span>
+                <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
               } @else {
                 {{ members.initials(activity.actor) }}
               }
@@ -213,7 +197,10 @@
             </div>
           </div>
         } @empty {
-          <p class="empty">No recent activity.</p>
+          <div class="empty">
+            <span class="material-symbols-rounded" aria-hidden="true">history</span>
+            <p>No recent activity.</p>
+          </div>
         }
       </div>
     </section>

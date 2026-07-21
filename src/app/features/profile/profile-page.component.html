@@ -13,7 +13,7 @@
   <div class="profile-layout">
     <section class="card profile-card">
       <img [src]="theme.logoSrc()" alt="Collab AI" class="profile-logo" />
-      <div class="avatar xl" [style.background]="currentUser.color">{{ currentUser.avatar }}</div>
+      <div class="avatar xl" [style.background]="currentUser.color" aria-hidden="true">{{ currentUser.avatar }}</div>
       <h2>{{ currentUser.name }}</h2>
       <p>{{ currentUser.email }}</p>
       <span class="tag">{{ currentUser.role }}</span>
@@ -23,7 +23,7 @@
       <h2>Details</h2>
       <div class="detail">
         <span>Workspace</span>
-        <strong>{{ workspace.activeWorkspace().name }}</strong>
+        <strong [title]="workspace.activeWorkspace().name">{{ workspace.activeWorkspace().name }}</strong>
       </div>
       <div class="detail">
         <span>Theme</span>

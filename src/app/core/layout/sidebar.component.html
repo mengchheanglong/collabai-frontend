@@ -12,8 +12,9 @@
           routerLinkActive="active"
           #navLink="routerLinkActive"
           matRipple
+          [attr.aria-current]="navLink.isActive ? 'page' : null"
         >
-          <span class="material-symbols-rounded" [class.filled]="navLink.isActive">{{ page.icon }}</span>
+          <span class="material-symbols-rounded" [class.filled]="navLink.isActive" aria-hidden="true">{{ page.icon }}</span>
           {{ page.label }}
         </a>
       }
@@ -40,8 +41,10 @@
           [class.active]="workspace.selectedWorkspaceId() === ws.id"
           (click)="selectWorkspace(ws.id)"
           matRipple
+          [attr.aria-pressed]="workspace.selectedWorkspaceId() === ws.id"
+          [title]="ws.name"
         >
-          <span class="ws-dot" [style.background]="ws.accent"></span>
+          <span class="ws-dot" [style.background]="ws.accent" aria-hidden="true"></span>
           <span class="ws-name">{{ ws.name }}</span>
         </button>
       }
@@ -64,8 +67,8 @@
     </div>
   </div>
 
-  <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple>
-    <span class="avatar" [style.background]="currentUser.color">{{ currentUser.avatar }}</span>
+  <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple [attr.aria-current]="profileLink?.isActive ? 'page' : null" #profileLink="routerLinkActive">
+    <span class="avatar" [style.background]="currentUser.color" aria-hidden="true">{{ currentUser.avatar }}</span>
     <span class="user-info">
       <strong>{{ currentUser.name }}</strong>
       <small>{{ currentUser.email }}</small>

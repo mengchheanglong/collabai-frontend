@@ -11,7 +11,6 @@ import { WorkspaceContextService } from '../../core/workspace/workspace-context.
 import type { Suggestion } from '../../shared/models/suggestion.models';
 import type { Task } from '../../shared/models/task.models';
 import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
-import { SmartSearchComponent } from '../ai/smart-search.component';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -21,7 +20,6 @@ import { SmartSearchComponent } from '../ai/smart-search.component';
     MatRippleModule,
     MatProgressBarModule,
     MatTooltipModule,
-    SmartSearchComponent,
     ThemeToggleComponent,
   ],
   templateUrl: './dashboard-page.component.html',

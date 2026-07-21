@@ -2,7 +2,7 @@
   <span class="task-id">{{ task().id }}</span>
   <span class="pill" [class]="priorityClass(task().priority)">{{ task().priority }}</span>
 </div>
-<h3>{{ task().title }}</h3>
+<h3 [title]="task().title">{{ task().title }}</h3>
 @if (task().tags.length) {
   <div class="tags">
     @for (tag of task().tags.slice(0, 2); track tag) {
@@ -11,13 +11,13 @@
   </div>
 }
 <footer>
-  <span class="avatar sm" [style.background]="memberColor()(task().assignee)" [matTooltip]="task().assignee">
+  <span class="avatar sm" [style.background]="memberColor()(task().assignee)" [matTooltip]="task().assignee" aria-hidden="true">
     {{ initials()(task().assignee) }}
   </span>
   <span class="meta">{{ task().dueDate }}</span>
   @if (task().comments) {
-    <span class="meta">
-      <span class="material-symbols-rounded sm">chat_bubble</span>
+    <span class="meta" [attr.aria-label]="task().comments + ' comments'">
+      <span class="material-symbols-rounded sm" aria-hidden="true">chat_bubble</span>
       {{ task().comments }}
     </span>
   }
