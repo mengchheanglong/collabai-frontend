@@ -133,8 +133,16 @@ $font:     Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
 .logo-text {
   font-size: 16px; font-weight: 700; letter-spacing: -.02em;
 }
+.logo-wordmark {
+  display: block;
+  width: 132px;
+  height: auto;
+}
 .nav-links {
-  display: flex; align-items: center; gap: 8px; flex: 1;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex; align-items: center; gap: 8px;
   a {
     padding: 6px 14px; border-radius: 8px;
     color: $muted; text-decoration: none;
@@ -145,6 +153,7 @@ $font:     Inter, ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
 .nav-actions {
   display: flex; align-items: center; gap: 12px;
+  margin-left: auto;
 }
 .nav-link-login {
   color: $muted; text-decoration: none;
