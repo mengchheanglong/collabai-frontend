@@ -325,6 +325,11 @@
     color: var(--text);
     background: var(--hover);
   }
+
+  &.danger:hover {
+    color: #fca5a5;
+    background: var(--red-soft);
+  }
 }
 
 .link {
@@ -1750,9 +1755,23 @@ tbody tr {
 /* Team */
 .team-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 300px;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
+
+  > .card:first-child {
+    overflow: auto;
+  }
+}
+
+.action-col {
+  width: 1%;
+  text-align: right;
+}
+
+.action-cell {
+  text-align: right;
+  white-space: nowrap;
 }
 
 .invite {
@@ -1770,6 +1789,24 @@ tbody tr {
     color: var(--muted);
     font-size: 13px;
   }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(9, 9, 11, 0.56);
+  backdrop-filter: blur(8px);
+  animation: in 0.18s var(--ease);
+}
+
+.invite-modal {
+  width: min(376px, calc(100vw - 28px));
+  padding: 22px;
+  box-shadow: var(--shadow);
 }
 
 .field {

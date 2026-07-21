@@ -4,12 +4,15 @@
       <h1>Profile</h1>
       <p>Your account in this mock UI</p>
     </div>
-    <a class="btn ghost" routerLink="/dashboard">Back</a>
+    <div class="header-actions">
+      <app-theme-toggle />
+      <a class="btn ghost" routerLink="/dashboard">Back</a>
+    </div>
   </header>
 
   <div class="profile-layout">
     <section class="card profile-card">
-      <img src="logo-wordmark.svg" alt="Collab AI" class="profile-logo" />
+      <img [src]="theme.logoSrc()" alt="Collab AI" class="profile-logo" />
       <div class="avatar xl" [style.background]="currentUser.color">{{ currentUser.avatar }}</div>
       <h2>{{ currentUser.name }}</h2>
       <p>{{ currentUser.email }}</p>
@@ -24,7 +27,7 @@
       </div>
       <div class="detail">
         <span>Theme</span>
-        <strong>Dark</strong>
+        <strong>{{ theme.mode() }}</strong>
       </div>
       <div class="detail">
         <span>Notifications</span>

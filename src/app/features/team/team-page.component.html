@@ -2,7 +2,14 @@
   <header class="page-header">
     <div>
       <h1>Team</h1>
-      <p>{{ members.members.length }} members in {{ workspace.activeWorkspace().name }}</p>
+      <p>{{ displayedMembers().length }} members in {{ workspace.activeWorkspace().name }}</p>
+    </div>
+    <div class="header-actions">
+      <app-theme-toggle />
+      <button type="button" class="btn primary" matRipple (click)="openInvite()">
+        <span class="material-symbols-rounded sm">person_add</span>
+        Invite
+      </button>
     </div>
   </header>
 
@@ -14,10 +21,11 @@
             <th>Member</th>
             <th>Role</th>
             <th>Status</th>
+            <th class="action-col">Actions</th>
           </tr>
         </thead>
         <tbody>
-          @for (member of members.members; track member.id) {
+          @for (member of displayedMembers(); track member.id) {
             <tr>
               <td>
                 <span class="inline-person">
@@ -32,32 +40,47 @@
               <td>
                 <span class="presence" [attr.data-status]="member.status">{{ member.status }}</span>
               </td>
+              <td class="action-cell">
+                <button
+                  type="button"
+                  class="icon-btn danger"
+                  matRipple
+                  (click)="removeMember(member.id)"
+                  [attr.aria-label]="'Delete ' + member.name"
+                >
+                  <span class="material-symbols-rounded sm">delete</span>
+                </button>
+              </td>
             </tr>
           }
         </tbody>
       </table>
     </section>
-
-    <section class="card invite">
-      <h2>Invite</h2>
-      <p>Add someone to this workspace.</p>
-      <label class="field">
-        <span>Email</span>
-        <input
-          [value]="inviteEmail()"
-          (input)="inviteEmail.set($any($event.target).value)"
-          placeholder="name@example.com"
-        />
-      </label>
-      <label class="field">
-        <span>Role</span>
-        <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
-          <option>Admin</option>
-          <option>Member</option>
-          <option>Viewer</option>
-        </select>
-      </label>
-      <button type="button" class="btn primary" matRipple (click)="sendInvite()">Send invite</button>
-    </section>
   </div>
+
+  @if (isInviteOpen()) {
+    <div class="modal-backdrop" (click)="closeInvite()">
+      <section class="card invite invite-modal" (click)="$event.stopPropagation()">
+        <h2>Invite</h2>
+        <p>Add someone to this workspace.</p>
+        <label class="field">
+          <span>Email</span>
+          <input
+            [value]="inviteEmail()"
+            (input)="inviteEmail.set($any($event.target).value)"
+            placeholder="name@example.com"
+          />
+        </label>
+        <label class="field">
+          <span>Role</span>
+          <select [value]="inviteRole()" (change)="inviteRole.set($any($event.target).value)">
+            <option>Admin</option>
+            <option>Member</option>
+            <option>Viewer</option>
+          </select>
+        </label>
+        <button type="button" class="btn primary" matRipple (click)="sendInvite()">Send invite</button>
+      </section>
+    </div>
+  }
 </section>

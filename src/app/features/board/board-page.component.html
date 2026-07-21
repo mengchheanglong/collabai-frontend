@@ -5,6 +5,7 @@
       <p>{{ workspace.activeWorkspace().name }}</p>
     </div>
     <div class="header-actions board-actions">
+      <app-theme-toggle />
       <div class="segmented" role="tablist" aria-label="Board view">
         <button type="button" [class.active]="tasks.boardView() === 'kanban'" (click)="setBoardView('kanban')">
           Board
