@@ -10,6 +10,7 @@ import { TaskStoreService } from '../../core/state/task-store.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import type { Suggestion } from '../../shared/models/suggestion.models';
 import type { Task } from '../../shared/models/task.models';
+import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
 import { SmartSearchComponent } from '../ai/smart-search.component';
 
 @Component({
@@ -21,6 +22,7 @@ import { SmartSearchComponent } from '../ai/smart-search.component';
     MatProgressBarModule,
     MatTooltipModule,
     SmartSearchComponent,
+    ThemeToggleComponent,
   ],
   templateUrl: './dashboard-page.component.html',
 })

@@ -10,7 +10,7 @@
   <!-- ─── Navigation ─── -->
   <header class="nav" id="top">
     <a class="nav-logo" routerLink="/landing" aria-label="CollabAI home">
-      <img src="logo-wordmark.svg" alt="Collab AI" class="logo-wordmark" />
+      <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
     </a>
 
     <nav class="nav-links" aria-label="Primary">
@@ -21,6 +21,7 @@
     </nav>
 
     <div class="nav-actions">
+      <app-theme-toggle />
       <a class="nav-link-login" routerLink="/dashboard">Log in</a>
       <a class="btn btn-primary btn-sm" routerLink="/dashboard">
         Get Started
@@ -305,7 +306,7 @@
   <footer class="footer" id="docs">
     <div class="footer-brand">
       <div class="footer-logo">
-        <img src="logo-wordmark.svg" alt="Collab AI" class="logo-wordmark" />
+        <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
       </div>
       <p>The modern workspace for teams that move fast. AI-powered project management for everyone.</p>
       <div class="footer-socials">

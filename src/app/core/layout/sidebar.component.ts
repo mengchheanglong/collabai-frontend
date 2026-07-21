@@ -4,6 +4,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MAIN_NAV_ITEMS } from '../../shared/lib/nav-items';
 import { MemberDirectoryService } from '../state/member-directory.service';
+import { ThemeService } from '../theme/theme.service';
 import { TaskStoreService } from '../state/task-store.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 
@@ -17,6 +18,7 @@ export class SidebarComponent {
   private readonly router = inject(Router);
   readonly workspace = inject(WorkspaceContextService);
   readonly members = inject(MemberDirectoryService);
+  readonly theme = inject(ThemeService);
   readonly tasks = inject(TaskStoreService);
 
   readonly pages = MAIN_NAV_ITEMS;
