@@ -12,11 +12,11 @@ import { ThemeService } from '../core/theme/theme.service';
       class="icon-btn theme-toggle"
       matRipple
       (click)="theme.toggle()"
-      [attr.aria-label]="theme.mode() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-      [title]="theme.mode() === 'dark' ? 'Light mode' : 'Dark mode'"
+      [attr.aria-label]="'Change color theme. Current theme: ' + theme.mode()"
+      [title]="'Current theme: ' + theme.mode()"
     >
       <span class="material-symbols-rounded sm">
-        {{ theme.mode() === 'dark' ? 'light_mode' : 'dark_mode' }}
+        {{ theme.mode() === 'dark' ? 'dark_mode' : theme.mode() === 'ocean' ? 'waves' : 'light_mode' }}
       </span>
     </button>
   `,

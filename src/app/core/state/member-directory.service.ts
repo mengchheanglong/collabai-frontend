@@ -3,7 +3,7 @@ import { members as seedMembers } from '../../data/mock/mock-members';
 import { initials } from '../../shared/lib/person-display';
 import type { Member } from '../../shared/models/member.models';
 
-const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#a78bfa', '#f59e0b', '#ef4444', '#64748b'];
+const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b'];
 
 @Injectable({ providedIn: 'root' })
 export class MemberDirectoryService {
@@ -23,7 +23,7 @@ export class MemberDirectoryService {
   );
 
   /** Mock signed-in user — always Seoul for MVP. */
-  readonly currentUser: Member = seedMembers[0];
+  readonly currentUser: Member = { ...seedMembers[0] };
 
   initials(name: string): string {
     return initials(name);
@@ -31,6 +31,38 @@ export class MemberDirectoryService {
 
   memberColor(name: string): string {
     return this.membersState().find((m) => m.name === name)?.color ?? '#3b82f6';
+  }
+
+  /** Update the signed-in user's editable profile fields in the frontend mock. */
+  updateCurrentUserProfile(
+    input: Pick<Member, 'name' | 'email'>,
+  ): { ok: true } | { ok: false; reason: string } {
+    const name = input.name.trim();
+    const email = input.email.trim().toLowerCase();
+
+    if (name.length < 2 || name.length > 80) {
+      return { ok: false, reason: 'Name must be between 2 and 80 characters.' };
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return { ok: false, reason: 'Enter a valid email address.' };
+    }
+
+    const emailInUse = this.membersState().some(
+      (member) => member.id !== this.currentUser.id && member.email.toLowerCase() === email,
+    );
+    if (emailInUse) {
+      return { ok: false, reason: 'That email address is already used by another member.' };
+    }
+
+    const avatar = initials(name);
+    Object.assign(this.currentUser, { name, email, avatar });
+    this.membersState.update((list) =>
+      list.map((member) =>
+        member.id === this.currentUser.id ? { ...member, name, email, avatar } : member,
+      ),
+    );
+    return { ok: true };
   }
 
   /**

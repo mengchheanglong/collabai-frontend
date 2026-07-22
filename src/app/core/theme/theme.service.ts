@@ -1,7 +1,7 @@
 import { DOCUMENT } from '@angular/common';
 import { effect, inject, Injectable, signal } from '@angular/core';
 
-export type ThemeMode = 'dark' | 'light';
+export type ThemeMode = 'dark' | 'light' | 'ocean';
 
 const STORAGE_KEY = 'collabai-theme';
 
@@ -20,7 +20,11 @@ export class ThemeService {
   }
 
   toggle(): void {
-    this.mode.update((mode) => (mode === 'dark' ? 'light' : 'dark'));
+    const modes: ThemeMode[] = ['light', 'dark', 'ocean'];
+    const current = this.mode();
+    const currentIndex = modes.indexOf(current);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    this.mode.set(modes[nextIndex]);
   }
 
   logoSrc(): string {
@@ -29,6 +33,6 @@ export class ThemeService {
 
   private initialMode(): ThemeMode {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'light' || stored === 'dark' ? stored : 'dark';
+    return stored === 'light' || stored === 'ocean' || stored === 'dark' ? stored : 'light';
   }
 }

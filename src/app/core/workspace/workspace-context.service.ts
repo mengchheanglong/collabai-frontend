@@ -48,7 +48,7 @@ export class WorkspaceContextService {
     const id = this.workspaces().some((w) => w.id === baseId)
       ? `${baseId}-${this.workspaces().length + 1}`
       : baseId;
-    const accents = ['#3b82f6', '#22c55e', '#06b6d4', '#f59e0b', '#a78bfa'];
+    const accents = ['#3b82f6', '#22c55e', '#06b6d4', '#f59e0b', '#0ea5e9'];
 
     this.workspaces.update((items) => [
       ...items,

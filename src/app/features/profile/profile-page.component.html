@@ -1,38 +1,195 @@
-<section class="page">
+<section class="page profile-page">
   <header class="page-header">
     <div>
+      <span class="page-eyebrow">Personal settings</span>
       <h1>Profile</h1>
-      <p>Your account in this mock UI</p>
+      <p>Your CollabAI account and workspace access.</p>
     </div>
     <div class="header-actions">
-      <app-theme-toggle />
-      <a class="btn ghost" routerLink="/dashboard">Back</a>
+      <a class="btn ghost" routerLink="/dashboard">
+        <span class="material-symbols-rounded sm" aria-hidden="true">arrow_back</span>
+        Back to dashboard
+      </a>
     </div>
   </header>
 
-  <div class="profile-layout">
-    <section class="card profile-card">
-      <img [src]="theme.logoSrc()" alt="Collab AI" class="profile-logo" />
-      <div class="avatar xl" [style.background]="currentUser.color" aria-hidden="true">{{ currentUser.avatar }}</div>
-      <h2>{{ currentUser.name }}</h2>
-      <p>{{ currentUser.email }}</p>
-      <span class="tag">{{ currentUser.role }}</span>
+  <div class="profile-stack">
+    <section class="account-card" aria-labelledby="account-title">
+      <div class="identity-panel">
+        <span class="profile-avatar" [style.background]="currentUser.color" aria-hidden="true">
+          {{ currentUser.avatar }}
+        </span>
+        <div class="identity-copy">
+          <div class="identity-title-row">
+            <h2 id="account-title">{{ currentUser.name }}</h2>
+            <span class="role-badge">{{ currentUser.role }}</span>
+          </div>
+          <p>{{ currentUser.email }}</p>
+          <span class="member-status" [attr.data-status]="currentUser.status.toLowerCase()">
+            <span class="status-dot" aria-hidden="true"></span>
+            {{ currentUser.status }}
+          </span>
+        </div>
+        @if (!isEditing()) {
+          <button type="button" class="btn ghost sm identity-edit" (click)="startEditing()">
+            <span class="material-symbols-rounded sm" aria-hidden="true">edit</span>
+            Edit profile
+          </button>
+        }
+      </div>
+
+      @if (isEditing()) {
+        <form class="profile-form" [formGroup]="profileForm" (ngSubmit)="saveProfile()" novalidate>
+          <div class="profile-form-heading">
+            <div>
+              <h3>Edit account information</h3>
+              <p>Update the details shown across your CollabAI workspace.</p>
+            </div>
+          </div>
+
+          <div class="profile-fields">
+            <label class="field">
+              <span>Full name</span>
+              <input
+                type="text"
+                formControlName="name"
+                autocomplete="name"
+                maxlength="80"
+                [attr.aria-invalid]="profileForm.controls.name.invalid && profileForm.controls.name.touched"
+              />
+              @if (profileForm.controls.name.invalid && profileForm.controls.name.touched) {
+                <small class="field-error">Enter a name between 2 and 80 characters.</small>
+              }
+            </label>
+
+            <label class="field">
+              <span>Email address</span>
+              <input
+                type="email"
+                formControlName="email"
+                autocomplete="email"
+                maxlength="254"
+                [attr.aria-invalid]="profileForm.controls.email.invalid && profileForm.controls.email.touched"
+              />
+              @if (profileForm.controls.email.invalid && profileForm.controls.email.touched) {
+                <small class="field-error">Enter a valid email address.</small>
+              }
+            </label>
+          </div>
+
+          @if (profileMessage()) {
+            <p class="profile-message" [attr.data-tone]="profileMessageTone()" role="alert">
+              <span class="material-symbols-rounded sm" aria-hidden="true">error</span>
+              {{ profileMessage() }}
+            </p>
+          }
+
+          <div class="profile-form-actions">
+            <button type="button" class="btn ghost" (click)="cancelEditing()">Cancel</button>
+            <button type="submit" class="btn primary">
+              <span class="material-symbols-rounded sm" aria-hidden="true">save</span>
+              Save changes
+            </button>
+          </div>
+        </form>
+      }
+
+      <dl class="account-details">
+        <div>
+          <dt>Workspace</dt>
+          <dd>{{ workspace.activeWorkspace().name }}</dd>
+        </div>
+        <div>
+          <dt>Projects</dt>
+          <dd>{{ currentUser.projects }}</dd>
+        </div>
+        <div>
+          <dt>Member since</dt>
+          <dd>{{ currentUser.joined }}</dd>
+        </div>
+        <div>
+          <dt>Account ID</dt>
+          <dd class="mono">{{ currentUser.id }}</dd>
+        </div>
+      </dl>
+
+      <footer class="account-card-footer">
+        @if (profileMessage() && !isEditing()) {
+          <span class="profile-message compact" [attr.data-tone]="profileMessageTone()" role="status">
+            <span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span>
+            {{ profileMessage() }}
+          </span>
+        } @else {
+          <span>Your profile details are shared across this workspace.</span>
+        }
+        <a class="btn ghost sm" routerLink="/team">View team</a>
+      </footer>
     </section>
 
-    <section class="card">
-      <h2>Details</h2>
-      <div class="detail">
-        <span>Workspace</span>
-        <strong [title]="workspace.activeWorkspace().name">{{ workspace.activeWorkspace().name }}</strong>
+    <section class="settings-card appearance-card" aria-labelledby="appearance-title">
+      <div class="settings-card-body">
+        <div class="section-heading">
+          <span class="section-icon" aria-hidden="true">
+            <span class="material-symbols-rounded">palette</span>
+          </span>
+          <div>
+            <h2 id="appearance-title">Appearance</h2>
+            <p>Choose a color theme that feels comfortable for your workspace.</p>
+          </div>
+        </div>
+
+        <div class="theme-options" role="group" aria-label="Color theme">
+          @for (option of themeOptions; track option.value) {
+            <button
+              type="button"
+              class="theme-option"
+              [class.active]="themeMode() === option.value"
+              [attr.aria-pressed]="themeMode() === option.value"
+              [attr.aria-label]="'Use ' + option.label + ' theme. ' + option.description"
+              (click)="handleThemeChange(option.value)"
+            >
+              <span class="theme-preview" [attr.data-preview-theme]="option.value" aria-hidden="true">
+                <span class="preview-sidebar">
+                  <span class="preview-logo"></span>
+                  <span class="preview-nav active"></span>
+                  <span class="preview-nav"></span>
+                  <span class="preview-nav short"></span>
+                </span>
+                <span class="preview-main">
+                  <span class="preview-heading"></span>
+                  <span class="preview-board">
+                    <span class="preview-task"></span>
+                    <span class="preview-task accent"></span>
+                  </span>
+                </span>
+              </span>
+
+              <span class="theme-option-copy">
+                <span class="theme-option-title">
+                  <span class="material-symbols-rounded sm" aria-hidden="true">{{ option.icon }}</span>
+                  {{ option.label }}
+                </span>
+                @if (themeMode() === option.value) {
+                  <span class="selected-mark" aria-label="Selected">
+                    <span class="material-symbols-rounded" aria-hidden="true">check</span>
+                  </span>
+                } @else {
+                  <span class="theme-hint">{{ option.hint }}</span>
+                }
+              </span>
+              <span class="theme-description">{{ option.description }}</span>
+            </button>
+          }
+        </div>
       </div>
-      <div class="detail">
-        <span>Theme</span>
-        <strong>{{ theme.mode() }}</strong>
-      </div>
-      <div class="detail">
-        <span>Notifications</span>
-        <strong>On</strong>
-      </div>
+
+      <footer class="settings-card-footer">
+        <span class="applied-status">
+          <span class="status-dot" aria-hidden="true"></span>
+          {{ activeThemeLabel() }} theme is active
+        </span>
+        <span>Changes apply instantly and are saved on this device.</span>
+      </footer>
     </section>
   </div>
 </section>

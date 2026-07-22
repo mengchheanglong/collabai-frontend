@@ -58,5 +58,5 @@ export interface AiSearchTasksResponse {
 export interface AiSearchChip {
   key: string;
   label: string;
-  tone?: 'default' | 'brand' | 'amber' | 'red' | 'green' | 'purple';
+  tone?: 'default' | 'brand' | 'amber' | 'red' | 'green' | 'cyan';
 }

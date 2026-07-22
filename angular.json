@@ -28,7 +28,8 @@
             ],
             "styles": [
               "src/styles.scss",
-              "src/styles/app-ui.scss"
+              "src/styles/app-ui.scss",
+              "src/styles/enterprise-ui.scss"
             ]
           },
           "configurations": {

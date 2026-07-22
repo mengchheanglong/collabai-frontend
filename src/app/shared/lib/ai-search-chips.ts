@@ -4,7 +4,7 @@ export function chipsFromFilters(filters: AiSearchFilters): AiSearchChip[] {
   const chips: AiSearchChip[] = [];
 
   for (const label of filters.labels ?? []) {
-    chips.push({ key: `label:${label}`, label, tone: 'purple' });
+    chips.push({ key: `label:${label}`, label, tone: 'cyan' });
   }
 
   for (const status of filters.status ?? []) {

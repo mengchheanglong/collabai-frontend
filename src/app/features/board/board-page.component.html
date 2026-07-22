@@ -1,6 +1,7 @@
 <section class="page board-page">
   <header class="page-header">
     <div>
+      <span class="page-eyebrow">Project delivery</span>
       <h1>{{ workspace.activeProjectName() }}</h1>
       <p>{{ workspace.activeWorkspace().name }}</p>
     </div>
@@ -27,7 +28,7 @@
 
       <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
-        Task
+        New task
       </button>
     </div>
   </header>

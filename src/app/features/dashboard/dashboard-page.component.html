@@ -2,13 +2,9 @@
   <!-- Hero -->
   <header class="dash-hero">
     <div class="dash-hero-copy">
-      <p class="dash-kicker">
-        <span class="material-symbols-rounded sm filled">auto_awesome</span>
-        CollabAI Copilot
-      </p>
+      <span class="page-eyebrow">Workspace overview</span>
       <h1>
-        {{ greeting() }},
-        <span class="dash-name">{{ members.currentUser.name }}</span>
+        {{ greeting() }}, {{ members.currentUser.name }}
       </h1>
       <p class="dash-sub">
         {{ workspace.activeWorkspace().name }} · {{ tasks.totalTasks() }} tasks ·

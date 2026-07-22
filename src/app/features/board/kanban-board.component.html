@@ -1,8 +1,8 @@
 <div class="kanban" cdkDropListGroup role="region" aria-label="Kanban board">
   @for (column of tasks.columns; track column.key) {
-    <section class="column" [attr.aria-label]="column.label + ' column'">
+    <section class="column" [attr.data-column]="column.key" [attr.aria-label]="column.label + ' column'">
       <header>
-        <span>{{ column.label }}</span>
+        <span class="column-title"><span class="column-indicator" aria-hidden="true"></span>{{ column.label }}</span>
         <span class="count">{{ tasks.tasksByStatus(column.key).length }}</span>
       </header>
       <div

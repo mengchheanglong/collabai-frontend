@@ -32,12 +32,12 @@
   --cyan: #06b6d4;
   --cyan-soft: rgba(6, 182, 212, 0.12);
 
-  /* AI / copilot accent - purple to match landing */
-  --ai: #a78bfa;
-  --ai-2: #8b5cf6;
-  --ai-soft: rgba(167, 139, 250, 0.12);
-  --ai-border: rgba(167, 139, 250, 0.35);
-  --ai-glow: 0 0 0 1px rgba(167, 139, 250, 0.2), 0 12px 40px rgba(99, 102, 241, 0.12);
+  /* AI / copilot accent - calm sky blue with a restrained shadow. */
+  --ai: #38bdf8;
+  --ai-2: #0ea5e9;
+  --ai-soft: rgba(56, 189, 248, 0.1);
+  --ai-border: rgba(56, 189, 248, 0.28);
+  --ai-glow: 0 12px 32px rgba(2, 132, 199, 0.08);
 
   --radius: 12px;
   --radius-sm: 8px;
@@ -79,13 +79,53 @@
   --red-soft: rgba(220, 38, 38, 0.1);
   --cyan: #0891b2;
   --cyan-soft: rgba(8, 145, 178, 0.1);
-  --ai: #7c3aed;
-  --ai-2: #6d28d9;
-  --ai-soft: rgba(124, 58, 237, 0.1);
-  --ai-border: rgba(124, 58, 237, 0.24);
-  --ai-glow: 0 0 0 1px rgba(124, 58, 237, 0.12), 0 12px 32px rgba(15, 23, 42, 0.08);
+  --ai: #0284c7;
+  --ai-2: #0369a1;
+  --ai-soft: rgba(2, 132, 199, 0.09);
+  --ai-border: rgba(2, 132, 199, 0.22);
+  --ai-glow: 0 12px 32px rgba(2, 132, 199, 0.07);
 
   --shadow: 0 16px 48px rgba(15, 23, 42, 0.14);
+}
+
+:root[data-theme='ocean'] {
+  color-scheme: light;
+
+  /* Airy blue hierarchy: canvas < soft surface < elevated panel. */
+  --bg: #e7f3fa;
+  --bg-elevated: #ffffff;
+  --sidebar: #f2f9fd;
+  --panel: #fafdff;
+  --panel-2: #eaf4f9;
+  --hover: rgba(2, 132, 199, 0.075);
+
+  --text: #0b2b40;
+  --text-2: #143a52;
+  --muted: #4a6f86;
+  --muted-2: #7696aa;
+
+  --line: #c5deeb;
+  --line-2: #9fc8dd;
+
+  --brand: #0284c7;
+  --brand-hover: #0369a1;
+  --brand-soft: rgba(2, 132, 199, 0.11);
+  --brand-border: rgba(2, 132, 199, 0.28);
+  --green: #15803d;
+  --green-soft: rgba(21, 128, 61, 0.1);
+  --amber: #b45309;
+  --amber-soft: rgba(180, 83, 9, 0.1);
+  --red: #c62828;
+  --red-soft: rgba(198, 40, 40, 0.09);
+  --cyan: #0891b2;
+  --cyan-soft: rgba(8, 145, 178, 0.1);
+  --ai: #0891b2;
+  --ai-2: #0e7490;
+  --ai-soft: rgba(8, 145, 178, 0.09);
+  --ai-border: rgba(8, 145, 178, 0.22);
+  --ai-glow: 0 14px 34px rgba(42, 91, 122, 0.09);
+
+  --shadow: 0 18px 48px rgba(28, 78, 107, 0.13);
 }
 
 * { box-sizing: border-box; }
@@ -107,6 +147,51 @@ body {
   background:
     radial-gradient(ellipse 80% 50% at 85% -10%, rgba(59, 130, 246, 0.08), transparent 55%),
     var(--bg);
+}
+
+:root[data-theme='ocean'] body {
+  background:
+    radial-gradient(ellipse 70% 45% at 88% -8%, rgba(14, 165, 233, 0.16), transparent 58%),
+    radial-gradient(ellipse 55% 34% at 20% 105%, rgba(6, 182, 212, 0.08), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+:root[data-theme='ocean'] {
+  .theme-toggle {
+    color: var(--brand);
+    background: var(--brand-soft);
+  }
+
+  .brand-logo,
+  .profile-logo,
+  .logo-wordmark {
+    filter: brightness(0) saturate(100%) invert(16%) sepia(27%) saturate(1342%) hue-rotate(158deg) brightness(92%);
+  }
+
+  .sidebar {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent 45%),
+      var(--sidebar);
+  }
+
+  .nav-item.active,
+  .ws-item.active,
+  .user-btn.active {
+    border-color: var(--brand-border);
+  }
+
+  .ai-surface {
+    border-color: var(--ai-border);
+    background:
+      radial-gradient(ellipse 70% 52% at 0% 0%, var(--ai-soft), transparent 58%),
+      radial-gradient(ellipse 50% 42% at 100% 0%, var(--brand-soft), transparent 54%),
+      var(--panel);
+  }
+
+  .mobile-nav {
+    border-color: color-mix(in srgb, var(--brand) 18%, var(--line));
+  }
 }
 
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -149,7 +234,7 @@ select:focus-visible {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #3f3f46 transparent;
+  scrollbar-color: var(--line-2) transparent;
 }
 
 .cdk-drag-preview {
@@ -196,16 +281,10 @@ select:focus-visible {
     filter: brightness(0);
   }
 
-  .dash-name {
-    background: linear-gradient(120deg, #0f172a 0%, #2563eb 48%, #7c3aed 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-  }
-
   .ai-surface {
-    border-color: rgba(124, 58, 237, 0.18);
+    border-color: rgba(2, 132, 199, 0.18);
     background:
-      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(124, 58, 237, 0.08), transparent 55%),
+      radial-gradient(ellipse 80% 60% at 0% 0%, rgba(2, 132, 199, 0.08), transparent 55%),
       radial-gradient(ellipse 50% 40% at 100% 0%, rgba(37, 99, 235, 0.06), transparent 50%),
       var(--panel);
   }
@@ -223,7 +302,7 @@ select:focus-visible {
 
   .smart-search-shell {
     background: #ffffff;
-    border-color: rgba(124, 58, 237, 0.22);
+    border-color: rgba(2, 132, 199, 0.22);
     box-shadow: 0 8px 28px rgba(15, 23, 42, 0.06);
   }
 
@@ -236,19 +315,19 @@ select:focus-visible {
   }
 
   .ai-toolbar {
-    border-color: rgba(124, 58, 237, 0.18);
-    background: linear-gradient(135deg, rgba(124, 58, 237, 0.08), rgba(37, 99, 235, 0.05));
+    border-color: rgba(2, 132, 199, 0.18);
+    background: linear-gradient(135deg, rgba(2, 132, 199, 0.08), rgba(37, 99, 235, 0.05));
   }
 
   .btn.ai-btn {
     color: #5b21b6;
-    background: rgba(124, 58, 237, 0.08);
-    border-color: rgba(124, 58, 237, 0.2);
+    background: rgba(2, 132, 199, 0.08);
+    border-color: rgba(2, 132, 199, 0.2);
   }
 
   .btn.ai-btn:hover:not(:disabled) {
     color: #4c1d95;
-    background: rgba(124, 58, 237, 0.14);
+    background: rgba(2, 132, 199, 0.14);
   }
 
   .ai-summary-head strong {
@@ -282,8 +361,8 @@ select:focus-visible {
     color: #15803d;
   }
 
-  .ai-chip[data-tone='purple'] {
-    color: #6d28d9;
+  .ai-chip[data-tone='cyan'] {
+    color: #0369a1;
   }
 
   .modal-backdrop {
@@ -322,7 +401,7 @@ select:focus-visible {
   }
 
   .lp .hero-gradient {
-    background: linear-gradient(135deg, #1d4ed8, #7c3aed, #0891b2);
+    background: linear-gradient(135deg, #1d4ed8, #0284c7, #0891b2);
     -webkit-background-clip: text;
     background-clip: text;
   }
@@ -417,10 +496,10 @@ select:focus-visible {
     border-color: rgba(37, 99, 235, 0.2);
   }
 
-  .lp .f-icon.purple {
-    color: #7c3aed;
-    background: rgba(124, 58, 237, 0.1);
-    border-color: rgba(124, 58, 237, 0.2);
+  .lp .f-icon.cyan {
+    color: #0284c7;
+    background: rgba(2, 132, 199, 0.1);
+    border-color: rgba(2, 132, 199, 0.2);
   }
 
   .lp .f-icon.green {
@@ -489,9 +568,9 @@ select:focus-visible {
     background: rgba(37, 99, 235, 0.1);
   }
 
-  .lp .mb-tag.purple {
-    color: #6d28d9;
-    background: rgba(124, 58, 237, 0.1);
+  .lp .mb-tag.cyan {
+    color: #0369a1;
+    background: rgba(2, 132, 199, 0.1);
   }
 
   .lp .mb-tag.green {

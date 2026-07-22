@@ -1,7 +1,8 @@
 <section class="page team-page">
   <header class="page-header team-header">
     <div>
-      <h1>People</h1>
+      <span class="page-eyebrow">Workspace administration</span>
+      <h1>Team directory</h1>
       <p>{{ workspace.activeWorkspace().name }} · {{ members.memberCount() }} members</p>
     </div>
     <div class="header-actions">
@@ -15,14 +16,17 @@
 
   <div class="team-stats">
     <div class="team-stat">
+      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">group</span></span>
       <span class="team-stat-label">Total members</span>
       <strong>{{ members.memberCount() }}</strong>
     </div>
     <div class="team-stat">
+      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span></span>
       <span class="team-stat-label">Admins</span>
       <strong>{{ members.adminCount() }}</strong>
     </div>
     <div class="team-stat">
+      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">sensors</span></span>
       <span class="team-stat-label">Active now</span>
       <strong>{{ members.activeCount() }}</strong>
     </div>
