@@ -3,12 +3,10 @@
     <div>
       <span class="page-eyebrow">Personal workspace</span>
       <h1>My work</h1>
-      <p>
-        {{ overview().open }} active
-        <span aria-hidden="true">&middot;</span>
-        {{ overview().overdue }} overdue
-        <span aria-hidden="true">&middot;</span>
-        {{ projects().length }} project{{ projects().length === 1 ? '' : 's' }}
+      <p class="work-summary">
+        <span><strong>{{ overview().open }}</strong> active task{{ overview().open === 1 ? '' : 's' }}</span>
+        <span class="overdue"><strong>{{ overview().overdue }}</strong> overdue</span>
+        <span><strong>{{ projects().length }}</strong> project{{ projects().length === 1 ? '' : 's' }}</span>
       </p>
     </div>
     <div class="header-actions">
@@ -126,9 +124,9 @@
                   >
                     <span class="work-priority-dot" [attr.data-priority]="task.priority" aria-hidden="true"></span>
                     <span class="work-task-copy">
-                      <span class="work-task-title">
-                        <strong>{{ task.title }}</strong>
+                    <span class="work-task-title">
                         <span class="task-id">{{ task.id }}</span>
+                        <strong>{{ task.title }}</strong>
                       </span>
                       <span class="work-task-meta">
                         <span>{{ task.project }}</span>

@@ -218,7 +218,10 @@ export class WorkPageComponent {
     if (days === 0) return 'Today';
     if (days === 1) return 'Tomorrow';
     if (days === -1) return 'Yesterday';
-    if (days < 0 && task.status !== 'done') return `${Math.abs(days)}d overdue`;
+    if (days < 0 && task.status !== 'done') {
+      const overdueDays = Math.abs(days);
+      return `Overdue by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`;
+    }
     return task.dueDate;
   }
 
