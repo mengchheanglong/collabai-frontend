@@ -49,7 +49,8 @@
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-:root[data-theme='light'] {
+:root[data-theme='light'],
+:root[data-theme='ocean'] {
   color-scheme: light;
 
   --bg: #f8fafc;
@@ -269,7 +270,8 @@ select:focus-visible {
   --mdc-plain-tooltip-supporting-text-size: 12px;
 }
 
-:root[data-theme='light'] {
+:root[data-theme='light'],
+:root[data-theme='ocean'] {
   .theme-toggle {
     color: #2563eb;
     background: rgba(37, 99, 235, 0.08);
@@ -520,6 +522,14 @@ select:focus-visible {
     border-color: rgba(15, 23, 42, 0.08);
   }
 
+  .lp .ms-logo img {
+    filter: brightness(0);
+  }
+
+  .lp .frame-demo-hint {
+    color: #2563eb;
+  }
+
   .lp .mini-main,
   .lp .mb-card,
   .lp .mt-search,
@@ -532,6 +542,19 @@ select:focus-visible {
   .lp .ai-card-action,
   .lp .ai-card-input input {
     color: #1e293b;
+  }
+
+  .lp .ai-card-msg strong {
+    color: #1e293b;
+  }
+
+  .lp .ai-card-question {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.18);
+  }
+
+  .lp .ai-card-question strong {
+    color: #1d4ed8;
   }
 
   .lp .kd-head,
@@ -556,6 +579,33 @@ select:focus-visible {
 
   .lp .mb-card {
     background: rgba(255, 255, 255, 0.82);
+  }
+
+  .lp .demo-page {
+    color: #0f172a;
+  }
+
+  .lp .demo-heading strong {
+    color: #0f172a;
+  }
+
+  .lp .demo-stat,
+  .lp .demo-panel,
+  .lp .demo-member {
+    background: rgba(255, 255, 255, 0.86);
+    border-color: rgba(148, 163, 184, 0.22);
+  }
+
+  .lp .demo-panel b,
+  .lp .demo-member strong,
+  .lp .demo-settings strong {
+    color: #1e293b;
+  }
+
+  .lp .demo-panel p,
+  .lp .demo-profile label,
+  .lp .demo-settings label {
+    border-color: rgba(148, 163, 184, 0.18);
   }
 
   .lp .mb-card.highlight {
@@ -596,8 +646,117 @@ select:focus-visible {
     background: radial-gradient(circle, rgba(37, 99, 235, 0.16), transparent 70%);
   }
 
-  .lp .footer,
-  .lp .footer-bottom,
+  .lp .cta .btn-ghost-light {
+    color: #1d4ed8;
+    background: rgba(255, 255, 255, 0.76);
+    border-color: rgba(37, 99, 235, 0.24);
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.04),
+      0 8px 24px rgba(37, 99, 235, 0.08);
+  }
+
+  .lp .cta .btn-ghost-light:hover {
+    color: #ffffff;
+    background: #2563eb;
+    border-color: #2563eb;
+    box-shadow: 0 10px 26px rgba(37, 99, 235, 0.24);
+    transform: translateY(-1px);
+  }
+
+  .lp .cta .btn-ghost-light:focus-visible {
+    outline: 3px solid rgba(37, 99, 235, 0.24);
+    outline-offset: 3px;
+  }
+
+  .lp .footer {
+    background:
+      radial-gradient(ellipse 55% 120% at 0% 0%, rgba(37, 99, 235, 0.22), transparent 68%),
+      linear-gradient(145deg, #111f35 0%, #0b1628 58%, #081322 100%);
+  }
+
+  .lp .footer-nav strong {
+    color: #93c5fd;
+  }
+
+  .lp .footer .logo-wordmark {
+    filter: brightness(0) invert(1);
+  }
+
+  .lp .footer-brand p,
+  .lp .footer-nav a,
+  .lp .footer-nav button,
+  .lp .footer-bottom p,
+  .lp .footer .status-badge {
+    color: #94a3b8;
+  }
+
+  .lp .footer-nav a:hover,
+  .lp .footer-nav button:hover {
+    color: #ffffff;
+    background: transparent;
+  }
+
+  .lp .footer .social-icon {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(148, 197, 253, 0.16);
+    color: #cbd5e1;
+  }
+
+  .lp .footer .social-icon:hover {
+    color: #ffffff;
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(147, 197, 253, 0.36);
+  }
+
+  .lp .footer-dialog {
+    color: #0f172a;
+    background: #ffffff;
+    border-color: rgba(15, 23, 42, 0.1);
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.22);
+  }
+
+  .lp .footer-dialog-close {
+    color: #64748b;
+    background: #f1f5f9;
+  }
+
+  .lp .footer-dialog-close:hover {
+    color: #0f172a;
+    background: #e2e8f0;
+  }
+
+  .lp .footer-detail-hero h1,
+  .lp .footer-detail-grid h2,
+  .lp .footer-detail-cta h2 {
+    color: #0f172a;
+  }
+
+  .lp .footer-detail-back,
+  .lp .footer-detail-hero p,
+  .lp .footer-detail-grid p,
+  .lp .footer-detail-cta p {
+    color: #64748b;
+  }
+
+  .lp .footer-detail-grid section {
+    background: rgba(255, 255, 255, 0.9);
+    border-color: rgba(148, 163, 184, 0.22);
+    box-shadow: 0 16px 42px rgba(15, 23, 42, 0.08);
+  }
+
+  .lp .footer-detail-cta {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(2, 132, 199, 0.06));
+    border-color: rgba(37, 99, 235, 0.18);
+  }
+
+  .lp .footer {
+    border-color: rgba(147, 197, 253, 0.14);
+  }
+
+  .lp .footer-bottom {
+    border-color: rgba(148, 163, 184, 0.14);
+  }
+
   .lp .proof {
     border-color: rgba(15, 23, 42, 0.08);
   }
