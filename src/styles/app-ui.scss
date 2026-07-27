@@ -3153,11 +3153,11 @@ tbody tr {
       }
 
       &.active {
-        color: var(--text);
-        background: var(--brand-soft);
+        color: #334155;
+        background: #f1f5f9;
 
         .material-symbols-rounded {
-          color: var(--brand-hover);
+          color: #334155;
         }
       }
 
@@ -3586,5 +3586,11 @@ tbody tr {
   .ai-copilot-panel {
     width: min(calc(100vw - 24px), 380px);
     height: min(70vh, 560px);
+  }
+
+  /* Work Hub already exposes search in the mobile navigation. Avoid covering
+     row-level task controls with a second floating action. */
+  body:has(app-work-page) .ai-copilot {
+    display: none;
   }
 }

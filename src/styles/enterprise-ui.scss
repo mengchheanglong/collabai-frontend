@@ -197,13 +197,54 @@ body,
 
 .sidebar .nav-item.active {
   color: #ffffff;
-  background: linear-gradient(90deg, rgba(37, 99, 235, 0.22), rgba(37, 99, 235, 0.1));
-  border-color: rgba(96, 165, 250, 0.18);
-  box-shadow: inset 3px 0 0 #4d8df7;
+  background: rgba(255, 255, 255, 0.075);
+  border-color: rgba(148, 163, 184, 0.12);
+  box-shadow: none;
 }
 
 .sidebar .nav-item.active .material-symbols-rounded {
-  color: #76a9ff;
+  color: #ffffff;
+}
+
+.command-launch {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #8fa0b7;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 550;
+  text-align: left;
+}
+
+.command-launch:hover {
+  color: #e7edf6;
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(96, 165, 250, 0.24);
+}
+
+.command-launch .material-symbols-rounded {
+  color: #708097;
+  font-size: 18px;
+}
+
+.command-launch kbd {
+  min-width: 32px;
+  margin-left: auto;
+  padding: 3px 5px;
+  color: #718198;
+  background: rgba(2, 8, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 650;
+  text-align: center;
 }
 
 .workspaces {
@@ -446,19 +487,6 @@ body,
   padding: 18px;
   overflow: hidden;
 }
-
-.dash-stats .stat::before {
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 3px;
-  content: '';
-  background: var(--brand);
-  opacity: 0.78;
-}
-
-.dash-stats .stat:nth-child(2)::before { background: var(--cyan); }
-.dash-stats .stat:nth-child(3)::before { background: var(--green); }
-.dash-stats .stat:nth-child(4)::before { background: var(--amber); }
 
 .stat-top {
   justify-content: flex-start;
@@ -1593,7 +1621,7 @@ app-task-card.task-card h3 {
 
   .mobile-nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     position: fixed;
     right: 16px;
     bottom: 14px;
@@ -1623,13 +1651,13 @@ app-task-card.task-card h3 {
 
   .mobile-nav a.active,
   .mobile-nav button.active {
-    color: #ffffff;
-    background: rgba(59, 130, 246, 0.2);
+    color: #334155;
+    background: #f1f5f9;
   }
 
   .mobile-nav a.active .material-symbols-rounded,
   .mobile-nav button.active .material-symbols-rounded {
-    color: #79a9ff;
+    color: #334155;
   }
 
   .dash-stats {

@@ -23,6 +23,11 @@ export const routes: Routes = [
           import('./features/dashboard/dashboard-page.component').then((m) => m.DashboardPageComponent),
       },
       {
+        path: 'work',
+        loadComponent: () =>
+          import('./features/work/work-page.component').then((m) => m.WorkPageComponent),
+      },
+      {
         path: 'board',
         loadComponent: () =>
           import('./features/board/board-page.component').then((m) => m.BoardPageComponent),
