@@ -1,0 +1,71 @@
+<aside class="sidebar">
+  <div class="sidebar-top">
+    <a routerLink="/" class="brand" matRipple>
+      <img src="/Collab AI.svg" class="brand-logo" alt="Collab AI" />
+    </a>
+    
+    <nav class="nav">
+      @for (page of pages; track page.key) {
+        <a 
+          [routerLink]="['/' + page.key]" 
+          routerLinkActive="active" 
+          class="nav-item" 
+          matRipple
+        >
+          <span class="material-symbols-rounded">{{ page.icon }}</span>
+          <span>{{ page.label }}</span>
+        </a>
+      }
+    </nav>
+    
+    <div class="section-label">
+      Workspaces
+      <button class="icon-btn" matRipple style="background: none; border: none; cursor: pointer; color: inherit; display: flex; align-items: center;" (click)="workspace.toggleWorkspaceCreator()">
+        <span class="material-symbols-rounded" style="font-size: 16px;">add</span>
+      </button>
+    </div>
+    
+    <div class="workspaces">
+      @for (ws of workspace.workspaces(); track ws.id) {
+        <button 
+          class="ws-item" 
+          [class.active]="ws.id === workspace.selectedWorkspaceId()"
+          (click)="selectWorkspace(ws.id)"
+          matRipple
+          style="border: none; background: transparent; width: 100%; font-family: inherit;"
+        >
+          <div class="ws-dot" [style.background]="ws.accent"></div>
+          <span class="ws-name">{{ ws.name }}</span>
+        </button>
+      }
+      
+      @if (workspace.isWorkspaceCreatorOpen()) {
+        <div class="ws-create">
+          <input 
+            #wsInput
+            type="text" 
+            placeholder="Workspace name..." 
+            (keyup.enter)="addWorkspace(wsInput.value); wsInput.value = ''"
+            autofocus
+          >
+        </div>
+      }
+    </div>
+  </div>
+  
+  <div class="sidebar-bottom">
+    <button class="user-btn" matRipple [matMenuTriggerFor]="userMenu" style="background: transparent; font-family: inherit; cursor: pointer;">
+      <div class="user-info">
+        <strong>{{ currentUser.name || 'Guest User' }}</strong>
+        <small>{{ currentUser.email || 'Not signed in' }}</small>
+      </div>
+    </button>
+    
+    <mat-menu #userMenu="matMenu" xPosition="after">
+      <button mat-menu-item (click)="theme.toggle()">
+        <span class="material-symbols-rounded" style="margin-right: 8px; vertical-align: middle;">contrast</span>
+        <span>Toggle Theme</span>
+      </button>
+    </mat-menu>
+  </div>
+</aside>
