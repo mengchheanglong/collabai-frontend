@@ -240,6 +240,25 @@ export class TaskStoreService {
     this.refreshSelectedTask(taskId);
   }
 
+  updateTask(
+    taskId: string,
+    patch: Partial<Pick<Task, 'status' | 'priority' | 'assignee' | 'dueDate'>>,
+  ): Task | null {
+    let updatedTask: Task | null = null;
+    this.tasks.update((items) =>
+      items.map((item) => {
+        if (item.id !== taskId) return item;
+        updatedTask = { ...item, ...patch };
+        return updatedTask;
+      }),
+    );
+
+    if (updatedTask && this.selectedTask()?.id === taskId) {
+      this.selectedTask.set(updatedTask);
+    }
+    return updatedTask;
+  }
+
   addQuickTask(): Task {
     const id = `NEW-${100 + this.tasks().length}`;
     const task: Task = {

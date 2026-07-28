@@ -1,0 +1,79 @@
+@if (commandCenter.isOpen()) {
+  <div class="command-center-backdrop" role="presentation" (click)="close()">
+    <section
+      #dialog
+      class="command-center"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="command-center-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="command-center-search">
+        <span class="material-symbols-rounded" aria-hidden="true">search</span>
+        <label class="sr-only" id="command-center-title" for="command-center-query">
+          Search commands, tasks, projects, and people
+        </label>
+        <input
+          #queryInput
+          id="command-center-query"
+          type="search"
+          autocomplete="off"
+          placeholder="Search commands, tasks, projects, and people…"
+          [value]="query()"
+          [attr.aria-activedescendant]="activeOptionId()"
+          aria-controls="command-center-results"
+          aria-autocomplete="list"
+          role="combobox"
+          (input)="onQueryInput(queryInput.value)"
+        />
+        <button type="button" class="command-center-close" (click)="close()" aria-label="Close command center">
+          <kbd>Esc</kbd>
+        </button>
+      </header>
+
+      <div class="command-center-results" id="command-center-results" role="listbox" aria-label="Command results">
+        @for (group of groups(); track group.section) {
+          <section class="command-center-group" [attr.aria-label]="group.section">
+            <h2>{{ group.section }}</h2>
+            @for (item of group.items; track item.id) {
+              @let index = itemIndex(item);
+              <button
+                type="button"
+                class="command-center-item"
+                [class.active]="selectedIndex() === index"
+                [id]="optionId(index)"
+                role="option"
+                [attr.aria-selected]="selectedIndex() === index"
+                matRipple
+                (mouseenter)="selectedIndex.set(index)"
+                (click)="execute(item)"
+              >
+                <span class="command-center-item-icon material-symbols-rounded" aria-hidden="true">{{ item.icon }}</span>
+                <span class="command-center-item-copy">
+                  <strong>{{ item.title }}</strong>
+                  <small>{{ item.subtitle }}</small>
+                </span>
+                @if (item.shortcut) {
+                  <kbd>{{ item.shortcut }}</kbd>
+                }
+              </button>
+            }
+          </section>
+        } @empty {
+          <div class="command-center-empty">
+            <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
+            <strong>No matching commands</strong>
+            <p>Try a task title, project name, teammate, or action.</p>
+          </div>
+        }
+      </div>
+
+      <footer class="command-center-footer">
+        <span><kbd>↑↓</kbd> navigate</span>
+        <span><kbd>↵</kbd> select</span>
+        <span><kbd>Esc</kbd> close</span>
+        <span class="command-center-footer-shortcut"><kbd>⌘</kbd><kbd>K</kbd> toggle</span>
+      </footer>
+    </section>
+  </div>
+}

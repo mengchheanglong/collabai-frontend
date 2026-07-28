@@ -3,6 +3,7 @@ import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { MatRippleModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MAIN_NAV_ITEMS } from '../../shared/lib/nav-items';
+import { CommandCenterService } from '../command-center/command-center.service';
 import { MemberDirectoryService } from '../state/member-directory.service';
 import { ThemeService } from '../theme/theme.service';
 import { TaskStoreService } from '../state/task-store.service';
@@ -20,6 +21,7 @@ export class SidebarComponent {
   readonly members = inject(MemberDirectoryService);
   readonly theme = inject(ThemeService);
   readonly tasks = inject(TaskStoreService);
+  readonly commandCenter = inject(CommandCenterService);
 
   readonly pages = MAIN_NAV_ITEMS;
   readonly currentUser = this.members.currentUser;

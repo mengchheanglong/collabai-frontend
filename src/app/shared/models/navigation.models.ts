@@ -1,4 +1,4 @@
-export type PageKey = 'dashboard' | 'board' | 'team' | 'profile';
+export type PageKey = 'dashboard' | 'work' | 'board' | 'team' | 'profile';
 export type BoardView = 'kanban' | 'list';
 
 export interface NavItem {
