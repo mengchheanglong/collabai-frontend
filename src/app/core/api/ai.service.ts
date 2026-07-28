@@ -11,7 +11,7 @@ import type {
   AiSummarizeCommentsRequest,
   AiSummarizeCommentsResponse,
 } from '../../shared/models/ai.models';
-import type { CommentPreview } from '../../shared/models/comment.models';
+import type { Comment } from '../../shared/models/comment.models';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
 
 /**
@@ -77,7 +77,7 @@ export class AiService {
 
   summarizeComments(
     body: AiSummarizeCommentsRequest,
-    comments: CommentPreview[] = [],
+    comments: Comment[] = [],
   ): Observable<AiSummarizeCommentsResponse> {
     void body.taskId;
     let summary: string;

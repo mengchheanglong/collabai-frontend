@@ -4,6 +4,7 @@ import { BOARD_COLUMNS, columnConnectedIds, statusLabel } from '../../shared/lib
 import { priorityClass, priorityRank } from '../../shared/lib/person-display';
 import type { BoardView } from '../../shared/models/navigation.models';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
+import type { Comment } from '../../shared/models/comment.models';
 import { AiService } from '../api/ai.service';
 import { BoardApiService } from '../api/board-api.service';
 import { TaskApiService } from '../api/task-api.service';
@@ -306,7 +307,7 @@ export class TaskStoreService {
       });
   }
 
-  summarizeComments(task: Task, comments: { author: string; body: string; time: string }[] = []): void {
+  summarizeComments(task: Task, comments: Comment[] = []): void {
     if (this.isSummarizingComments()) return;
     this.isSummarizingComments.set(true);
     this.ai.summarizeComments({ taskId: task.id }, comments).subscribe({

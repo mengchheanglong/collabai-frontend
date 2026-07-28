@@ -123,9 +123,15 @@
                   </span>
                   <div>
                     <strong>{{ c.author }}</strong>
-                    <small>{{ c.time }}</small>
+                    <small>{{ c.createdAt | date:'medium' }}</small>
                     <p>{{ c.body }}</p>
                   </div>
+                  @if (members.currentUser.name === c.author) {
+                    <!-- Simplistic ownership check or admin check; normally we'd check ID -->
+                    <button type="button" class="icon-btn delete-comment" (click)="comments.deleteComment(task.id, c.id)" aria-label="Delete comment" title="Delete comment">
+                      <span class="material-symbols-rounded sm" aria-hidden="true">delete</span>
+                    </button>
+                  }
                 </div>
               } @empty {
                 <div class="empty">

@@ -108,3 +108,19 @@ export interface TaskDto {
 export interface BoardWithTasksDto extends BoardDto {
   tasks: TaskDto[];
 }
+
+export interface CommentDto {
+  _id: ObjectIdString;
+  taskId: ObjectIdString;
+  projectId: ObjectIdString;
+  authorId: ObjectIdString;
+  author: {
+    _id: ObjectIdString;
+    name: string;
+    email: string;
+    avatarUrl?: string | null;
+  };
+  body: string;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}

@@ -88,7 +88,7 @@ Make the backend addressable and contract-shaped; nothing frontend yet.
 - **DoD:** kanban board fully live (create/edit/move/delete/subtasks) against the DB.
 - **Commit:** frontend `feat(tasks): wire kanban to API`; backend commit only if shape fixes needed.
 
-### Phase 5 — Comments  *(frontend)*
+### Phase 5 — Comments  *(frontend)* - **[DONE]**
 - `CommentService`; task detail comment thread loads/creates/edits/deletes via API; `commentCount` from the task DTO.
 - **DoD:** task detail comments are real end-to-end.
 - **Commit:** frontend `feat(comments): wire task comments`.
