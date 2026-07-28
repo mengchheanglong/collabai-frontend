@@ -1,5 +1,6 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of } from 'rxjs';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, of } from 'rxjs';
+import { ApiClient } from './api-client.service';
 import type {
   AiDescriptionRequest,
   AiDescriptionResponse,
@@ -16,14 +17,54 @@ import type { Priority, Task, TaskStatus } from '../../shared/models/task.models
 
 /**
  * Contract-aligned AI client.
- * MVP uses local mock logic matching POST /api/v1/ai/* shapes.
- * Swap internals for HttpClient when backend Phase 5 lands — keep method signatures.
+ * Calls the backend POST /api/v1/ai/* endpoints — provider keys stay server-side only.
+ * Falls back to local logic when the backend returns a non-2xx (e.g. no API key configured).
  *
- * Pure service: callers pass task/comment context so we avoid circular store deps.
+ * Method signatures are UNCHANGED so TaskStoreService/AiCopilotComponent need no edits.
  */
 @Injectable({ providedIn: 'root' })
 export class AiService {
+  private readonly apiClient = inject(ApiClient);
+
   generateSubtasks(body: AiSubtasksRequest): Observable<AiSubtasksResponse> {
+    return this.apiClient
+      .post<AiSubtasksResponse>('/ai/subtasks', body)
+      .pipe(catchError(() => of(this.localSubtasks(body))));
+  }
+
+  generateDescription(body: AiDescriptionRequest): Observable<AiDescriptionResponse> {
+    return this.apiClient
+      .post<AiDescriptionResponse>('/ai/description', body)
+      .pipe(catchError(() => of(this.localDescription(body))));
+  }
+
+  summarizeComments(
+    body: AiSummarizeCommentsRequest,
+    comments: Comment[] = [],
+  ): Observable<AiSummarizeCommentsResponse> {
+    const payload = { ...body, comments: comments.map((c) => ({ author: c.author, body: c.body })) };
+    return this.apiClient
+      .post<AiSummarizeCommentsResponse>('/ai/summarize-comments', payload)
+      .pipe(catchError(() => of(this.localSummarize(comments))));
+  }
+
+  /**
+   * POST /ai/search-tasks — pass the project task pool from the caller (TaskStore).
+   * If the backend is unavailable, falls back to the local keyword filter.
+   */
+  searchTasks(body: AiSearchTasksRequest, pool: Task[]): Observable<AiSearchTasksResponse> {
+    return this.apiClient
+      .post<AiSearchTasksResponse>('/ai/search-tasks', body)
+      .pipe(catchError(() => {
+        const filters = this.parseQuery(body.query.trim());
+        const tasks = this.applyFilters(pool, filters);
+        return of({ interpretedQuery: filters, tasks });
+      }));
+  }
+
+  // ─── Local fallback logic (used when backend AI is unavailable) ───────────
+
+  private localSubtasks(body: AiSubtasksRequest): AiSubtasksResponse {
     const count = Math.min(10, Math.max(3, body.count ?? 5));
     const title = body.title.trim() || 'this task';
     const seed = [
@@ -53,14 +94,13 @@ export class AiService {
         'Map NL query into structured filters',
       );
     }
-    return of({ subtasks: [...new Set(seed)].slice(0, count) }).pipe(delay(900));
+    return { subtasks: [...new Set(seed)].slice(0, count) };
   }
 
-  generateDescription(body: AiDescriptionRequest): Observable<AiDescriptionResponse> {
+  private localDescription(body: AiDescriptionRequest): AiDescriptionResponse {
     const title = body.title.trim() || 'Untitled task';
     const current = (body.currentDescription ?? '').trim();
     let description: string;
-
     if (body.mode === 'shorten') {
       description =
         current.length > 0
@@ -69,82 +109,50 @@ export class AiService {
     } else if (body.mode === 'improve' && current) {
       description = `${current}\n\nExpected outcome: ship a clear, testable change that matches the API contract. Include loading, error, and empty states. Keep provider keys on the backend only.`;
     } else {
-      description = `Create a complete implementation for “${title}”. Cover happy path, validation, loading and error UI, and integration with the existing CollabAI services. Keep scope demo-friendly and aligned with docs/API-CONTRACT.md.`;
+      description = `Create a complete implementation for "${title}". Cover happy path, validation, loading and error UI, and integration with the existing CollabAI services. Keep scope demo-friendly and aligned with docs/API-CONTRACT.md.`;
     }
-
-    return of({ description }).pipe(delay(750));
+    return { description };
   }
 
-  summarizeComments(
-    body: AiSummarizeCommentsRequest,
-    comments: Comment[] = [],
-  ): Observable<AiSummarizeCommentsResponse> {
-    void body.taskId;
-    let summary: string;
-
+  private localSummarize(comments: Comment[]): AiSummarizeCommentsResponse {
     if (comments.length === 0) {
-      summary = 'No comments yet. Start the discussion so the AI can surface decisions and blockers.';
-    } else {
-      const lines = comments
-        .slice(0, 6)
-        .map((c) => `${c.author}: ${c.body}`)
-        .join(' ');
-      const mentionsBlocker = /block|wait|pending|fail/i.test(lines);
-      const mentionsDone = /ready|done|ship|merged|finish/i.test(lines);
-      summary = `Team discussed recent progress on this task. ${
+      return { summary: 'No comments yet. Start the discussion so the AI can surface decisions and blockers.' };
+    }
+    const lines = comments.slice(0, 6).map((c) => `${c.author}: ${c.body}`).join(' ');
+    const mentionsBlocker = /block|wait|pending|fail/i.test(lines);
+    const mentionsDone = /ready|done|ship|merged|finish/i.test(lines);
+    return {
+      summary: `Team discussed recent progress on this task. ${
         mentionsDone ? 'Some pieces appear ready to integrate. ' : ''
       }${
         mentionsBlocker ? 'Open blockers or pending work were mentioned. ' : ''
-      }Next: confirm owners and close remaining gaps before moving to done.`;
-    }
-
-    return of({ summary }).pipe(delay(850));
+      }Next: confirm owners and close remaining gaps before moving to done.`,
+    };
   }
 
-  /**
-   * POST /ai/search-tasks mock.
-   * Pass the project/workspace task pool from the caller (TaskStore).
-   */
-  searchTasks(body: AiSearchTasksRequest, pool: Task[]): Observable<AiSearchTasksResponse> {
-    void body.projectId;
-    const query = body.query.trim();
-    const filters = this.parseQuery(query);
-    const tasks = this.applyFilters(pool, filters);
-    return of({ interpretedQuery: filters, tasks }).pipe(delay(700));
-  }
+  // ─── Local search filter helpers (fallback & unit-testable) ──────────────
 
   applyFilters(tasks: Task[], filters: AiSearchFilters): Task[] {
     return tasks.filter((task) => {
       if (filters.text) {
         const q = filters.text.toLowerCase();
-        const hay = JSON.stringify({ context: `Tasks: ${tasks.map((t) => t.title + ' (assignee: ' + t.assigneeId + ')').join(', ')}` }).toLowerCase();
+        const hay = `${task.title} ${task.assigneeId ?? ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
       }
-
       if (filters.labels?.length) {
         const labels = filters.labels.map((l) => l.toLowerCase());
         const tags = task.labels.map((t: string) => t.toLowerCase());
         if (!labels.some((l) => tags.some((t) => t.includes(l) || l.includes(t)))) return false;
       }
-
       if (filters.status?.length && !filters.status.includes(task.status)) return false;
       if (filters.statusNot?.length && filters.statusNot.includes(task.status)) return false;
-
       if (filters.priority?.length) {
-        const wanted = new Set(
-          filters.priority.map((p) => (p === 'urgent' ? 'urgent' : p) as Priority),
-        );
+        const wanted = new Set(filters.priority.map((p) => p as Priority));
         if (!wanted.has(task.priority)) return false;
       }
-
       const assignedName = filters.assigneeName;
-      const isAssigned = (t: Task) => !assignedName || (t.assigneeId && t.assigneeId.toLowerCase().includes(assignedName.toLowerCase()));
-      if (assignedName && !isAssigned(task)) return false;
-
-      if (filters.dueRange) {
-        if (!this.matchesDueRange(task.dueDate ?? '', filters.dueRange)) return false;
-      }
-
+      if (assignedName && !(task.assigneeId ?? '').toLowerCase().includes(assignedName.toLowerCase())) return false;
+      if (filters.dueRange && !this.matchesDueRange(task.dueDate ?? '', filters.dueRange)) return false;
       return true;
     });
   }
@@ -155,16 +163,8 @@ export class AiService {
 
     const labels: string[] = [];
     const labelMap: Record<string, string> = {
-      frontend: 'Frontend',
-      backend: 'Backend',
-      design: 'Design',
-      ui: 'UI',
-      ai: 'AI',
-      security: 'Security',
-      docs: 'Docs',
-      qa: 'QA',
-      database: 'Database',
-      marketing: 'Marketing',
+      frontend: 'Frontend', backend: 'Backend', design: 'Design', ui: 'UI',
+      ai: 'AI', security: 'Security', docs: 'Docs', qa: 'QA', database: 'Database', marketing: 'Marketing',
     };
     for (const [key, label] of Object.entries(labelMap)) {
       if (q.includes(key)) labels.push(label);
@@ -219,19 +219,10 @@ export class AiService {
     }
     if (residual.length >= 2) filters.text = residual;
 
-    if (
-      !filters.labels &&
-      !filters.status &&
-      !filters.statusNot &&
-      !filters.priority &&
-      !filters.dueRange &&
-      !filters.assigneeName &&
-      !filters.text &&
-      query.trim()
-    ) {
+    if (!filters.labels && !filters.status && !filters.statusNot && !filters.priority &&
+        !filters.dueRange && !filters.assigneeName && !filters.text && query.trim()) {
       filters.text = query.trim();
     }
-
     return filters;
   }
 
@@ -240,8 +231,7 @@ export class AiService {
     const due = Date.parse(dueDate);
     if (Number.isNaN(due)) return true;
 
-    // Reference "today" aligned with mock data era (May 2026 demos)
-    const now = new Date('2026-05-17T12:00:00');
+    const now = new Date(); // Fixed: was hardcoded to 2026-05-17
     const startOfToday = new Date(now);
     startOfToday.setHours(0, 0, 0, 0);
     const endOfToday = new Date(startOfToday);

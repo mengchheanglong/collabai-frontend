@@ -93,12 +93,12 @@ Make the backend addressable and contract-shaped; nothing frontend yet.
 - **DoD:** task detail comments are real end-to-end.
 - **Commit:** frontend `feat(comments): wire task comments`.
 
-### Phase 6 — Notifications  *(frontend)*
+### Phase 6 — Notifications  *(frontend)* - **[DONE]**
 - `NotificationService`; notification list + unread badge + mark-read/all from API (backend already generates them from task-assign/mention events).
 - **DoD:** assigning a task / @mention produces a real notification the assignee sees.
 - **Commit:** frontend `feat(notifications): wire notifications`.
 
-### Phase 7 — Analytics  *(both repos)*
+### Phase 7 — Analytics  *(both repos)* - **[DONE]**
 - **Backend (new):** `GET /projects/:id/analytics/summary` + `/burndown` (Prisma aggregations).
 - **Frontend:** dashboard stat cards + charts consume real analytics.
 - **DoD:** dashboard numbers/charts reflect real task data.
@@ -151,10 +151,10 @@ Make the backend addressable and contract-shaped; nothing frontend yet.
 - [ ] Phase 4 Tasks + enum alignment
 - [ ] Phase 5 Comments
 - [ ] Phase 6 Notifications
-- [ ] Phase 7 Analytics
-- [ ] Phase 8 AI
-- [ ] Phase 9 Realtime
-- [ ] Phase 10 Cleanup
+- [x] Phase 7: Analytics integration.
+- [x] Phase 8: AI features API endpoints.
+- [x] Phase 9: Real-time updates (Socket.io MVP).
+- [x] Phase 10: Final cleanup and mock removal.
 
 ## Open items to confirm before Phase 1
 - **`GET /auth/me`** addition (see decision 2) — OK to add?

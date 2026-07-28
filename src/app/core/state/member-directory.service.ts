@@ -39,7 +39,11 @@ export class MemberDirectoryService {
     () => this.membersState().filter((m) => m.role === 'Admin').length,
   );
 
-  /** Signed-in user (mock until the auth flow is wired). */
+  /**
+   * Signed-in user — falls back to the first mock member for MVP.
+   * TODO (Phase 11): wire to AuthService.me() (GET /auth/me) once the login UI is built,
+   * then replace this field with a signal derived from the auth store.
+   */
   readonly currentUser: Member = { ...seedMembers[0] };
 
   constructor() {

@@ -40,16 +40,16 @@ export interface UserDto {
   updatedAt?: ISODateString;
 }
 
-export type ProjectRole = 'owner' | 'admin' | 'member' | 'viewer';
-
 export interface ProjectMemberDto {
   userId: ObjectIdString;
   role: ProjectRole;
   name: string;
   email: string;
   avatarUrl?: string | null;
-  joinedAt?: ISODateString | null;
+  joinedAt?: ISODateString;
 }
+
+export type ProjectRole = 'owner' | 'admin' | 'member' | 'viewer';
 
 export interface ProjectDto {
   _id: ObjectIdString;
@@ -58,8 +58,32 @@ export interface ProjectDto {
   color?: string | null;
   icon?: string | null;
   ownerId: ObjectIdString;
-  isArchived?: boolean;
   members: ProjectMemberDto[];
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+}
+
+export interface SubtaskDto {
+  _id: string;
+  title: string;
+  done: boolean;
+}
+
+export interface TaskDto {
+  _id: ObjectIdString;
+  projectId: ObjectIdString;
+  boardId?: ObjectIdString | null;
+  title: string;
+  description?: string | null;
+  status: 'todo' | 'in_progress' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  position: number;
+  assigneeId?: ObjectIdString | null;
+  createdById: ObjectIdString;
+  dueDate?: ISODateString | null;
+  labels: string[];
+  subtasks: SubtaskDto[];
+  commentCount: number;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -76,31 +100,6 @@ export interface BoardDto {
   name: string;
   description?: string | null;
   columns: BoardColumnDto[];
-  createdAt: ISODateString;
-  updatedAt: ISODateString;
-}
-
-export interface SubtaskDto {
-  _id: ObjectIdString;
-  title: string;
-  done: boolean;
-}
-
-export interface TaskDto {
-  _id: ObjectIdString;
-  projectId: ObjectIdString;
-  boardId?: ObjectIdString | null;
-  title: string;
-  description?: string | null;
-  status: string;
-  priority: string;
-  position: number;
-  assigneeId?: ObjectIdString | null;
-  createdById: ObjectIdString;
-  dueDate?: ISODateString | null;
-  labels: string[];
-  subtasks: SubtaskDto[];
-  commentCount: number;
   createdAt: ISODateString;
   updatedAt: ISODateString;
 }
@@ -123,4 +122,42 @@ export interface CommentDto {
   body: string;
   createdAt: ISODateString;
   updatedAt: ISODateString;
+}
+
+export interface NotificationDto {
+  _id: ObjectIdString;
+  userId: ObjectIdString;
+  projectId?: ObjectIdString;
+  type: string;
+  title: string;
+  body: string;
+  read: boolean;
+  createdAt: ISODateString;
+}
+
+export interface ProjectAnalyticsSummaryDto {
+  totalTasks: number;
+  completedTasks: number;
+  inProgressTasks: number;
+  todoTasks: number;
+  overdueTasks: number;
+  completionRate: number;
+  tasksByUser: Array<{
+    userId: string;
+    name: string;
+    total: number;
+    done: number;
+  }>;
+  tasksByPriority: {
+    low: number;
+    medium: number;
+    high: number;
+    urgent: number;
+  };
+}
+
+export interface ProjectAnalyticsBurndownDto {
+  date: string;
+  remainingTasks: number;
+  completedTasks: number;
 }
