@@ -8,6 +8,11 @@ export const routes: Routes = [
       import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
   },
   {
+    path: 'landing/:page',
+    loadComponent: () =>
+      import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
     children: [

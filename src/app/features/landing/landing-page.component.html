@@ -14,10 +14,10 @@
     </a>
 
     <nav class="nav-links" aria-label="Primary">
-      <a href="#features" aria-label="Jump to Features section">Features</a>
-      <a href="#ai" aria-label="Jump to AI Copilot section">AI Copilot</a>
-      <a href="#workflow" aria-label="Jump to Workflow section">Workflow</a>
-      <a href="#docs" aria-label="Jump to Resources section">Resources</a>
+      <a href="#features" (click)="scrollToLandingSection('features', $event)" aria-label="Jump to Features section">Features</a>
+      <a href="#ai" (click)="scrollToLandingSection('ai', $event)" aria-label="Jump to AI Copilot section">AI Copilot</a>
+      <a href="#workflow" (click)="scrollToLandingSection('workflow', $event)" aria-label="Jump to Workflow section">Workflow</a>
+      <a href="#docs" (click)="scrollToLandingSection('docs', $event)" aria-label="Jump to Resources section">Resources</a>
     </nav>
 
     <div class="nav-actions">
@@ -30,6 +30,7 @@
     </div>
   </header>
 
+  @if (!detailPage) {
   <!-- ─── Hero ─── -->
   <section class="hero" aria-labelledby="hero-title">
     <div class="hero-badge">
@@ -53,42 +54,70 @@
         Start for free
         <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
       </a>
-      <a class="btn btn-ghost btn-lg" href="#features">
+      <button class="btn btn-ghost btn-lg" type="button" (click)="startDashboardDemo()">
         <span class="play-icon">
           <span class="material-symbols-rounded filled" style="font-size:14px">play_arrow</span>
         </span>
         Watch demo
-      </a>
+      </button>
     </div>
 
     <!-- Product window -->
-    <div class="product-frame">
+    <div id="dashboard-demo" class="product-frame" aria-label="Interactive CollabAI dashboard demo">
       <div class="frame-glow"></div>
       <div class="frame-chrome">
         <div class="chrome-dots"><i></i><i></i><i></i></div>
         <div class="chrome-bar">
           <span class="material-symbols-rounded" style="font-size:14px;color:#71717a">lock</span>
-          <span class="chrome-url">app.collabai.dev</span>
+          <span class="chrome-url">Open live dashboard demo</span>
         </div>
+        @if (demoRunning) {
+          <span class="frame-demo-running" aria-live="polite">
+            <i></i>
+            Guided demo · {{ demoSecondsLeft }}s
+          </span>
+        } @else {
+          <a class="frame-demo-hint" routerLink="/dashboard">
+            Try it
+            <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+          </a>
+        }
       </div>
       <div class="frame-body">
         <!-- Mini sidebar -->
         <aside class="mini-sidebar">
-          <div class="ms-logo"><span class="material-symbols-rounded filled" style="font-size:16px;color:#3b82f6">hub</span></div>
-          <div class="ms-item active"><span class="material-symbols-rounded filled" style="font-size:16px">dashboard</span></div>
-          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">view_kanban</span></div>
-          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">group</span></div>
-          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">insights</span></div>
+          <div class="ms-logo">
+            <img src="/collab small.png" alt="Collab AI" />
+          </div>
+          <button class="ms-item" [class.active]="activeDemoPage === 'dashboard'" type="button" (click)="showDemoPage('dashboard')" aria-label="Preview Dashboard" title="Dashboard">
+            <span class="material-symbols-rounded filled" style="font-size:16px">dashboard</span>
+          </button>
+          <button class="ms-item" [class.active]="activeDemoPage === 'board'" type="button" (click)="showDemoPage('board')" aria-label="Preview Board" title="Board">
+            <span class="material-symbols-rounded" style="font-size:16px">view_kanban</span>
+          </button>
+          <button class="ms-item" [class.active]="activeDemoPage === 'team'" type="button" (click)="showDemoPage('team')" aria-label="Preview Team" title="Team">
+            <span class="material-symbols-rounded" style="font-size:16px">group</span>
+          </button>
           <div class="ms-spacer"></div>
-          <div class="ms-item"><span class="material-symbols-rounded" style="font-size:16px">settings</span></div>
-          <div class="ms-avatar">D</div>
+          <button class="ms-item" [class.active]="activeDemoPage === 'settings'" type="button" (click)="showDemoPage('settings')" aria-label="Preview Settings" title="Settings">
+            <span class="material-symbols-rounded" style="font-size:16px">settings</span>
+          </button>
+          <button class="ms-avatar" type="button" (click)="showDemoPage('profile')" aria-label="Preview your profile" title="Profile">D</button>
         </aside>
 
         <!-- Mini main content -->
         <div class="mini-main">
           <!-- Top bar -->
           <div class="mini-topbar">
-            <span class="mt-title">CollabAI Platform</span>
+            <span class="mt-title">
+              @switch (activeDemoPage) {
+                @case ('dashboard') { Dashboard }
+                @case ('board') { Project Board }
+                @case ('team') { Team }
+                @case ('profile') { Profile }
+                @case ('settings') { Settings }
+              }
+            </span>
             <div class="mt-search">
               <span class="material-symbols-rounded" style="font-size:14px;color:#71717a">search</span>
               <span style="color:#52525b;font-size:11px">Search tasks...</span>
@@ -101,26 +130,106 @@
             </div>
           </div>
 
-          <!-- Kanban columns -->
-          <div class="mini-board">
-            <div class="mb-col">
-              <div class="mb-col-head"><span class="mb-dot" style="background:#71717a"></span> To Do <span class="mb-count">4</span></div>
-              <div class="mb-card"><span class="mb-tag blue">Frontend</span><span class="mb-text">Design landing page UI</span><div class="mb-meta"><span class="mt-av" style="background:#f59e0b;width:18px;height:18px;font-size:8px">L</span><span class="material-symbols-rounded" style="font-size:12px;color:#52525b">chat_bubble</span><span style="color:#52525b;font-size:10px">2</span></div></div>
-              <div class="mb-card"><span class="mb-tag amber">Docs</span><span class="mb-text">Write API documentation</span></div>
-              <div class="mb-card dim"><span class="mb-tag gray">Testing</span><span class="mb-text">Test AI summaries</span></div>
+          @if (activeDemoPage === 'board') {
+            <!-- Interactive Kanban columns -->
+            <div class="mini-board">
+            @for (column of demoColumns; track column.id) {
+              <div
+                class="mb-col"
+                cdkDropList
+                [id]="column.id"
+                [cdkDropListData]="column.tasks"
+                [cdkDropListConnectedTo]="demoDropListIds"
+                (cdkDropListDropped)="dropDemoTask($event)"
+              >
+                <div class="mb-col-head">
+                  <span class="mb-dot" [style.background]="column.color"></span>
+                  {{ column.title }}
+                  <span class="mb-count">{{ column.tasks.length }}</span>
+                </div>
+
+                @for (task of column.tasks; track task.title) {
+                  <div class="mb-card" cdkDrag>
+                    <span class="mb-tag" [class]="task.tone">{{ task.tag }}</span>
+                    <span class="mb-text">{{ task.title }}</span>
+                    <span class="mb-drag-hint material-symbols-rounded" aria-hidden="true">
+                      drag_indicator
+                    </span>
+                  </div>
+                }
+              </div>
+            }
+            @if (demoMoveNotice) {
+              <div class="demo-move-notice" aria-live="polite">
+                <span class="material-symbols-rounded">drag_indicator</span>
+                Task moved to In Progress
+              </div>
+            }
             </div>
-            <div class="mb-col">
-              <div class="mb-col-head"><span class="mb-dot" style="background:#3b82f6"></span> In Progress <span class="mb-count">3</span></div>
-              <div class="mb-card highlight"><span class="mb-tag cyan">Backend</span><span class="mb-text">Build auth module</span><div class="mb-progress"><div class="mb-progress-fill" style="width:65%"></div></div><div class="mb-meta"><span class="mt-av" style="background:#22c55e;width:18px;height:18px;font-size:8px">B</span><span style="color:#3b82f6;font-size:10px;font-weight:600">65%</span></div></div>
-              <div class="mb-card"><span class="mb-tag cyan">Backend</span><span class="mb-text">Project management API</span></div>
-              <div class="mb-card"><span class="mb-tag blue">Frontend</span><span class="mb-text">Task drag and drop</span></div>
+          } @else if (activeDemoPage === 'dashboard') {
+            <div class="demo-page">
+              <div class="demo-heading">
+                <div><small>Dashboard overview</small><strong>Good afternoon, Dara.</strong></div>
+                <span class="demo-pill">Sprint 12</span>
+              </div>
+              <div class="demo-stat-grid">
+                <div class="demo-stat">
+                  <span><i class="material-symbols-rounded">task_alt</i> Completed tasks</span>
+                  <strong>24</strong><small class="positive">↑ 12% from last week</small>
+                </div>
+                <div class="demo-stat">
+                  <span><i class="material-symbols-rounded">pending_actions</i> Work in progress</span>
+                  <strong>8</strong><small>Across 3 active projects</small>
+                </div>
+                <div class="demo-stat">
+                  <span><i class="material-symbols-rounded">speed</i> Team velocity</span>
+                  <strong>82%</strong><small class="positive">On track for this sprint</small>
+                </div>
+              </div>
+              <div class="demo-panel">
+                <div class="demo-panel-title"><strong>Recent activity</strong><span>Today</span></div>
+                <p><i style="background:#3b82f6">D</i><span><b>Dara Kim</b> moved “Landing page UI” to <em>In Progress</em></span><time>12m</time></p>
+                <p><i style="background:#22c55e">S</i><span><b>Sam Lee</b> completed “Database schema”</span><time>34m</time></p>
+              </div>
             </div>
-            <div class="mb-col">
-              <div class="mb-col-head"><span class="mb-dot" style="background:#22c55e"></span> Done <span class="mb-count">2</span></div>
-              <div class="mb-card done"><span class="mb-tag green">Setup</span><span class="mb-text">Initialize project</span><div class="mb-meta"><span class="material-symbols-rounded filled" style="font-size:12px;color:#22c55e">check_circle</span></div></div>
-              <div class="mb-card done"><span class="mb-tag green">Database</span><span class="mb-text">Setup MongoDB schema</span></div>
+          } @else if (activeDemoPage === 'team') {
+            <div class="demo-page">
+              <div class="demo-heading"><div><small>Workspace members</small><strong>Meet your team</strong></div><span class="demo-pill">6 members</span></div>
+              <div class="demo-member-grid">
+                <div class="demo-member"><i style="background:#3b82f6">D</i><span><strong>Dara Kim</strong><small>Product Lead</small></span><b>Online</b></div>
+                <div class="demo-member"><i style="background:#22c55e">S</i><span><strong>Sam Lee</strong><small>Engineer</small></span><b>Online</b></div>
+                <div class="demo-member"><i style="background:#f59e0b">B</i><span><strong>Ben Ortiz</strong><small>Designer</small></span><b>Away</b></div>
+                <div class="demo-member"><i style="background:#8b5cf6">M</i><span><strong>Maya Chen</strong><small>Researcher</small></span><b>Online</b></div>
+              </div>
             </div>
-          </div>
+          } @else if (activeDemoPage === 'profile') {
+            <div class="demo-page demo-profile">
+              <div class="demo-profile-avatar">D</div>
+              <strong>Dara Kim</strong>
+              <span>dara&#64;collabai.dev</span>
+              <div class="demo-panel">
+                <label>Role <b>Product Lead</b></label>
+                <label>Workspace <b>CollabAI Platform</b></label>
+                <label>Timezone <b>Pacific Time</b></label>
+              </div>
+            </div>
+          } @else {
+            <div class="demo-page">
+              <div class="demo-heading">
+                <div><small>Workspace preferences</small><strong>Settings</strong></div>
+                <span class="demo-saved"><i></i> Changes saved</span>
+              </div>
+              <div class="demo-panel demo-settings">
+                <div class="demo-settings-title">
+                  <span class="material-symbols-rounded">notifications</span>
+                  <div><strong>Notifications</strong><small>Choose how CollabAI keeps you informed.</small></div>
+                </div>
+                <label><span><strong>Smart notifications</strong><small>Only notify me when a task needs my attention.</small></span><i class="demo-switch on"></i></label>
+                <label><span><strong>Weekly progress summary</strong><small>Send a workspace summary every Monday morning.</small></span><i class="demo-switch on"></i></label>
+                <label><span><strong>Compact board layout</strong><small>Fit more task cards on screen with reduced spacing.</small></span><i class="demo-switch"></i></label>
+              </div>
+            </div>
+          }
 
           <!-- AI overlay -->
           <div class="mini-ai-bar">
@@ -268,20 +377,35 @@
         <b>CollabAI Copilot</b>
         <span class="ai-active-badge">Active</span>
       </div>
-      <div class="ai-card-msg">
-        I see you're starting the Q4 Roadmap. Would you like me to draft core milestones based on your team's velocity data?
+      @if (aiDemoQuestion) {
+        <div class="ai-card-msg ai-card-question">
+          <strong>You</strong>
+          {{ aiDemoQuestion }}
+        </div>
+      }
+      <div class="ai-card-msg" aria-live="polite">
+        <strong>CollabAI</strong>
+        {{ aiDemoResponse }}
       </div>
-      <button class="ai-card-action">
+      <button class="ai-card-action" type="button" (click)="askDemoAiPreset('Generate a roadmap structure')">
         <span class="material-symbols-rounded" style="font-size:16px">auto_awesome</span>
         Generate roadmap structure
       </button>
-      <button class="ai-card-action">
+      <button class="ai-card-action" type="button" (click)="askDemoAiPreset('Identify potential blockers')">
         <span class="material-symbols-rounded" style="font-size:16px">warning</span>
         Identify potential blockers
       </button>
       <div class="ai-card-input">
-        <input type="text" placeholder="Ask anything about your workspace..." readonly>
-        <span class="ai-send"><span class="material-symbols-rounded" style="font-size:16px">arrow_upward</span></span>
+        <input
+          #aiDemoInput
+          type="text"
+          placeholder="Ask anything about your workspace..."
+          aria-label="Ask CollabAI a question"
+          (keyup.enter)="askDemoAi(aiDemoInput)"
+        >
+        <button class="ai-send" type="button" (click)="askDemoAi(aiDemoInput)" aria-label="Send question">
+          <span class="material-symbols-rounded" style="font-size:16px">arrow_upward</span>
+        </button>
       </div>
     </div>
   </section>
@@ -297,54 +421,86 @@
         Get Started Free
         <span class="material-symbols-rounded" style="font-size:18px">arrow_forward</span>
       </a>
-      <a class="btn btn-ghost-light btn-lg" href="#docs">Talk to Sales</a>
     </div>
     <p class="cta-note">Free forever for small teams · Enterprise ready · SOC 2 compliant</p>
   </section>
+  } @else {
+    <article class="footer-detail">
+      <a class="footer-detail-back" routerLink="/landing">
+        <span class="material-symbols-rounded">arrow_back</span>
+        Back to landing page
+      </a>
+      <div class="footer-detail-hero">
+        <span class="section-label">CollabAI guide</span>
+        <h1>{{ detailPage.title }}</h1>
+        <p>{{ detailPage.intro }}</p>
+      </div>
+      <div class="footer-detail-grid">
+        @for (section of detailPage.sections; track section.title; let index = $index) {
+          <section>
+            <span>0{{ index + 1 }}</span>
+            <h2>{{ section.title }}</h2>
+            <p>{{ section.body }}</p>
+          </section>
+        }
+      </div>
+      <div class="footer-detail-cta">
+        <div>
+          <span class="section-label">Ready to explore?</span>
+          <h2>See CollabAI in action.</h2>
+          <p>Return to the landing page or open the live workspace to experience the complete product.</p>
+        </div>
+        <a class="btn btn-primary btn-lg" routerLink="/dashboard">Open dashboard</a>
+      </div>
+    </article>
+  }
 
   <!-- ─── Footer ─── -->
   <footer class="footer" id="docs">
     <div class="footer-brand">
       <div class="footer-logo">
-        <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
+        <a href="#top" (click)="scrollToLandingSection('top', $event)" aria-label="Back to the top">
+          <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
+        </a>
       </div>
       <p>The modern workspace for teams that move fast. AI-powered project management for everyone.</p>
       <div class="footer-socials">
-        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">code</span></span>
-        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">mail</span></span>
-        <span class="social-icon"><span class="material-symbols-rounded" style="font-size:16px">language</span></span>
+        <button class="social-icon" type="button" (click)="openFooterInfo('Developers')" aria-label="Developer information"><span class="material-symbols-rounded" style="font-size:16px">code</span></button>
+        <a class="social-icon" href="mailto:hello@collabai.dev" aria-label="Email CollabAI"><span class="material-symbols-rounded" style="font-size:16px">mail</span></a>
+        <a class="social-icon" href="#top" (click)="scrollToLandingSection('top', $event)" aria-label="Back to the top"><span class="material-symbols-rounded" style="font-size:16px">language</span></a>
       </div>
     </div>
     <nav class="footer-nav" aria-label="Product links">
       <strong>Product</strong>
-      <a href="#features">Features</a>
-      <a href="#ai">AI Copilot</a>
-      <a href="#" aria-label="Security (coming soon)">Security</a>
-      <a href="#" aria-label="Integrations (coming soon)">Integrations</a>
+      <a href="#features" (click)="scrollToLandingSection('features', $event)">Features</a>
+      <a href="#ai" (click)="scrollToLandingSection('ai', $event)">AI Copilot</a>
+      <button type="button" (click)="openFooterInfo('Security')">Security</button>
+      <button type="button" (click)="openFooterInfo('Integrations')">Integrations</button>
     </nav>
     <nav class="footer-nav" aria-label="Company links">
       <strong>Company</strong>
-      <a href="#" aria-label="About Us (coming soon)">About Us</a>
-      <a href="#" aria-label="Careers (coming soon)">Careers</a>
-      <a href="#" aria-label="Press (coming soon)">Press</a>
-      <a href="#" aria-label="Contact (coming soon)">Contact</a>
+      <button type="button" (click)="openFooterInfo('About Us')">About Us</button>
+      <button type="button" (click)="openFooterInfo('Careers')">Careers</button>
+      <button type="button" (click)="openFooterInfo('Press')">Press</button>
+      <a href="mailto:hello@collabai.dev">Contact</a>
     </nav>
     <nav class="footer-nav" aria-label="Resource links">
       <strong>Resources</strong>
-      <a href="#docs">Documentation</a>
-      <a href="#" aria-label="Blog (coming soon)">Blog</a>
-      <a href="#" aria-label="Help Center (coming soon)">Help Center</a>
-      <a href="#" aria-label="Community (coming soon)">Community</a>
+      <button type="button" (click)="openFooterInfo('Documentation')">Documentation</button>
+      <button type="button" (click)="openFooterInfo('Blog')">Blog</button>
+      <button type="button" (click)="openFooterInfo('Help Center')">Help Center</button>
+      <button type="button" (click)="openFooterInfo('Community')">Community</button>
     </nav>
     <nav class="footer-nav" aria-label="Legal links">
       <strong>Legal</strong>
-      <a href="#" aria-label="Privacy (coming soon)">Privacy</a>
-      <a href="#" aria-label="Terms (coming soon)">Terms</a>
-      <a href="#" aria-label="Cookies (coming soon)">Cookies</a>
+      <button type="button" (click)="openFooterInfo('Privacy')">Privacy</button>
+      <button type="button" (click)="openFooterInfo('Terms')">Terms</button>
+      <button type="button" (click)="openFooterInfo('Cookies')">Cookies</button>
     </nav>
     <div class="footer-bottom">
-      <p>© 2025 CollabAI Inc. All rights reserved.</p>
-      <span class="status-badge"><i></i> All systems operational</span>
+      <p>© 2026 CollabAI Inc. All rights reserved.</p>
+      <button class="status-badge" type="button" (click)="openFooterInfo('Status')"><i></i> All systems operational</button>
     </div>
   </footer>
+
 </main>
