@@ -5,6 +5,10 @@
       <span>{{ page.label }}</span>
     </a>
   }
+  <button type="button" (click)="commandCenter.open()" aria-label="Open search and commands">
+    <span class="material-symbols-rounded" aria-hidden="true">search</span>
+    <span>Search</span>
+  </button>
   <a routerLink="/profile" routerLinkActive="active" #profileLink="routerLinkActive" [attr.aria-current]="profileLink.isActive ? 'page' : null">
     <span class="material-symbols-rounded" [class.filled]="profileLink.isActive" aria-hidden="true">person</span>
     <span>You</span>

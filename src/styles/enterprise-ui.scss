@@ -206,6 +206,47 @@ body,
   color: #76a9ff;
 }
 
+.command-launch {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 9px;
+  min-height: 38px;
+  padding: 0 10px;
+  color: #8fa0b7;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 8px;
+  font-size: 11.5px;
+  font-weight: 550;
+  text-align: left;
+}
+
+.command-launch:hover {
+  color: #e7edf6;
+  background: rgba(255, 255, 255, 0.065);
+  border-color: rgba(96, 165, 250, 0.24);
+}
+
+.command-launch .material-symbols-rounded {
+  color: #708097;
+  font-size: 18px;
+}
+
+.command-launch kbd {
+  min-width: 32px;
+  margin-left: auto;
+  padding: 3px 5px;
+  color: #718198;
+  background: rgba(2, 8, 23, 0.28);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 9px;
+  font-weight: 650;
+  text-align: center;
+}
+
 .workspaces {
   gap: 4px;
 }
@@ -1593,7 +1634,7 @@ app-task-card.task-card h3 {
 
   .mobile-nav {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
     position: fixed;
     right: 16px;
     bottom: 14px;

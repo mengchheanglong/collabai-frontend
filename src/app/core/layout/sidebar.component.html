@@ -21,6 +21,18 @@
       }
     </nav>
 
+    <button
+      type="button"
+      class="command-launch"
+      (click)="commandCenter.open()"
+      matRipple
+      aria-label="Open command center"
+    >
+      <span class="material-symbols-rounded" aria-hidden="true">search</span>
+      <span>Search &amp; commands</span>
+      <kbd><span class="command-key">⌘</span>K</kbd>
+    </button>
+
     <div class="workspaces">
       <div class="section-label">
         <span>Spaces</span>
