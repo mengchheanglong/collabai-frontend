@@ -40,14 +40,14 @@ export class DashboardPageComponent {
   });
 
   readonly reviewTasks = computed(
-    () => this.tasks.workspaceTasks().filter((t) => t.status === 'review').length,
+    () => this.tasks.tasks().filter((t) => t.status === 'done').length,
   );
 
   readonly highPriorityOpen = computed(
     () =>
       this.tasks
-        .workspaceTasks()
-        .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'critical'))
+        .tasks()
+        .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'urgent'))
         .length,
   );
 

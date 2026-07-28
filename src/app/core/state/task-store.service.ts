@@ -1,11 +1,12 @@
-import { Injectable, computed, inject, signal } from '@angular/core';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { tasks as seedTasks } from '../../data/mock/mock-tasks';
 import { BOARD_COLUMNS, columnConnectedIds, statusLabel } from '../../shared/lib/board-columns';
 import { priorityClass, priorityRank } from '../../shared/lib/person-display';
 import type { BoardView } from '../../shared/models/navigation.models';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
 import { AiService } from '../api/ai.service';
+import { BoardApiService } from '../api/board-api.service';
+import { TaskApiService } from '../api/task-api.service';
 import { ToastService } from '../toast/toast.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import { MemberDirectoryService } from './member-directory.service';
@@ -16,12 +17,18 @@ export class TaskStoreService {
   private readonly workspace = inject(WorkspaceContextService);
   private readonly members = inject(MemberDirectoryService);
   private readonly ai = inject(AiService);
+  private readonly boardApi = inject(BoardApiService);
+  private readonly taskApi = inject(TaskApiService);
 
   readonly columns = BOARD_COLUMNS;
-  readonly tasks = signal<Task[]>(structuredClone(seedTasks));
+  readonly tasks = signal<Task[]>([]);
   readonly selectedTask = signal<Task | null>(null);
   readonly boardView = signal<BoardView>('kanban');
   readonly searchQuery = signal('');
+  
+  readonly isLoading = signal(false);
+  readonly hasError = signal(false);
+
   /** When set, board only shows these task ids (AI smart search). */
   readonly smartFilterIds = signal<string[] | null>(null);
   readonly isGeneratingSubtasks = signal(false);
@@ -29,21 +36,62 @@ export class TaskStoreService {
   readonly isSummarizingComments = signal(false);
   readonly commentSummary = signal<string | null>(null);
 
-  readonly workspaceTasks = computed(() =>
-    this.tasks().filter((t) => this.workspace.activeWorkspace().projectNames.includes(t.project)),
-  );
+  constructor() {
+    effect(() => {
+      const activeBoardId = this.workspace.activeBoardId();
+      if (activeBoardId) {
+        this.loadBoard(activeBoardId);
+      } else {
+        this.tasks.set([]);
+      }
+    });
+  }
 
-  readonly totalTasks = computed(() => this.workspaceTasks().length);
-  readonly doneTasks = computed(() => this.workspaceTasks().filter((t) => t.status === 'done').length);
+  loadBoard(boardId: string): void {
+    this.isLoading.set(true);
+    this.hasError.set(false);
+    this.boardApi.getBoardWithTasks(boardId).subscribe({
+      next: (data) => {
+        const mappedTasks: Task[] = data.tasks.map(t => ({
+          id: t._id,
+          boardId: t.boardId ?? null,
+          projectId: t.projectId,
+          title: t.title,
+          description: t.description ?? '',
+          status: t.status as TaskStatus,
+          priority: t.priority as Priority,
+          position: t.position,
+          assigneeId: t.assigneeId ?? null,
+          createdById: t.createdById,
+          dueDate: t.dueDate ?? null,
+          labels: t.labels,
+          comments: t.commentCount,
+          subtasks: t.subtasks.map(s => ({ id: s._id, title: s.title, done: s.done })),
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        }));
+        this.tasks.set(mappedTasks);
+        this.isLoading.set(false);
+      },
+      error: () => {
+        this.isLoading.set(false);
+        this.hasError.set(true);
+        this.toast.show('Failed to load board tasks', 'info');
+      }
+    });
+  }
+
+  readonly totalTasks = computed(() => this.tasks().length);
+  readonly doneTasks = computed(() => this.tasks().filter((t) => t.status === 'done').length);
   readonly inProgressTasks = computed(
-    () => this.workspaceTasks().filter((t) => t.status === 'in_progress').length,
+    () => this.tasks().filter((t) => t.status === 'in_progress').length,
   );
   readonly completionRate = computed(() =>
     Math.round((this.doneTasks() / Math.max(this.totalTasks(), 1)) * 100),
   );
 
   readonly filteredTasks = computed(() => {
-    let list = this.workspaceTasks();
+    let list = this.tasks();
     const smartIds = this.smartFilterIds();
     if (smartIds) {
       const set = new Set(smartIds);
@@ -57,13 +105,13 @@ export class TaskStoreService {
       (task) =>
         task.title.toLowerCase().includes(q) ||
         task.id.toLowerCase().includes(q) ||
-        task.assignee.toLowerCase().includes(q) ||
-        task.tags.some((tag) => tag.toLowerCase().includes(q)),
+        (task.assigneeId && task.assigneeId.toLowerCase().includes(q)) ||
+        task.labels.some((tag) => tag.toLowerCase().includes(q)),
     );
   });
 
   readonly upcomingTasks = computed(() =>
-    [...this.workspaceTasks()]
+    [...this.tasks()]
       .filter((t) => t.status !== 'done')
       .sort((a, b) => priorityRank(b.priority) - priorityRank(a.priority))
       .slice(0, 4),
@@ -129,6 +177,12 @@ export class TaskStoreService {
     this.selectedTask.update((selected) =>
       selected?.id === task.id ? { ...selected, status } : selected,
     );
+    
+    // API update
+    this.taskApi.updateTask(task.id, { status }).subscribe({
+      error: () => this.toast.show('Failed to update task status', 'info')
+    });
+    
     this.toast.show(`Moved to ${this.statusLabel(status)}`, 'info');
   }
 
@@ -166,7 +220,7 @@ export class TaskStoreService {
         next: ({ subtasks }) => {
           const generated = subtasks
             .filter((title) => !task.subtasks.some((s) => s.title === title))
-            .map((title) => ({ title, done: false }));
+            .map((title) => ({ id: `new-${Date.now()}`, title, done: false }));
           this.tasks.update((items) =>
             items.map((item) =>
               item.id === task.id
@@ -202,6 +256,7 @@ export class TaskStoreService {
           this.tasks.update((items) =>
             items.map((item) => (item.id === task.id ? { ...item, description } : item)),
           );
+          this.taskApi.updateTask(task.id, { description }).subscribe();
           this.refreshSelectedTask(task.id);
           this.isImprovingDescription.set(false);
           this.toast.show('Description improved', 'ai');
@@ -240,26 +295,47 @@ export class TaskStoreService {
     this.refreshSelectedTask(taskId);
   }
 
-  addQuickTask(): Task {
-    const id = `NEW-${100 + this.tasks().length}`;
-    const task: Task = {
-      id,
+  addQuickTask(): void {
+    const projectId = this.workspace.activeProjectId();
+    const boardId = this.workspace.activeBoardId();
+    if (!projectId || !boardId) {
+      this.toast.show('No active board found', 'info');
+      return;
+    }
+
+    this.taskApi.createTask(projectId, boardId, {
       title: 'Untitled task',
       description: 'Add a short description of the work.',
       status: 'todo',
       priority: 'medium',
-      assignee: this.members.currentUser.name,
-      reporter: this.members.currentUser.name,
-      dueDate: 'TBD',
-      project: this.workspace.activeProjectName(),
-      tags: [],
-      comments: 0,
-      subtasks: [],
-    };
-    this.tasks.update((items) => [task, ...items]);
-    this.selectTask(task);
-    this.setBoardView('kanban');
-    this.toast.show('Task created', 'success');
-    return task;
+    }).subscribe({
+      next: (t) => {
+        const task: Task = {
+          id: t._id,
+          boardId: t.boardId ?? null,
+          projectId: t.projectId,
+          title: t.title,
+          description: t.description ?? '',
+          status: t.status as TaskStatus,
+          priority: t.priority as Priority,
+          position: t.position,
+          assigneeId: t.assigneeId ?? null,
+          createdById: t.createdById,
+          dueDate: t.dueDate ?? null,
+          labels: t.labels,
+          comments: t.commentCount,
+          subtasks: [],
+          createdAt: t.createdAt,
+          updatedAt: t.updatedAt,
+        };
+        this.tasks.update((items) => [task, ...items]);
+        this.selectTask(task);
+        this.setBoardView('kanban');
+        this.toast.show('Task created', 'success');
+      },
+      error: () => {
+        this.toast.show('Failed to create task', 'info');
+      }
+    });
   }
 }

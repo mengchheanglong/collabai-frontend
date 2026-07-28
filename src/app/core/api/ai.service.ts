@@ -117,14 +117,13 @@ export class AiService {
     return tasks.filter((task) => {
       if (filters.text) {
         const q = filters.text.toLowerCase();
-        const hay =
-          `${task.title} ${task.description} ${task.id} ${task.assignee} ${task.tags.join(' ')}`.toLowerCase();
+        const hay = JSON.stringify({ context: `Tasks: ${tasks.map((t) => t.title + ' (assignee: ' + t.assigneeId + ')').join(', ')}` }).toLowerCase();
         if (!hay.includes(q)) return false;
       }
 
       if (filters.labels?.length) {
         const labels = filters.labels.map((l) => l.toLowerCase());
-        const tags = task.tags.map((t) => t.toLowerCase());
+        const tags = task.labels.map((t: string) => t.toLowerCase());
         if (!labels.some((l) => tags.some((t) => t.includes(l) || l.includes(t)))) return false;
       }
 
@@ -133,17 +132,17 @@ export class AiService {
 
       if (filters.priority?.length) {
         const wanted = new Set(
-          filters.priority.map((p) => (p === 'urgent' ? 'critical' : p) as Priority),
+          filters.priority.map((p) => (p === 'urgent' ? 'urgent' : p) as Priority),
         );
         if (!wanted.has(task.priority)) return false;
       }
 
-      if (filters.assigneeName) {
-        if (!task.assignee.toLowerCase().includes(filters.assigneeName.toLowerCase())) return false;
-      }
+      const assignedName = filters.assigneeName;
+      const isAssigned = (t: Task) => !assignedName || (t.assigneeId && t.assigneeId.toLowerCase().includes(assignedName.toLowerCase()));
+      if (assignedName && !isAssigned(task)) return false;
 
       if (filters.dueRange) {
-        if (!this.matchesDueRange(task.dueDate, filters.dueRange)) return false;
+        if (!this.matchesDueRange(task.dueDate ?? '', filters.dueRange)) return false;
       }
 
       return true;
@@ -180,13 +179,13 @@ export class AiService {
       status.push('done');
     }
     if (/\bin progress\b|\bwip\b/.test(q)) status.push('in_progress');
-    if (/\breview\b/.test(q)) status.push('review');
+    if (/\breview\b/.test(q)) status.push('done');
     if (/\btodo\b|\bto do\b|\bbacklog\b/.test(q)) status.push('todo');
     if (status.length) filters.status = status;
     if (statusNot.length) filters.statusNot = statusNot;
 
-    const priority: Array<Priority | 'urgent'> = [];
-    if (/\bcritical\b|\burgent\b/.test(q)) priority.push('critical', 'urgent');
+    const priority: Array<Priority> = [];
+    if (/\bcritical\b|\burgent\b/.test(q)) priority.push('urgent');
     if (/\bhigh\b/.test(q)) priority.push('high');
     if (/\bmedium\b/.test(q)) priority.push('medium');
     if (/\blow\b/.test(q)) priority.push('low');
