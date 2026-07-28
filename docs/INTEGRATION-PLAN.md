@@ -81,7 +81,7 @@ Make the backend addressable and contract-shaped; nothing frontend yet.
 - **DoD:** each new project has a Main Board; board page loads its tasks from the API.
 - **Commits:** backend `feat(boards): board domain + default board`; frontend `feat(boards): load board + tasks`.
 
-### Phase 4 — Tasks & kanban (+ enum alignment)  *(both repos)*
+### Phase 4 — Tasks & kanban (+ enum alignment) *(both repos)* - **[DONE]**
 - **Frontend enum alignment:** drop `review`; map/rename `critical → urgent`; board columns = todo/in_progress/done.
 - **Frontend:** `TaskService`; replace `TaskStoreService` mock seed with real list/create/update/move(status+position)/delete + subtasks; CDK drag/drop calls `PATCH /tasks/:id/status` with optimistic update + rollback.
 - **Backend:** tasks already built (Phase 2 of the business-logic pass) — verify shapes; `Task.position` migration applied here if not already.

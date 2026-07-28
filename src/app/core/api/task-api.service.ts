@@ -33,6 +33,7 @@ export class TaskApiService {
     assigneeId: string | null;
     dueDate: string | null;
     labels: string[];
+    subtasks: { id?: string; title: string; done: boolean }[];
   }>): Observable<TaskDto> {
     return this.apiClient.patch<TaskDto>(`/tasks/${taskId}`, payload);
   }

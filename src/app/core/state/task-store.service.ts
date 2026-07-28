@@ -138,7 +138,9 @@ export class TaskStoreService {
   }
 
   tasksByStatus(status: TaskStatus): Task[] {
-    return this.filteredTasks().filter((task) => task.status === status);
+    return this.filteredTasks()
+      .filter((task) => task.status === status)
+      .sort((a, b) => a.position - b.position);
   }
 
   statusLabel(status: TaskStatus): string {
@@ -169,34 +171,66 @@ export class TaskStoreService {
 
   drop(event: CdkDragDrop<Task[]>, status: TaskStatus): void {
     const task = event.item.data as Task;
-    if (!task || task.status === status) return;
+    if (!task) return;
+
+    const isSameColumn = event.previousContainer === event.container;
+    if (isSameColumn && event.previousIndex === event.currentIndex) {
+      return; // No change
+    }
+
+    const currentList = this.tasksByStatus(status);
+    let newPosition = task.position;
+
+    // Remove task from list temporarily for calculation if same column
+    const listWithoutTask = currentList.filter(t => t.id !== task.id);
+    
+    const prevTask = listWithoutTask[event.currentIndex - 1];
+    const nextTask = listWithoutTask[event.currentIndex];
+
+    if (prevTask && nextTask) {
+      newPosition = (prevTask.position + nextTask.position) / 2;
+    } else if (prevTask) {
+      newPosition = prevTask.position + 1024;
+    } else if (nextTask) {
+      newPosition = nextTask.position / 2;
+    } else {
+      newPosition = 1024;
+    }
 
     this.tasks.update((items) =>
-      items.map((item) => (item.id === task.id ? { ...item, status } : item)),
+      items.map((item) => (item.id === task.id ? { ...item, status, position: newPosition } : item)),
     );
     this.selectedTask.update((selected) =>
-      selected?.id === task.id ? { ...selected, status } : selected,
+      selected?.id === task.id ? { ...selected, status, position: newPosition } : selected,
     );
     
     // API update
-    this.taskApi.updateTask(task.id, { status }).subscribe({
+    this.taskApi.updateTask(task.id, { status, position: newPosition }).subscribe({
       error: () => this.toast.show('Failed to update task status', 'info')
     });
     
-    this.toast.show(`Moved to ${this.statusLabel(status)}`, 'info');
+    if (!isSameColumn) {
+      this.toast.show(`Moved to ${this.statusLabel(status)}`, 'info');
+    }
   }
 
   toggleSubtask(task: Task, index: number): void {
+    const updatedSubtasks = task.subtasks.map((subtask, i) =>
+      i === index ? { ...subtask, done: !subtask.done } : subtask,
+    );
+
     this.tasks.update((items) =>
       items.map((item) => {
         if (item.id !== task.id) return item;
-        const subtasks = item.subtasks.map((subtask, i) =>
-          i === index ? { ...subtask, done: !subtask.done } : subtask,
-        );
-        return { ...item, subtasks };
+        return { ...item, subtasks: updatedSubtasks };
       }),
     );
     this.refreshSelectedTask(task.id);
+
+    // API update
+    this.taskApi.updateTask(task.id, { subtasks: updatedSubtasks }).subscribe({
+      error: () => this.toast.show('Failed to update subtask', 'info')
+    });
   }
 
   completedSubtasks(task: Task): number {
@@ -229,6 +263,10 @@ export class TaskStoreService {
             ),
           );
           this.refreshSelectedTask(task.id);
+          const updatedTask = this.tasks().find(t => t.id === task.id);
+          if (updatedTask) {
+            this.taskApi.updateTask(task.id, { subtasks: updatedTask.subtasks }).subscribe();
+          }
           this.isGeneratingSubtasks.set(false);
           this.toast.show(
             generated.length ? `AI added ${generated.length} subtasks` : 'No new subtasks to add',
@@ -335,6 +373,25 @@ export class TaskStoreService {
       },
       error: () => {
         this.toast.show('Failed to create task', 'info');
+      }
+    });
+  }
+
+  deleteTask(taskId: string): void {
+    // Optimistic UI delete
+    this.tasks.update((items) => items.filter((item) => item.id !== taskId));
+    if (this.selectedTask()?.id === taskId) {
+      this.closeTask();
+    }
+    
+    // API Call
+    this.taskApi.deleteTask(taskId).subscribe({
+      next: () => this.toast.show('Task deleted', 'success'),
+      error: () => {
+        this.toast.show('Failed to delete task', 'info');
+        // Re-load board on rollback
+        const boardId = this.workspace.activeBoardId();
+        if (boardId) this.loadBoard(boardId);
       }
     });
   }

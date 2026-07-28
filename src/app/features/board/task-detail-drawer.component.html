@@ -12,7 +12,7 @@
         <div class="task-modal-chrome-left">
           <span class="task-key">{{ task.id }}</span>
           <span class="task-chrome-sep" aria-hidden="true">·</span>
-          <span class="task-chrome-project" [title]="task.project">{{ task.project }}</span>
+          <span class="task-chrome-project" [title]="task.projectId">{{ task.projectId }}</span>
         </div>
         <div class="task-modal-chrome-actions">
           <button
@@ -40,6 +40,9 @@
             </span>
           </button>
           <span class="task-chrome-divider" aria-hidden="true"></span>
+          <button type="button" class="icon-btn" (click)="tasks.deleteTask(task.id)" aria-label="Delete task" title="Delete">
+            <span class="material-symbols-rounded" aria-hidden="true">delete</span>
+          </button>
           <button type="button" class="icon-btn" (click)="tasks.closeTask()" aria-label="Close task detail" title="Close">
             <span class="material-symbols-rounded" aria-hidden="true">close</span>
           </button>
@@ -146,10 +149,10 @@
           <div class="prop-row">
             <span class="prop-label">Assignee</span>
             <span class="inline-person">
-              <span class="avatar sm" [style.background]="members.memberColor(task.assignee)">
-                {{ members.initials(task.assignee) }}
+              <span class="avatar sm" [style.background]="members.memberColor(task.assigneeId || '')">
+                {{ members.initials(task.assigneeId || '') }}
               </span>
-              {{ task.assignee }}
+              {{ task.assigneeId }}
             </span>
           </div>
           <div class="prop-row">
@@ -158,13 +161,13 @@
           </div>
           <div class="prop-row">
             <span class="prop-label">Project</span>
-            <span class="prop-value">{{ task.project }}</span>
+            <span class="prop-value">{{ task.projectId }}</span>
           </div>
-          @if (task.tags.length) {
+          @if (task.labels.length) {
             <div class="prop-row prop-row-stack">
               <span class="prop-label">Labels</span>
               <div class="drawer-chips">
-                @for (tag of task.tags; track tag) {
+                @for (tag of task.labels; track tag) {
                   <span class="ai-chip" data-tone="default">{{ tag }}</span>
                 }
               </div>
