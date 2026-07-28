@@ -1,0 +1,64 @@
+﻿<div class="auth-page auth-page-split">
+  <div class="auth-card auth-card-split">
+    <div class="auth-illustration-panel">
+      <div class="auth-illustration-brand">
+        <img src="/Collab%20AI.svg" alt="CollabAI" />
+      </div>
+
+      <div class="auth-illustration-copy">
+        <p class="auth-illustration-tagline">
+          Work together, <span class="accent">smarter with AI.</span>
+        </p>
+      </div>
+
+      <div class="auth-illustration-dots">
+        <span></span>
+        <span class="active"></span>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+      <div class="auth-form-head">
+        <h1>Log in</h1>
+        <p class="auth-subtitle">Don''t have an account? <a routerLink="/signup">Sign up</a></p>
+      </div>
+
+      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+        <label for="email">Email</label>
+        <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Enter a valid email address</span>
+        }
+
+        <label for="password">Password</label>
+        <div class="password-field">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="Enter your password"
+          />
+          <button type="button" class="password-toggle" (click)="togglePasswordVisibility()">
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Password must be at least 8 characters</span>
+        }
+
+        <div class="auth-links">
+          <a routerLink="/forgot-password">Forgot password?</a>
+        </div>
+
+        @if (authStore.authError()) {
+          <p class="form-error">{{ authStore.authError() }}</p>
+        }
+
+        <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
+          <span>{{ authStore.isLoading() ? 'Signing in...' : 'Log in' }}</span>
+          <span class="arrow">-&gt;</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>

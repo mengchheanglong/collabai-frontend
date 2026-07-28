@@ -1,0 +1,66 @@
+﻿<div class="auth-page auth-page-split">
+  <div class="auth-card auth-card-split">
+    <div class="auth-illustration-panel">
+      <div class="auth-illustration-brand">
+        <img src="/Collab%20AI.svg" alt="CollabAI" />
+      </div>
+
+      <div class="auth-illustration-copy">
+        <p class="auth-illustration-tagline">
+          Start building, <span class="accent">together with AI.</span>
+        </p>
+      </div>
+
+      <div class="auth-illustration-dots">
+        <span class="active"></span>
+        <span></span>
+      </div>
+    </div>
+
+    <div class="auth-form-panel">
+      <div class="auth-form-head">
+        <h1>Create an account</h1>
+        <p class="auth-subtitle">Already have an account? <a routerLink="/login">Log in</a></p>
+      </div>
+
+      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+        <label for="name">Full name</label>
+        <input id="name" type="text" formControlName="name" placeholder="Dara Sok" />
+        @if (form.controls.name.touched && form.controls.name.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Name must be 2-80 characters</span>
+        }
+
+        <label for="email">Email</label>
+        <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
+        @if (form.controls.email.touched && form.controls.email.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Enter a valid email address</span>
+        }
+
+        <label for="password">Password</label>
+        <div class="password-field">
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="At least 8 characters"
+          />
+          <button type="button" class="password-toggle" (click)="togglePasswordVisibility()">
+            {{ showPassword() ? 'Hide' : 'Show' }}
+          </button>
+        </div>
+        @if (form.controls.password.touched && form.controls.password.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Password must be at least 8 characters</span>
+        }
+
+        @if (authStore.authError()) {
+          <p class="form-error">{{ authStore.authError() }}</p>
+        }
+
+        <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
+          <span>{{ authStore.isLoading() ? 'Creating account...' : 'Create account' }}</span>
+          <span class="arrow">-&gt;</span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
