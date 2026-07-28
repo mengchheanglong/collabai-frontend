@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ShellComponent } from './core/layout/shell.component';
+import { authGuard } from './core/auth/auth.guard';
 
 export const routes: Routes = [
   {
@@ -13,8 +14,38 @@ export const routes: Routes = [
       import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
   },
   {
+    path: 'login',
+    loadComponent: () =>
+      import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+  },
+  {
+    path: 'signup',
+    loadComponent: () =>
+      import('./features/auth/signup/signup.component').then((m) => m.SignupComponent),
+  },
+  {
+    path: 'forgot-password',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component').then(
+        (m) => m.ForgotPasswordComponent,
+      ),
+  },
+  {
+    path: 'reset-password',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.component').then(
+        (m) => m.ResetPasswordComponent,
+      ),
+  },
+  {
+    path: 'verify-email',
+    loadComponent: () =>
+      import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+  },
+  {
     path: '',
     component: ShellComponent,
+    canActivate: [authGuard],
     children: [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
       {

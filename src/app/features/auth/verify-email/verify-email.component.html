@@ -1,0 +1,44 @@
+﻿<div class="auth-page-compact">
+  <div class="auth-card-compact">
+    <div class="auth-compact-brand">
+      <img src="/Collab%20AI.svg" alt="CollabAI" />
+    </div>
+
+    @switch (state()) {
+      @case ('entering') {
+        <div class="auth-form-head-compact">
+          <h1>Check your email</h1>
+          <p class="auth-subtitle">We have sent a 6-digit verification code to your email. Enter it below to secure your account.</p>
+        </div>
+
+        <app-otp-input (valueChange)="onCodeChange($event)" />
+
+        @if (errorMessage()) {
+          <p class="form-error">{{ errorMessage() }}</p>
+        }
+
+        <button type="button" class="auth-submit" [disabled]="code().length !== 6" (click)="submitCode()">
+          <span>Verify email</span>
+        </button>
+
+        <p class="auth-links-compact">
+          Did not receive a code? <a (click)="resendCode()">Resend</a>
+        </p>
+      }
+      @case ('success') {
+        <div class="auth-form-head-compact">
+          <h1>Email verified</h1>
+          <p class="auth-subtitle">You can now log in to your account</p>
+        </div>
+        <a routerLink="/login"><button type="button" class="auth-submit"><span>Go to login</span></button></a>
+      }
+      @case ('error') {
+        <div class="auth-form-head-compact">
+          <h1>Something went wrong</h1>
+          <p class="form-error">{{ errorMessage() }}</p>
+        </div>
+        <a routerLink="/login"><button type="button" class="auth-submit"><span>Back to login</span></button></a>
+      }
+    }
+  </div>
+</div>

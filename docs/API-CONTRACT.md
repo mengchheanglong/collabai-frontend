@@ -1,4 +1,4 @@
-# CollabAI REST API Contract
+﻿# CollabAI REST API Contract
 
 Base URL:
 
@@ -319,6 +319,71 @@ Response `200`:
 
 ```json
 {
+
+---
+
+# 2.5 Password Reset & Email Verification (Draft, not yet backend-confirmed)
+
+NOTE (2026-07-28): These flows use a 6-digit numeric code, not a link/token, sent to the
+user's email. This differs from a typical click-the-link reset flow. Confirm with backend
+team before implementation.
+
+## POST /auth/forgot-password
+Request: { "email": "string" }
+Response 200:
+```json
+{
+  "success": true,
+  "data": { "message": "If that email exists, a 6-digit code has been sent." }
+}
+```
+Behavior: If the email exists, a 6-digit code is generated and sent. Always returns success
+regardless of whether the email exists, to avoid leaking registered emails.
+
+## POST /auth/verify-reset-code
+Request: { "email": "string", "code": "string" }
+Response 200:
+```json
+{
+  "success": true,
+  "data": { "resetToken": "string" }
+}
+```
+Behavior: Validates the 6-digit code. On success, issues a short-lived resetToken consumed
+by POST /auth/reset-password below. Code is single-use, deleted after verification.
+
+## POST /auth/reset-password
+Request: { "token": "string", "password": "string" }
+Response 200:
+```json
+{
+  "success": true,
+  "data": { "message": "Password updated. You can now log in." }
+}
+```
+Behavior: token is the resetToken from verify-reset-code above. Validates token, updates password.
+
+## POST /auth/verify-email
+Request: { "email": "string", "code": "string" }
+Response 200:
+```json
+{
+  "success": true,
+  "data": { "message": "Email verified. You can now log in." }
+}
+```
+Behavior: Same 6-digit code pattern as password reset, used to confirm a new signup's email.
+
+## POST /auth/resend-verification
+Request: { "email": "string" }
+Response 200:
+```json
+{
+  "success": true,
+  "data": { "message": "Verification code sent." }
+}
+```
+Behavior: Regenerates and resends a fresh 6-digit verification code.
   "success": true,
   "data": null,
   "message": "Logged out"
