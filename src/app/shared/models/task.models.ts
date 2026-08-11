@@ -1,5 +1,5 @@
-export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
-export type Priority = 'low' | 'medium' | 'high' | 'critical';
+export type TaskStatus = 'todo' | 'in_progress' | 'done';
+export type Priority = 'low' | 'medium' | 'high' | 'urgent';
 
 export interface Subtask {
   title: string;

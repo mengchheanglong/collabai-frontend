@@ -39,15 +39,15 @@ export class DashboardPageComponent {
     return 'Good evening';
   });
 
-  readonly reviewTasks = computed(
-    () => this.tasks.workspaceTasks().filter((t) => t.status === 'review').length,
+  readonly todoTasks = computed(
+    () => this.tasks.workspaceTasks().filter((t) => t.status === 'todo').length,
   );
 
   readonly highPriorityOpen = computed(
     () =>
       this.tasks
         .workspaceTasks()
-        .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'critical'))
+        .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'urgent'))
         .length,
   );
 

@@ -343,14 +343,13 @@ select:focus-visible {
   }
 
   .priority-medium,
-  .status[data-status='review'],
   .impact-pill.impact-medium,
   .ai-chip[data-tone='amber'] {
     color: #b45309;
   }
 
   .priority-high,
-  .priority-critical,
+  .priority-urgent,
   .impact-pill.impact-high,
   .ai-chip[data-tone='red'],
   .smart-error {

@@ -7,6 +7,7 @@
 
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { AuthService } from '../api/auth.service';
 import { ToastService } from '../toast/toast.service';
 import type { AuthUser } from '../../shared/models/auth.models';
@@ -22,9 +23,12 @@ export class AuthStoreService {
   readonly currentUser = signal<AuthUser | null>(null);
   readonly accessToken = signal<string | null>(sessionStorage.getItem(TOKEN_STORAGE_KEY));
   readonly isLoading = signal(false);
+  readonly isRestoring = signal(false);
   readonly authError = signal<string | null>(null);
 
   readonly isAuthenticated = computed(() => !!this.accessToken() && !!this.currentUser());
+
+  private restoreSessionRequest: Observable<boolean> | null = null;
 
   login(email: string, password: string): void {
     this.isLoading.set(true);
@@ -77,13 +81,32 @@ export class AuthStoreService {
     });
   }
 
-  restoreSession(): void {
+  restoreSession(): Observable<boolean> {
     const token = this.accessToken();
-    if (!token) return;
-    this.auth.me().subscribe({
-      next: ({ user }) => this.currentUser.set(user),
-      error: () => this.clearSession(),
-    });
+    if (!token) {
+      this.currentUser.set(null);
+      return of(false);
+    }
+
+    if (this.currentUser()) return of(true);
+    if (this.restoreSessionRequest) return this.restoreSessionRequest;
+
+    this.isRestoring.set(true);
+    this.restoreSessionRequest = this.auth.me().pipe(
+      tap(({ user }) => this.currentUser.set(user)),
+      map(() => true),
+      catchError(() => {
+        this.clearSession();
+        return of(false);
+      }),
+      finalize(() => {
+        this.isRestoring.set(false);
+        this.restoreSessionRequest = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+
+    return this.restoreSessionRequest;
   }
 
   clearAuthError(): void {

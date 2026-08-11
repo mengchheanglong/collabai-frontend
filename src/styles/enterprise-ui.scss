@@ -878,7 +878,7 @@ app-task-card.task-card h3 {
 }
 
 .priority-high,
-.priority-critical {
+.priority-urgent {
   color: var(--red);
   background: var(--red-soft);
 }
@@ -886,11 +886,6 @@ app-task-card.task-card h3 {
 .status[data-status='in_progress'] {
   color: var(--brand);
   background: var(--brand-soft);
-}
-
-.status[data-status='review'] {
-  color: var(--amber);
-  background: var(--amber-soft);
 }
 
 .status[data-status='done'] {

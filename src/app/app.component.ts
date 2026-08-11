@@ -15,6 +15,6 @@ export class AppComponent implements OnInit {
 
   ngOnInit(): void {
     // Rehydrate the signed-in user from a stored token (GET /auth/me).
-    this.authStore.restoreSession();
+    this.authStore.restoreSession().subscribe();
   }
 }

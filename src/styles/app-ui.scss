@@ -617,7 +617,7 @@ a.btn {
     background: var(--amber);
   }
   &.priority-high,
-  &.priority-critical {
+  &.priority-urgent {
     background: var(--red);
   }
 }
@@ -1623,7 +1623,7 @@ app-task-card.task-card {
   color: #fbbf24;
 }
 .priority-high,
-.priority-critical {
+.priority-urgent {
   background: var(--red-soft);
   color: #fca5a5;
 }
@@ -1642,11 +1642,6 @@ app-task-card.task-card {
   &[data-status='in_progress'] {
     background: rgba(59, 130, 246, 0.12);
     color: #93c5fd;
-    border-color: transparent;
-  }
-  &[data-status='review'] {
-    background: var(--amber-soft);
-    color: #fbbf24;
     border-color: transparent;
   }
   &[data-status='done'] {

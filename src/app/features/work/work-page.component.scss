@@ -334,7 +334,7 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted-2) 12%, transparent);
 }
 
-.work-priority-dot[data-priority='critical'],
+.work-priority-dot[data-priority='urgent'],
 .work-priority-dot[data-priority='high'] {
   background: var(--red);
   box-shadow: 0 0 0 3px var(--red-soft);
@@ -434,19 +434,13 @@
   border-color: var(--brand-border);
 }
 
-.work-status-chip[data-status='review'] {
-  color: var(--amber);
-  background: var(--amber-soft);
-  border-color: color-mix(in srgb, var(--amber) 28%, transparent);
-}
-
 .work-status-chip[data-status='done'] {
   color: var(--green);
   background: var(--green-soft);
   border-color: color-mix(in srgb, var(--green) 26%, transparent);
 }
 
-.work-priority-chip[data-priority='critical'],
+.work-priority-chip[data-priority='urgent'],
 .work-priority-chip[data-priority='high'] {
   color: var(--red);
   background: var(--red-soft);

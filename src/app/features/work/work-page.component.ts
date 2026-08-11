@@ -20,7 +20,7 @@ interface WorkGroup {
   tasks: Task[];
 }
 
-const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low'];
+const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low'];
 
 @Component({
   selector: 'app-work-page',
@@ -107,7 +107,7 @@ export class WorkPageComponent {
       {
         key: 'in_progress',
         title: 'In motion',
-        description: 'Your active and review tasks',
+        description: 'Your active tasks',
         icon: 'progress_activity',
       },
       {
@@ -142,9 +142,7 @@ export class WorkPageComponent {
     const tasks = this.personalTasks();
     return {
       open: tasks.filter((task) => task.status !== 'done').length,
-      inProgress: tasks.filter(
-        (task) => task.status === 'in_progress' || task.status === 'review',
-      ).length,
+      inProgress: tasks.filter((task) => task.status === 'in_progress').length,
       overdue: tasks.filter((task) => this.isOverdue(task)).length,
       completed: tasks.filter((task) => task.status === 'done').length,
     };
@@ -241,7 +239,7 @@ export class WorkPageComponent {
     const days = this.dayDifference(due, this.today());
     if (days < 0) return 'overdue';
     if (days === 0) return 'today';
-    if (task.status === 'in_progress' || task.status === 'review') return 'in_progress';
+    if (task.status === 'in_progress') return 'in_progress';
     return 'upcoming';
   }
 

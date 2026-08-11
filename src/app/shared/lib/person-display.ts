@@ -10,7 +10,7 @@ export function initials(name: string): string {
 }
 
 export function priorityRank(priority: Priority): number {
-  return { critical: 4, high: 3, medium: 2, low: 1 }[priority];
+  return { urgent: 4, high: 3, medium: 2, low: 1 }[priority];
 }
 
 export function priorityClass(priority: Priority): string {

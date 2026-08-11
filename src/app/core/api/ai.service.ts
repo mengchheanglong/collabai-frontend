@@ -132,9 +132,7 @@ export class AiService {
       if (filters.statusNot?.length && filters.statusNot.includes(task.status)) return false;
 
       if (filters.priority?.length) {
-        const wanted = new Set(
-          filters.priority.map((p) => (p === 'urgent' ? 'critical' : p) as Priority),
-        );
+        const wanted = new Set(filters.priority);
         if (!wanted.has(task.priority)) return false;
       }
 
@@ -180,13 +178,12 @@ export class AiService {
       status.push('done');
     }
     if (/\bin progress\b|\bwip\b/.test(q)) status.push('in_progress');
-    if (/\breview\b/.test(q)) status.push('review');
     if (/\btodo\b|\bto do\b|\bbacklog\b/.test(q)) status.push('todo');
     if (status.length) filters.status = status;
     if (statusNot.length) filters.statusNot = statusNot;
 
-    const priority: Array<Priority | 'urgent'> = [];
-    if (/\bcritical\b|\burgent\b/.test(q)) priority.push('critical', 'urgent');
+    const priority: Priority[] = [];
+    if (/\bcritical\b|\burgent\b/.test(q)) priority.push('urgent');
     if (/\bhigh\b/.test(q)) priority.push('high');
     if (/\bmedium\b/.test(q)) priority.push('medium');
     if (/\blow\b/.test(q)) priority.push('low');
@@ -210,7 +207,7 @@ export class AiService {
 
     let residual = query
       .replace(
-        /\b(frontend|backend|design|ui|ai|security|docs|qa|database|marketing|not done|unfinished|open|incomplete|done|completed|finished|in progress|wip|review|todo|to do|backlog|critical|urgent|high|medium|low|overdue|late|past due|today|this week|week|tasks?|that are|which are|show me|find|search|for|with|and|or|the|a|an)\b/gi,
+        /\b(frontend|backend|design|ui|ai|security|docs|qa|database|marketing|not done|unfinished|open|incomplete|done|completed|finished|in progress|wip|todo|to do|backlog|critical|urgent|high|medium|low|overdue|late|past due|today|this week|week|tasks?|that are|which are|show me|find|search|for|with|and|or|the|a|an)\b/gi,
         ' ',
       )
       .replace(/\s+/g, ' ')
