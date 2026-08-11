@@ -3,7 +3,6 @@ import type { TaskStatus } from '../models/task.models';
 export const BOARD_COLUMNS: Array<{ key: TaskStatus; label: string }> = [
   { key: 'todo', label: 'To Do' },
   { key: 'in_progress', label: 'In Progress' },
-  { key: 'review', label: 'Review' },
   { key: 'done', label: 'Done' },
 ];
 

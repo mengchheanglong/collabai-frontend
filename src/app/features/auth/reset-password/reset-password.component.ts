@@ -1,6 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 
@@ -9,18 +9,21 @@ import { ToastService } from '../../../core/toast/toast.service';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   templateUrl: './reset-password.component.html',
+  styleUrl: '../auth-pages.scss',
 })
 export class ResetPasswordComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
-  private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
-
-  private readonly token = this.route.snapshot.queryParamMap.get('token') ?? '';
 
   readonly isLoading = signal(false);
   readonly errorMessage = signal<string | null>(null);
+  readonly showPassword = signal(false);
+
+  togglePasswordVisibility(): void {
+    this.showPassword.update((v) => !v);
+  }
 
   readonly form = this.fb.nonNullable.group({
     password: ['', [Validators.required, Validators.minLength(8)]],
@@ -38,21 +41,21 @@ export class ResetPasswordComponent {
       this.errorMessage.set('Passwords do not match');
       return;
     }
-    if (!this.token) {
-      this.errorMessage.set('Reset link is missing or invalid');
-      return;
-    }
 
     this.isLoading.set(true);
-    this.auth.resetPassword({ token: this.token, password }).subscribe({
-      next: ({ message }) => {
+    // The backend reads the email from the `password_reset_session` cookie.
+    this.auth.resetPassword({ password }).subscribe({
+      next: () => {
         this.isLoading.set(false);
-        this.toast.show(message, 'success');
-        this.router.navigate(['/login']);
+        this.toast.show('Password reset successfully — log in with your new password', 'success');
+        void this.router.navigate(['/login']);
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.isLoading.set(false);
-        this.errorMessage.set(err?.error?.message ?? 'Could not reset password');
+        this.errorMessage.set(
+          (err as { error?: { error?: { message?: string } } })?.error?.error?.message ??
+            'Could not reset password',
+        );
       },
     });
   }

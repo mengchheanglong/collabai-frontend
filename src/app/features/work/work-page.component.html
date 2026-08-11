@@ -129,8 +129,8 @@
                         <strong>{{ task.title }}</strong>
                       </span>
                       <span class="work-task-meta">
-                        <span>{{ task.project }}</span>
-                        @for (tag of task.tags.slice(0, 1); track tag) {
+                        <span>{{ projectName(task) }}</span>
+                        @for (tag of task.labels.slice(0, 1); track tag) {
                           <span class="work-tag">{{ tag }}</span>
                         }
                       </span>

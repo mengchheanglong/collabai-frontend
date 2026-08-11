@@ -1,6 +1,7 @@
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
+import { AuthStoreService } from './core/state/auth-store.service';
 
 @Component({
   selector: 'app-root',
@@ -10,4 +11,9 @@ import { ThemeService } from './core/theme/theme.service';
 })
 export class AppComponent {
   private readonly theme = inject(ThemeService);
+  private readonly auth = inject(AuthStoreService);
+
+  constructor() {
+    this.auth.restoreSession();
+  }
 }

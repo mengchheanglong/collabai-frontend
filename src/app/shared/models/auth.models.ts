@@ -1,21 +1,29 @@
+// Auth models — mirror the backend /api/v1/auth contract (docs/API-CONTRACT.md).
+// All auth endpoints use the `{ success, data }` envelope; errors carry
+// `{ code, message }` in the body.
+
 export interface AuthUser {
   _id: string;
   name: string;
   email: string;
   avatarUrl: string | null;
+  role?: string;
+  isVerified?: boolean;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
+  lastLogin?: string | null;
 }
 
 export interface RegisterRequest {
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
 }
 
 export interface RegisterResponse {
-  accessToken: string;
-  user: AuthUser;
+  message: string;
 }
 
 export interface LoginRequest {
@@ -25,11 +33,22 @@ export interface LoginRequest {
 
 export interface LoginResponse {
   accessToken: string;
-  user: AuthUser;
 }
 
 export interface MeResponse {
   user: AuthUser;
+}
+
+export interface VerifyEmailRequest {
+  code: string;
+}
+
+export interface VerifyEmailResponse {
+  success: true;
+}
+
+export interface ResendVerificationResponse {
+  message?: string;
 }
 
 export interface ForgotPasswordRequest {
@@ -37,40 +56,21 @@ export interface ForgotPasswordRequest {
 }
 
 export interface ForgotPasswordResponse {
-  message: string;
-}
-
-export interface ResetPasswordRequest {
-  token: string;
-  password: string;
-}
-
-export interface ResetPasswordResponse {
-  message: string;
-}
-
-export interface VerifyEmailRequest {
-  email: string;
-  code: string;
-}
-
-export interface VerifyEmailResponse {
-  message: string;
-}
-
-export interface ResendVerificationRequest {
-  email: string;
-}
-
-export interface ResendVerificationResponse {
-  message: string;
+  message?: string;
 }
 
 export interface VerifyResetCodeRequest {
-  email: string;
   code: string;
 }
 
 export interface VerifyResetCodeResponse {
-  resetToken: string;
+  success: true;
+}
+
+export interface ResetPasswordRequest {
+  password: string;
+}
+
+export interface ResetPasswordResponse {
+  message?: string;
 }

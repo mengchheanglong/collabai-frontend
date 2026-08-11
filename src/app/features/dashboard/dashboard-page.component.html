@@ -7,8 +7,8 @@
         {{ greeting() }}, {{ members.currentUser.name }}
       </h1>
       <p class="dash-sub">
-        {{ workspace.activeWorkspace().name }} · {{ tasks.totalTasks() }} tasks ·
-        {{ tasks.completionRate() }}% complete
+        {{ workspace.activeWorkspace().name }} · {{ analytics.totalTasks() || tasks.totalTasks() }} tasks ·
+        {{ analytics.completionRate() || tasks.completionRate() }}% complete
       </p>
     </div>
     <div class="header-actions">
@@ -39,17 +39,17 @@
         <span class="stat-icon cyan"><span class="material-symbols-rounded sm" aria-hidden="true">progress_activity</span></span>
         <span class="stat-label">In progress</span>
       </div>
-      <strong>{{ tasks.inProgressTasks() }}</strong>
-      <span class="stat-hint">{{ reviewTasks() }} in review</span>
+      <strong>{{ analytics.inProgressTasks() || tasks.inProgressTasks() }}</strong>
+      <span class="stat-hint">{{ reviewTasks() }} completed</span>
     </div>
     <div class="stat stat-rich">
       <div class="stat-top">
         <span class="stat-icon green"><span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span></span>
         <span class="stat-label">Done</span>
       </div>
-      <strong>{{ tasks.doneTasks() }}</strong>
-      <div class="stat-bar" [attr.aria-label]="'Completion rate: ' + tasks.completionRate() + '%'">
-        <mat-progress-bar mode="determinate" [value]="tasks.completionRate()"></mat-progress-bar>
+      <strong>{{ analytics.completedTasks() || tasks.doneTasks() }}</strong>
+      <div class="stat-bar" [attr.aria-label]="'Completion rate: ' + (analytics.completionRate() || tasks.completionRate()) + '%'">
+        <mat-progress-bar mode="determinate" [value]="analytics.completionRate() || tasks.completionRate()"></mat-progress-bar>
       </div>
     </div>
     <div class="stat stat-rich">
@@ -57,8 +57,8 @@
         <span class="stat-icon amber"><span class="material-symbols-rounded sm" aria-hidden="true">priority_high</span></span>
         <span class="stat-label">High priority</span>
       </div>
-      <strong>{{ highPriorityOpen() }}</strong>
-      <span class="stat-hint">Open critical &amp; high</span>
+      <strong>{{ analytics.overdueTasks() || highPriorityOpen() }}</strong>
+      <span class="stat-hint">@if (analytics.overdueTasks()) { Overdue } @else { Open critical &amp; high }</span>
     </div>
   </div>
 
@@ -189,7 +189,7 @@
               <p>
                 <strong>{{ activity.actor }}</strong> {{ activity.text }}
               </p>
-              <small>{{ activity.time }}</small>
+              <small>{{ activity.time | date:'short' }}</small>
             </div>
           </div>
         } @empty {

@@ -1,4 +1,4 @@
-﻿import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
@@ -12,6 +12,7 @@ type Stage = 'email' | 'code';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink, OtpInputComponent],
   templateUrl: './forgot-password.component.html',
+  styleUrl: '../auth-pages.scss',
 })
 export class ForgotPasswordComponent {
   private readonly fb = inject(FormBuilder);
@@ -23,7 +24,7 @@ export class ForgotPasswordComponent {
   readonly isLoading = signal(false);
   readonly code = signal('');
   readonly codeError = signal<string | null>(null);
-  private email = '';
+  readonly submittedEmail = signal('');
 
   readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
@@ -34,9 +35,10 @@ export class ForgotPasswordComponent {
       this.form.markAllAsTouched();
       return;
     }
-    this.email = this.form.getRawValue().email;
+    const email = this.form.getRawValue().email;
+    this.submittedEmail.set(email);
     this.isLoading.set(true);
-    this.auth.forgotPassword({ email: this.email }).subscribe({
+    this.auth.forgotPassword({ email }).subscribe({
       next: () => {
         this.isLoading.set(false);
         this.stage.set('code');
@@ -56,21 +58,27 @@ export class ForgotPasswordComponent {
   submitCode(): void {
     if (this.code().length !== 6) return;
     this.isLoading.set(true);
-    this.auth.verifyResetCode({ email: this.email, code: this.code() }).subscribe({
-      next: ({ resetToken }) => {
+    this.auth.verifyResetCode({ code: this.code() }).subscribe({
+      next: () => {
         this.isLoading.set(false);
-        this.router.navigate(['/reset-password'], { queryParams: { token: resetToken } });
+        // The backend swaps the verification cookie for the short-lived
+        // `password_reset_session` cookie — no token param needed.
+        void this.router.navigate(['/reset-password']);
       },
-      error: (err) => {
+      error: (err: unknown) => {
         this.isLoading.set(false);
-        this.codeError.set(err?.error?.message ?? 'Invalid code');
+        this.codeError.set(
+          (err as { error?: { error?: { message?: string } } })?.error?.error?.message ??
+            'Invalid code',
+        );
       },
     });
   }
 
   resendCode(): void {
-    this.auth.forgotPassword({ email: this.email }).subscribe({
-      next: ({ message }) => this.toast.show(message, 'success'),
+    this.auth.forgotPassword({ email: this.submittedEmail() }).subscribe({
+      next: () => this.toast.show('A new reset code has been sent', 'success'),
+      error: () => this.toast.show('Something went wrong. Try again.', 'info'),
     });
   }
 }
