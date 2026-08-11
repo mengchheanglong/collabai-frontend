@@ -1,35 +1,33 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OtpInputComponent } from '../../../shared/ui/otp-input/otp-input.component';
 
-type State = 'entering' | 'verifying' | 'success' | 'error';
+type State = 'entering' | 'verifying' | 'error';
 
 @Component({
   selector: 'app-verify-email',
   standalone: true,
-  imports: [RouterLink, OtpInputComponent],
+  imports: [OtpInputComponent],
   templateUrl: './verify-email.component.html',
+  styleUrl: '../auth-pages.scss',
 })
 export class VerifyEmailComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly toast = inject(ToastService);
 
   readonly state = signal<State>('entering');
   readonly code = signal('');
   readonly errorMessage = signal<string | null>(null);
-  private email = '';
+  readonly email = signal('');
 
   ngOnInit(): void {
-    const email = this.route.snapshot.queryParamMap.get('email');
-    if (!email) {
-      this.state.set('error');
-      this.errorMessage.set('Missing email � please sign up again');
-      return;
-    }
-    this.email = email;
+    // Used only for display; the backend reads the email from the httpOnly
+    // `registration_verification` cookie set during registration.
+    this.email.set(this.route.snapshot.queryParamMap.get('email') ?? '');
   }
 
   onCodeChange(value: string): void {
@@ -39,17 +37,28 @@ export class VerifyEmailComponent implements OnInit {
 
   submitCode(): void {
     if (this.code().length !== 6) return;
-    this.auth.verifyEmail({ email: this.email, code: this.code() }).subscribe({
-      next: () => this.state.set('success'),
+    this.state.set('verifying');
+    this.auth.verifyEmail({ code: this.code() }).subscribe({
+      next: () => {
+        this.toast.show('Email verified — you can now log in', 'success');
+        void this.router.navigate(['/login']);
+      },
       error: (err: unknown) => {
-        this.errorMessage.set((err as any)?.error?.message ?? 'Could not verify email');
+        // Stay on the form so the user can retry with a fresh code.
+        this.state.set('entering');
+        this.code.set('');
+        this.errorMessage.set(
+          (err as { error?: { error?: { message?: string } } })?.error?.error?.message ??
+            'Could not verify email',
+        );
       },
     });
   }
 
   resendCode(): void {
-    this.auth.sendVerification({ email: this.email }).subscribe({
-      next: ({ message }) => this.toast.show(message, 'success'),
+    this.auth.resendVerification().subscribe({
+      next: () => this.toast.show('A new verification code has been sent', 'success'),
+      error: () => this.toast.show('Could not resend the code — please sign up again', 'info'),
     });
   }
 }

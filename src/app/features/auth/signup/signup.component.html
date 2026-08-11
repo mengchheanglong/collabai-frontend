@@ -1,29 +1,27 @@
-﻿<div class="auth-page auth-page-split">
-  <div class="auth-card auth-card-split">
-    <div class="auth-illustration-panel">
-      <div class="auth-illustration-brand">
-        <img src="/Collab%20AI.svg" alt="CollabAI" />
+<div class="auth-shell">
+  <main class="auth-card auth-card-split">
+    <section class="auth-side">
+      <img src="/Collab%20AI.svg" class="auth-side-logo" alt="CollabAI" />
+      <div class="auth-side-copy">
+        <h2>Start building, together with AI.</h2>
+        <p>Create your account to organize projects, boards, and teammates in one workspace.</p>
       </div>
+      <ul class="auth-side-features">
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Real-time boards &amp; tasks</li>
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> AI subtask &amp; summary helpers</li>
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Team directory &amp; roles</li>
+      </ul>
+      <div class="auth-side-dots"><span class="active"></span><span></span></div>
+    </section>
 
-      <div class="auth-illustration-copy">
-        <p class="auth-illustration-tagline">
-          Start building, <span class="accent">together with AI.</span>
-        </p>
-      </div>
-
-      <div class="auth-illustration-dots">
-        <span class="active"></span>
-        <span></span>
-      </div>
-    </div>
-
-    <div class="auth-form-panel">
-      <div class="auth-form-head">
+    <section class="auth-main">
+      <div class="auth-head">
         <h1>Create an account</h1>
-        <p class="auth-subtitle">Already have an account? <a routerLink="/login">Log in</a></p>
+        <p>Already have an account? <a routerLink="/login" class="auth-link">Log in</a></p>
       </div>
 
       <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+<<<<<<< HEAD
         <label for="firstName">First name</label>
         <input id="firstName" type="text" formControlName="firstName" placeholder="Dara" />
         @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
@@ -53,20 +51,80 @@
           <button type="button" class="password-toggle" (click)="togglePasswordVisibility()">
             {{ showPassword() ? 'Hide' : 'Show' }}
           </button>
+=======
+        <div class="field">
+          <label for="firstName">First name</label>
+          <div class="field-control">
+            <span class="material-symbols-rounded field-icon" aria-hidden="true">person</span>
+            <input id="firstName" type="text" formControlName="firstName" placeholder="Dara" autocomplete="given-name" />
+          </div>
+          @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+            <span class="field-error">First name must be 2-60 characters</span>
+          }
         </div>
-        @if (form.controls.password.touched && form.controls.password.invalid) {
-          <span class="field-error"><i class="err-icon">!</i> Password must be at least 8 characters</span>
-        }
+
+        <div class="field">
+          <label for="lastName">Last name</label>
+          <div class="field-control">
+            <span class="material-symbols-rounded field-icon" aria-hidden="true">person</span>
+            <input id="lastName" type="text" formControlName="lastName" placeholder="Sok" autocomplete="family-name" />
+          </div>
+          @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
+            <span class="field-error">Last name must be 2-60 characters</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="email">Email</label>
+          <div class="field-control">
+            <span class="material-symbols-rounded field-icon" aria-hidden="true">mail</span>
+            <input id="email" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email" />
+          </div>
+          @if (form.controls.email.touched && form.controls.email.invalid) {
+            <span class="field-error">Enter a valid email address</span>
+          }
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <div class="field-control">
+            <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="At least 8 characters"
+              autocomplete="new-password"
+            />
+            <button
+              type="button"
+              class="field-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+            >
+              <span class="material-symbols-rounded" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+            </button>
+          </div>
+          @if (form.controls.password.touched && form.controls.password.invalid) {
+            <span class="field-error">Password must be at least 8 characters</span>
+          }
+>>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
+        </div>
 
         @if (authStore.authError()) {
-          <p class="form-error">{{ authStore.authError() }}</p>
+          <p class="form-error" role="alert">{{ authStore.authError() }}</p>
         }
 
         <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
-          <span>{{ authStore.isLoading() ? 'Creating account...' : 'Create account' }}</span>
-          <span class="arrow">-&gt;</span>
+          <span>{{ authStore.isLoading() ? 'Creating account…' : 'Create account' }}</span>
+          <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
         </button>
       </form>
-    </div>
-  </div>
+
+      <p class="auth-note">
+        <span class="auth-note-dot" aria-hidden="true"></span>
+        Secure workspace for your team
+      </p>
+    </section>
+  </main>
 </div>

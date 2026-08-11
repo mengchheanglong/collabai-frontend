@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
 import { MatRippleModule } from '@angular/material/core';
+import { RouterLink } from '@angular/router';
 import { TaskStoreService } from '../../core/state/task-store.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import type { BoardView } from '../../shared/models/navigation.models';
@@ -13,6 +14,7 @@ import { TaskListViewComponent } from './task-list-view.component';
   standalone: true,
   imports: [
     MatRippleModule,
+    RouterLink,
     KanbanBoardComponent,
     TaskListViewComponent,
     TaskDetailDrawerComponent,

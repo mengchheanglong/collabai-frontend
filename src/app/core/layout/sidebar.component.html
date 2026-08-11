@@ -1,22 +1,19 @@
 <aside class="sidebar">
   <div class="sidebar-top">
-    <a class="brand" routerLink="/dashboard" aria-label="CollabAI home">
-      <img [src]="theme.logoSrc()" alt="Collab AI" class="brand-logo" />
+    <a routerLink="/" class="brand" matRipple>
+      <img src="/Collab AI.svg" class="brand-logo" alt="Collab AI" />
     </a>
-
-    <span class="sidebar-section-title">Workspace</span>
-    <nav class="nav" aria-label="Main">
+    
+    <nav class="nav">
       @for (page of pages; track page.key) {
-        <a
-          class="nav-item"
-          [routerLink]="'/' + page.key"
-          routerLinkActive="active"
-          #navLink="routerLinkActive"
+        <a 
+          [routerLink]="['/' + page.key]" 
+          routerLinkActive="active" 
+          class="nav-item" 
           matRipple
-          [attr.aria-current]="navLink.isActive ? 'page' : null"
         >
-          <span class="material-symbols-rounded" [class.filled]="navLink.isActive" aria-hidden="true">{{ page.icon }}</span>
-          {{ page.label }}
+          <span class="material-symbols-rounded">{{ page.icon }}</span>
+          <span>{{ page.label }}</span>
         </a>
       }
     </nav>
@@ -33,31 +30,31 @@
       <kbd><span class="command-key">⌘</span>K</kbd>
     </button>
 
-    <div class="workspaces">
-      <div class="section-label">
-        <span>Spaces</span>
-        <button
-          type="button"
-          class="icon-btn"
-          (click)="workspace.toggleWorkspaceCreator()"
-          matTooltip="New workspace"
-          aria-label="New workspace"
-        >
-          <span class="material-symbols-rounded sm">add</span>
-        </button>
-      </div>
+    <div class="section-label">
+      Projects
+      <button
+        type="button"
+        class="icon-btn"
+        matRipple
+        (click)="workspace.toggleWorkspaceCreator()"
+        [attr.aria-label]="workspace.isWorkspaceCreatorOpen() ? 'Close new project form' : 'New project'"
+        [title]="workspace.isWorkspaceCreatorOpen() ? 'Close' : 'New project'"
+        style="background: none; border: none; cursor: pointer; color: inherit; display: inline-flex; align-items: center; padding: 2px;"
+      >
+        <span class="material-symbols-rounded" style="font-size: 16px;">{{ workspace.isWorkspaceCreatorOpen() ? 'close' : 'add' }}</span>
+      </button>
+    </div>
 
+    <div class="workspaces">
       @for (ws of workspace.workspaces(); track ws.id) {
-        <button
-          type="button"
-          class="ws-item"
-          [class.active]="workspace.selectedWorkspaceId() === ws.id"
+        <button 
+          class="ws-item" 
+          [class.active]="ws.id === workspace.selectedWorkspaceId()"
           (click)="selectWorkspace(ws.id)"
           matRipple
-          [attr.aria-pressed]="workspace.selectedWorkspaceId() === ws.id"
-          [title]="ws.name"
+          style="border: none; background: transparent; width: 100%; font-family: inherit;"
         >
-          <span class="ws-dot" [style.background]="ws.accent" aria-hidden="true"></span>
+          <div class="ws-dot" [style.background]="ws.accent"></div>
           <span class="ws-name">{{ ws.name }}</span>
         </button>
       }
@@ -66,25 +63,26 @@
         <div class="ws-create">
           <input
             #wsInput
+            type="text"
             [value]="workspace.newWorkspaceName()"
-            (input)="workspace.newWorkspaceName.set(wsInput.value)"
-            (keydown.enter)="addWorkspace(wsInput.value)"
-            placeholder="Workspace name"
+            (input)="workspace.newWorkspaceName.set($any($event.target).value)"
+            (keyup.enter)="createProject(wsInput)"
+            (keyup.escape)="workspace.toggleWorkspaceCreator()"
+            placeholder="Project name…"
+            aria-label="New project name"
+            autofocus
           />
-          <div class="ws-create-actions">
-            <button type="button" class="btn ghost sm" (click)="workspace.toggleWorkspaceCreator()">Cancel</button>
-            <button type="button" class="btn primary sm" (click)="addWorkspace(wsInput.value)">Add</button>
-          </div>
         </div>
       }
     </div>
   </div>
-
-  <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple [attr.aria-current]="profileLink?.isActive ? 'page' : null" #profileLink="routerLinkActive">
-    <span class="avatar" [style.background]="currentUser.color" aria-hidden="true">{{ currentUser.avatar }}</span>
-    <span class="user-info">
-      <strong>{{ currentUser.name }}</strong>
-      <small>{{ currentUser.email }}</small>
-    </span>
-  </a>
+  
+  <div class="sidebar-bottom">
+    <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple aria-label="Open your profile">
+      <div class="user-info">
+        <strong>{{ currentUser.name || 'Guest User' }}</strong>
+        <small>{{ currentUser.email || 'Not signed in' }}</small>
+      </div>
+    </a>
+  </div>
 </aside>

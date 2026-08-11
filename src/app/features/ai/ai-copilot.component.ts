@@ -114,9 +114,24 @@ export class AiCopilotComponent {
     this.draft.set('');
     this.sending.set(true);
 
-    const projectId = this.workspace.selectedWorkspaceId() || 'mock-project';
+    const projectId = this.workspace.activeProjectId() ?? '';
+    if (!projectId) {
+      this.messages.update((list) =>
+        list.map((msg) =>
+          msg.id === pendingId
+            ? {
+                ...msg,
+                text: 'Create a project first, then I can search its tasks.',
+                pending: false,
+              }
+            : msg,
+        ),
+      );
+      this.sending.set(false);
+      return;
+    }
 
-    this.ai.searchTasks({ projectId, query: text }, this.tasks.workspaceTasks()).subscribe({
+    this.ai.searchTasks({ projectId, query: text }, this.tasks.tasks()).subscribe({
       next: (data) => {
         const chips = chipsFromFilters(data.interpretedQuery);
         const count = data.tasks.length;

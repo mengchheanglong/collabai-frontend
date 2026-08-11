@@ -1,5 +1,6 @@
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatTooltipModule } from '@angular/material/tooltip';
@@ -7,10 +8,12 @@ import { ActivityStoreService } from '../../core/state/activity-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { SuggestionStoreService } from '../../core/state/suggestion-store.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
+import { AnalyticsStoreService } from '../../core/state/analytics-store.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import type { Suggestion } from '../../shared/models/suggestion.models';
 import type { Task } from '../../shared/models/task.models';
 import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
+import { OnInit } from '@angular/core';
 
 @Component({
   selector: 'app-dashboard-page',
@@ -21,16 +24,26 @@ import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
     MatProgressBarModule,
     MatTooltipModule,
     ThemeToggleComponent,
+    DatePipe,
   ],
   templateUrl: './dashboard-page.component.html',
 })
-export class DashboardPageComponent {
+export class DashboardPageComponent implements OnInit {
   private readonly router = inject(Router);
   readonly workspace = inject(WorkspaceContextService);
   readonly tasks = inject(TaskStoreService);
   readonly activities = inject(ActivityStoreService);
   readonly suggestions = inject(SuggestionStoreService);
   readonly members = inject(MemberDirectoryService);
+  readonly analytics = inject(AnalyticsStoreService);
+
+  ngOnInit(): void {
+    const projectId = this.workspace.activeProjectId();
+    if (projectId) {
+      this.analytics.loadForProject(projectId);
+      this.activities.loadForProject(projectId);
+    }
+  }
 
   readonly greeting = computed(() => {
     const hour = new Date().getHours();
@@ -39,14 +52,24 @@ export class DashboardPageComponent {
     return 'Good evening';
   });
 
+<<<<<<< HEAD
   readonly todoTasks = computed(
     () => this.tasks.workspaceTasks().filter((t) => t.status === 'todo').length,
+=======
+  /** Falls back to local task counts when analytics haven't loaded yet. */
+  readonly reviewTasks = computed(
+    () => this.analytics.completedTasks() || this.tasks.tasks().filter((t) => t.status === 'done').length,
+>>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
   );
 
   readonly highPriorityOpen = computed(
     () =>
       this.tasks
+<<<<<<< HEAD
         .workspaceTasks()
+=======
+        .tasks()
+>>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
         .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'urgent'))
         .length,
   );
