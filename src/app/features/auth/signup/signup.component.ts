@@ -17,13 +17,8 @@ export class SignupComponent {
   readonly showPassword = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-<<<<<<< HEAD
-    firstName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(60)]],
-    lastName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(60)]],
-=======
     firstName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
     lastName: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(60)]],
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });

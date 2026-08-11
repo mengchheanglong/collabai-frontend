@@ -52,24 +52,15 @@ export class DashboardPageComponent implements OnInit {
     return 'Good evening';
   });
 
-<<<<<<< HEAD
-  readonly todoTasks = computed(
-    () => this.tasks.workspaceTasks().filter((t) => t.status === 'todo').length,
-=======
   /** Falls back to local task counts when analytics haven't loaded yet. */
   readonly reviewTasks = computed(
     () => this.analytics.completedTasks() || this.tasks.tasks().filter((t) => t.status === 'done').length,
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
   );
 
   readonly highPriorityOpen = computed(
     () =>
       this.tasks
-<<<<<<< HEAD
-        .workspaceTasks()
-=======
         .tasks()
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
         .filter((t) => t.status !== 'done' && (t.priority === 'high' || t.priority === 'urgent'))
         .length,
   );

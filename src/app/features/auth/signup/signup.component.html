@@ -21,37 +21,6 @@
       </div>
 
       <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
-<<<<<<< HEAD
-        <label for="firstName">First name</label>
-        <input id="firstName" type="text" formControlName="firstName" placeholder="Dara" />
-        @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-          <span class="field-error"><i class="err-icon">!</i> First name is required</span>
-        }
-
-        <label for="lastName">Last name</label>
-        <input id="lastName" type="text" formControlName="lastName" placeholder="Sok" />
-        @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
-          <span class="field-error"><i class="err-icon">!</i> Last name is required</span>
-        }
-
-        <label for="email">Email</label>
-        <input id="email" type="email" formControlName="email" placeholder="you@example.com" />
-        @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="field-error"><i class="err-icon">!</i> Enter a valid email address</span>
-        }
-
-        <label for="password">Password</label>
-        <div class="password-field">
-          <input
-            id="password"
-            [type]="showPassword() ? 'text' : 'password'"
-            formControlName="password"
-            placeholder="At least 8 characters"
-          />
-          <button type="button" class="password-toggle" (click)="togglePasswordVisibility()">
-            {{ showPassword() ? 'Hide' : 'Show' }}
-          </button>
-=======
         <div class="field">
           <label for="firstName">First name</label>
           <div class="field-control">
@@ -108,7 +77,6 @@
           @if (form.controls.password.touched && form.controls.password.invalid) {
             <span class="field-error">Password must be at least 8 characters</span>
           }
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
         </div>
 
         @if (authStore.authError()) {

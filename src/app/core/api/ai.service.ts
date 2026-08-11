@@ -147,11 +147,7 @@ export class AiService {
       if (filters.status?.length && !filters.status.includes(task.status)) return false;
       if (filters.statusNot?.length && filters.statusNot.includes(task.status)) return false;
       if (filters.priority?.length) {
-<<<<<<< HEAD
-        const wanted = new Set(filters.priority);
-=======
         const wanted = new Set(filters.priority.map((p) => p as Priority));
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
         if (!wanted.has(task.priority)) return false;
       }
       const assignedName = filters.assigneeName;
@@ -183,19 +179,12 @@ export class AiService {
       status.push('done');
     }
     if (/\bin progress\b|\bwip\b/.test(q)) status.push('in_progress');
-<<<<<<< HEAD
-=======
     if (/\breview\b/.test(q)) status.push('done');
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
     if (/\btodo\b|\bto do\b|\bbacklog\b/.test(q)) status.push('todo');
     if (status.length) filters.status = status;
     if (statusNot.length) filters.statusNot = statusNot;
 
-<<<<<<< HEAD
-    const priority: Priority[] = [];
-=======
     const priority: Array<Priority> = [];
->>>>>>> b25afe06ba579c2f35025631c88d3bc0797183c6
     if (/\bcritical\b|\burgent\b/.test(q)) priority.push('urgent');
     if (/\bhigh\b/.test(q)) priority.push('high');
     if (/\bmedium\b/.test(q)) priority.push('medium');
@@ -220,7 +209,7 @@ export class AiService {
 
     let residual = query
       .replace(
-        /\b(frontend|backend|design|ui|ai|security|docs|qa|database|marketing|not done|unfinished|open|incomplete|done|completed|finished|in progress|wip|todo|to do|backlog|critical|urgent|high|medium|low|overdue|late|past due|today|this week|week|tasks?|that are|which are|show me|find|search|for|with|and|or|the|a|an)\b/gi,
+        /\b(frontend|backend|design|ui|ai|security|docs|qa|database|marketing|not done|unfinished|open|incomplete|done|completed|finished|in progress|wip|review|todo|to do|backlog|critical|urgent|high|medium|low|overdue|late|past due|today|this week|week|tasks?|that are|which are|show me|find|search|for|with|and|or|the|a|an)\b/gi,
         ' ',
       )
       .replace(/\s+/g, ' ')
