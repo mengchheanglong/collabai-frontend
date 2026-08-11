@@ -10,7 +10,13 @@ export function initials(name: string): string {
 }
 
 export function priorityRank(priority: Priority): number {
-  return { critical: 4, high: 3, medium: 2, low: 1 }[priority];
+  const ranks: Record<Priority, number> = {
+    urgent: 4,
+    high: 3,
+    medium: 2,
+    low: 1,
+  };
+  return ranks[priority] ?? 0;
 }
 
 export function priorityClass(priority: Priority): string {

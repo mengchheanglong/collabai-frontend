@@ -116,7 +116,7 @@ export class AiCopilotComponent {
 
     const projectId = this.workspace.selectedWorkspaceId() || 'mock-project';
 
-    this.ai.searchTasks({ projectId, query: text }, this.tasks.workspaceTasks()).subscribe({
+    this.ai.searchTasks({ projectId, query: text }, this.tasks.tasks()).subscribe({
       next: (data) => {
         const chips = chipsFromFilters(data.interpretedQuery);
         const count = data.tasks.length;

@@ -4,10 +4,12 @@ import { CommentStoreService } from '../../core/state/comment-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
 
+import { DatePipe } from '@angular/common';
+
 @Component({
   selector: 'app-task-detail-drawer',
   standalone: true,
-  imports: [MatProgressBarModule],
+  imports: [MatProgressBarModule, DatePipe],
   templateUrl: './task-detail-drawer.component.html',
 })
 export class TaskDetailDrawerComponent {

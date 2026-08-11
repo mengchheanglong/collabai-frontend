@@ -20,7 +20,7 @@ interface WorkGroup {
   tasks: Task[];
 }
 
-const PRIORITIES: Priority[] = ['critical', 'high', 'medium', 'low'];
+const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low'];
 
 @Component({
   selector: 'app-work-page',
@@ -49,11 +49,11 @@ export class WorkPageComponent {
   readonly personalTasks = computed(() =>
     this.taskStore
       .tasks()
-      .filter((task) => task.assignee === this.memberDirectory.currentUser.name),
+      .filter((task) => task.assigneeId === this.memberDirectory.currentUser.id),
   );
 
   readonly projects = computed(() =>
-    [...new Set(this.personalTasks().map((task) => task.project))].sort((a, b) =>
+    [...new Set(this.personalTasks().map((task) => this.projectName(task)))].sort((a, b) =>
       a.localeCompare(b),
     ),
   );
@@ -66,7 +66,7 @@ export class WorkPageComponent {
 
     return this.personalTasks()
       .filter((task) => {
-        if (project !== 'all' && task.project !== project) return false;
+        if (project !== 'all' && this.projectName(task) !== project) return false;
         if (priority !== 'all' && task.priority !== priority) return false;
         if (status === 'open' && task.status === 'done') return false;
         if (status === 'done' && task.status !== 'done') return false;
@@ -74,10 +74,10 @@ export class WorkPageComponent {
         const searchable = [
           task.id,
           task.title,
-          task.project,
-          task.assignee,
+          this.projectName(task),
+          task.assigneeId ?? '',
           task.priority,
-          ...task.tags,
+          ...task.labels,
         ]
           .join(' ')
           .toLowerCase();
@@ -142,9 +142,7 @@ export class WorkPageComponent {
     const tasks = this.personalTasks();
     return {
       open: tasks.filter((task) => task.status !== 'done').length,
-      inProgress: tasks.filter(
-        (task) => task.status === 'in_progress' || task.status === 'review',
-      ).length,
+      inProgress: tasks.filter((task) => task.status === 'in_progress').length,
       overdue: tasks.filter((task) => this.isOverdue(task)).length,
       completed: tasks.filter((task) => task.status === 'done').length,
     };
@@ -184,19 +182,22 @@ export class WorkPageComponent {
   }
 
   addQuickTask(): void {
-    const task = this.taskStore.addQuickTask();
-    this.openTask(task);
+    this.taskStore.addQuickTask();
+    void this.router.navigate(['/board']);
   }
 
   openTask(task: Task): void {
-    const taskWorkspace = this.workspace
-      .workspaces()
-      .find((item) => item.projectNames.includes(task.project));
-    if (taskWorkspace) this.workspace.selectWorkspace(taskWorkspace.id);
     this.taskStore.clearUiState();
     this.taskStore.selectTask(task);
     this.taskStore.setBoardView('kanban');
     void this.router.navigate(['/board']);
+  }
+
+  projectName(task: Task): string {
+    return (
+      this.workspace.filteredProjects().find((project) => project.id === task.projectId)?.name ??
+      task.projectId
+    );
   }
 
   updateStatus(task: Task, status: TaskStatus): void {
@@ -222,7 +223,7 @@ export class WorkPageComponent {
       const overdueDays = Math.abs(days);
       return `Overdue by ${overdueDays} day${overdueDays === 1 ? '' : 's'}`;
     }
-    return task.dueDate;
+    return task.dueDate ?? 'No date';
   }
 
   dueTone(task: Task): 'overdue' | 'today' | 'normal' | 'none' {
@@ -241,7 +242,7 @@ export class WorkPageComponent {
     const days = this.dayDifference(due, this.today());
     if (days < 0) return 'overdue';
     if (days === 0) return 'today';
-    if (task.status === 'in_progress' || task.status === 'review') return 'in_progress';
+    if (task.status === 'in_progress') return 'in_progress';
     return 'upcoming';
   }
 
@@ -257,7 +258,7 @@ export class WorkPageComponent {
     return dueA - dueB || priorityRank(b.priority) - priorityRank(a.priority);
   }
 
-  private parseDueDate(value: string): Date | null {
+  private parseDueDate(value: string | null): Date | null {
     if (!value || value.toLowerCase() === 'tbd') return null;
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return null;

@@ -255,7 +255,7 @@ export class CommandCenterComponent {
       .filter((task): task is Task => Boolean(task))
       .map((task) => this.taskItem(task, 'Recent tasks'));
     const tasks = this.tasks.tasks().map((task) => this.taskItem(task, 'Tasks'));
-    const projects = this.workspace.projects.map((project) => ({
+    const projects = this.workspace.filteredProjects().map((project) => ({
       id: `project-${project.id}`,
       section: 'Projects' as const,
       kind: 'project' as const,
@@ -299,7 +299,7 @@ export class CommandCenterComponent {
       section,
       kind: 'task',
       title: task.title,
-      subtitle: `${task.id} · ${task.project} · ${task.status.replace('_', ' ')}`,
+      subtitle: `${task.id} · ${task.projectId} · ${task.status.replace('_', ' ')}`,
       icon: 'task_alt',
       task,
     };
@@ -326,8 +326,6 @@ export class CommandCenterComponent {
   }
 
   private openTask(task: Task): void {
-    const taskWorkspace = this.workspace.workspaces().find((item) => item.projectNames.includes(task.project));
-    if (taskWorkspace) this.workspace.selectWorkspace(taskWorkspace.id);
     this.tasks.clearUiState();
     this.tasks.selectTask(task);
     this.tasks.setBoardView('kanban');

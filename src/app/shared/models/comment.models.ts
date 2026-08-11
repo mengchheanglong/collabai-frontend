@@ -1,5 +1,7 @@
-export interface CommentPreview {
+export interface Comment {
+  id: string;
   author: string;
+  authorId: string;
   body: string;
-  time: string;
+  createdAt: string;
 }

@@ -21,7 +21,7 @@ export class SuggestionStoreService {
     switch (suggestion.category) {
       case 'Tasks': {
         const large = this.tasks
-          .workspaceTasks()
+          .tasks()
           .find((t) => t.subtasks.length <= 2 && t.status !== 'done');
         if (large) {
           this.tasks.selectTask(large);
