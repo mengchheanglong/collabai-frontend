@@ -31,9 +31,17 @@
     </button>
 
     <div class="section-label">
-      Workspaces
-      <button class="icon-btn" matRipple style="background: none; border: none; cursor: pointer; color: inherit; display: flex; align-items: center;" (click)="workspace.toggleWorkspaceCreator()">
-        <span class="material-symbols-rounded" style="font-size: 16px;">add</span>
+      Projects
+      <button
+        type="button"
+        class="icon-btn"
+        matRipple
+        (click)="workspace.toggleWorkspaceCreator()"
+        [attr.aria-label]="workspace.isWorkspaceCreatorOpen() ? 'Close new project form' : 'New project'"
+        [title]="workspace.isWorkspaceCreatorOpen() ? 'Close' : 'New project'"
+        style="background: none; border: none; cursor: pointer; color: inherit; display: inline-flex; align-items: center; padding: 2px;"
+      >
+        <span class="material-symbols-rounded" style="font-size: 16px;">{{ workspace.isWorkspaceCreatorOpen() ? 'close' : 'add' }}</span>
       </button>
     </div>
 
@@ -50,34 +58,31 @@
           <span class="ws-name">{{ ws.name }}</span>
         </button>
       }
-      
+
       @if (workspace.isWorkspaceCreatorOpen()) {
         <div class="ws-create">
-          <input 
+          <input
             #wsInput
-            type="text" 
-            placeholder="Workspace name..." 
-            (keyup.enter)="addWorkspace(wsInput.value); wsInput.value = ''"
+            type="text"
+            [value]="workspace.newWorkspaceName()"
+            (input)="workspace.newWorkspaceName.set($any($event.target).value)"
+            (keyup.enter)="createProject(wsInput)"
+            (keyup.escape)="workspace.toggleWorkspaceCreator()"
+            placeholder="Project name…"
+            aria-label="New project name"
             autofocus
-          >
+          />
         </div>
       }
     </div>
   </div>
   
   <div class="sidebar-bottom">
-    <button class="user-btn" matRipple [matMenuTriggerFor]="userMenu" style="background: transparent; font-family: inherit; cursor: pointer;">
+    <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple aria-label="Open your profile">
       <div class="user-info">
         <strong>{{ currentUser.name || 'Guest User' }}</strong>
         <small>{{ currentUser.email || 'Not signed in' }}</small>
       </div>
-    </button>
-    
-    <mat-menu #userMenu="matMenu" xPosition="after">
-      <button mat-menu-item (click)="theme.toggle()">
-        <span class="material-symbols-rounded" style="margin-right: 8px; vertical-align: middle;">contrast</span>
-        <span>Toggle Theme</span>
-      </button>
-    </mat-menu>
+    </a>
   </div>
 </aside>

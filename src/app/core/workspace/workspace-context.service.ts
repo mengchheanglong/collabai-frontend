@@ -1,13 +1,8 @@
-// src/app/core/workspace/workspace-context.service.ts
-//
-// Workspace + project context. Projects are NOW LOADED FROM THE BACKEND (the current user's
-// projects, mapped ProjectDto -> Project). Workspaces remain a local grouping concept (the
-// backend has none) and keep driving the sidebar/board seed context. `filteredProjects`
-// returns the real projects so the dashboard shows live data; the board's task filter still
-// uses the seed workspace project names (tasks are wired in a later phase).
+// Workspace + project context, fully backed by the API.
+// Projects load from the backend; workspaces are derived groupings (one per project)
+// so the sidebar can switch projects without any static seed data.
 
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { workspaces as seedWorkspaces } from '../../data/mock/mock-workspaces';
 import type { Project, Workspace } from '../../shared/models/project.models';
 import { ProjectApiService } from '../api/project-api.service';
 import { BoardApiService } from '../api/board-api.service';
@@ -15,6 +10,15 @@ import type { ProjectDto, BoardDto } from '../api/api.types';
 import { ToastService } from '../toast/toast.service';
 
 const ACCENTS = ['#3b82f6', '#22c55e', '#06b6d4', '#f59e0b', '#0ea5e9', '#ef4444'];
+
+const EMPTY_WORKSPACE: Workspace = {
+  id: '',
+  name: 'No project selected',
+  icon: 'P',
+  accent: ACCENTS[0],
+  projectNames: [],
+  description: 'Create a project to start planning work.',
+};
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceContextService {
@@ -29,20 +33,37 @@ export class WorkspaceContextService {
   readonly activeProjectId = signal<string | null>(null);
   readonly activeBoardId = signal<string | null>(null);
 
-  readonly workspaces = signal<Workspace[]>(structuredClone(seedWorkspaces));
-  readonly selectedWorkspaceId = signal('collabai');
+  readonly selectedWorkspaceId = signal<string | null>(null);
   readonly isWorkspaceCreatorOpen = signal(false);
   readonly newWorkspaceName = signal('');
 
-  readonly activeWorkspace = computed(
-    () => this.workspaces().find((w) => w.id === this.selectedWorkspaceId()) ?? this.workspaces()[0],
+  /** Workspaces derived from the real projects (one per project). */
+  readonly workspaces = computed<Workspace[]>(() =>
+    this.projectsState().map((project, index) => ({
+      id: project.id,
+      name: project.name,
+      icon: (project.name[0] ?? 'P').toUpperCase(),
+      accent: project.accent ?? ACCENTS[index % ACCENTS.length],
+      projectNames: [project.name],
+      description: project.description ?? '',
+    })),
+  );
+
+  /** Always expose a workspace-shaped value so empty backend responses remain safe to render. */
+  readonly activeWorkspace = computed<Workspace>(
+    () =>
+      this.workspaces().find((w) => w.id === this.selectedWorkspaceId()) ??
+      this.workspaces()[0] ??
+      EMPTY_WORKSPACE,
   );
 
   /** Live projects for the current user (backend-scoped). */
   readonly filteredProjects = computed(() => this.projectsState());
 
   readonly activeProjectName = computed(
-    () => this.filteredProjects().find(p => p.id === this.activeProjectId())?.name ?? this.activeWorkspace().name,
+    () =>
+      this.filteredProjects().find((p) => p.id === this.activeProjectId())?.name ??
+      this.activeWorkspace().name,
   );
 
   readonly boards = computed(() => this.boardsState());
@@ -57,6 +78,7 @@ export class WorkspaceContextService {
         this.projectsState.set(projects.map(toProject));
         if (projects.length > 0 && !this.activeProjectId()) {
           this.selectProject(projects[0]._id);
+          this.selectedWorkspaceId.set(projects[0]._id);
         }
       },
       error: () => {
@@ -67,6 +89,7 @@ export class WorkspaceContextService {
 
   selectProject(projectId: string): void {
     this.activeProjectId.set(projectId);
+    this.selectedWorkspaceId.set(projectId);
     this.reloadBoards(projectId);
   }
 
@@ -74,19 +97,17 @@ export class WorkspaceContextService {
     this.boardApi.listBoards(projectId).subscribe({
       next: (boards) => {
         this.boardsState.set(boards);
-        if (boards.length > 0) {
-          this.activeBoardId.set(boards[0]._id);
-        } else {
-          this.activeBoardId.set(null);
-        }
+        this.activeBoardId.set(boards.length > 0 ? boards[0]._id : null);
       },
-      error: () => this.boardsState.set([])
+      error: () => this.boardsState.set([]),
     });
   }
 
   createProject(name: string, description?: string, color?: string): void {
     this.projectApi.create({ name, description, color }).subscribe({
       next: () => {
+        this.isWorkspaceCreatorOpen.set(false);
+        this.newWorkspaceName.set('');
         this.reloadProjects();
         this.toast.show(`Created ${name}`, 'success');
       },
@@ -94,44 +115,24 @@ export class WorkspaceContextService {
     });
   }
 
-  selectWorkspace(workspaceId: string): void {
-    this.selectedWorkspaceId.set(workspaceId);
-    this.isWorkspaceCreatorOpen.set(false);
-    this.newWorkspaceName.set('');
-  }
-
   toggleWorkspaceCreator(): void {
     this.isWorkspaceCreatorOpen.update((open) => !open);
   }
 
+  /** Creates a real project from the inline sidebar input. Returns the name or null if empty. */
   addWorkspace(rawName = this.newWorkspaceName()): string | null {
     const name = rawName.trim();
     if (!name) return null;
+    this.createProject(name);
+    return name;
+  }
 
-    const baseId =
-      name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/(^-|-$)/g, '') || `workspace-${this.workspaces().length + 1}`;
-    const id = this.workspaces().some((w) => w.id === baseId)
-      ? `${baseId}-${this.workspaces().length + 1}`
-      : baseId;
-
-    this.workspaces.update((items) => [
-      ...items,
-      {
-        id,
-        name,
-        icon: name[0].toUpperCase(),
-        accent: ACCENTS[items.length % ACCENTS.length],
-        projectNames: [],
-        description: 'New workspace',
-      },
-    ]);
+  selectWorkspace(workspaceId: string): void {
+    this.selectedWorkspaceId.set(workspaceId);
+    this.isWorkspaceCreatorOpen.set(false);
     this.newWorkspaceName.set('');
-    this.selectWorkspace(id);
-    this.toast.show(`Created ${name}`, 'success');
-    return id;
+    const project = this.projectsState().find((p) => p.id === workspaceId);
+    if (project) this.selectProject(project.id);
   }
 }
 

@@ -6,11 +6,11 @@
 // (signals + method signatures) is unchanged so the Team page keeps working; mutations are
 // applied optimistically and fired to the API (report any error and it can be reconciled).
 
-import { Injectable, computed, inject, signal } from '@angular/core';
-import { members as seedMembers } from '../../data/mock/mock-members';
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { initials } from '../../shared/lib/person-display';
 import type { Member } from '../../shared/models/member.models';
 import { ProjectApiService } from '../api/project-api.service';
+import { AuthStoreService } from './auth-store.service';
 import type {
   ProjectMemberDto,
   ProjectRole,
@@ -21,6 +21,7 @@ const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#
 @Injectable({ providedIn: 'root' })
 export class MemberDirectoryService {
   private readonly projectApi = inject(ProjectApiService);
+  private readonly auth = inject(AuthStoreService);
 
   private readonly membersState = signal<Member[]>([]);
   /** The project whose members are shown (first project the user belongs to). */
@@ -40,14 +41,36 @@ export class MemberDirectoryService {
   );
 
   /**
-   * Signed-in user — falls back to the first mock member for MVP.
-   * TODO (Phase 11): wire to AuthService.me() (GET /auth/me) once the login UI is built,
-   * then replace this field with a signal derived from the auth store.
+   * Signed-in user — hydrated from the auth store (guest defaults until login).
+   * Kept as a plain object so templates can keep reading `currentUser.name` etc.
    */
-  readonly currentUser: Member = { ...seedMembers[0] };
+  readonly currentUser: Member = {
+    id: '',
+    name: 'Guest User',
+    email: 'Not signed in',
+    role: 'Member',
+    avatar: '',
+    status: 'Active',
+    projects: 0,
+    joined: '',
+    color: AVATAR_COLORS[0],
+  };
 
   constructor() {
     this.loadFromApi();
+    effect(() => {
+      const user = this.auth.currentUser();
+      if (user) {
+        Object.assign(this.currentUser, {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          avatar: initials(user.name),
+          role: 'Member',
+        });
+        if (!this.membersState().length) this.loadFromApi();
+      }
+    });
   }
 
   /** Load the user's first project and its members from the backend. */

@@ -1,6 +1,6 @@
 // src/app/core/api/task-api.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { TaskDto, ObjectIdString } from './api.types';
 import { ApiClient } from './api-client.service';
 import { TaskStatus, Priority } from '../../shared/models/task.models';
@@ -21,7 +21,9 @@ export class TaskApiService {
     dueDate?: string;
     labels?: string[];
   }): Observable<TaskDto> {
-    return this.apiClient.post<TaskDto>(`/tasks`, { projectId, boardId, ...payload });
+    return this.apiClient
+      .post<{ task: TaskDto }>(`/tasks`, { projectId, boardId, ...payload })
+      .pipe(map(({ task }) => task));
   }
 
   updateTask(taskId: string, payload: Partial<{
@@ -35,7 +37,9 @@ export class TaskApiService {
     labels: string[];
     subtasks: { id?: string; title: string; done: boolean }[];
   }>): Observable<TaskDto> {
-    return this.apiClient.patch<TaskDto>(`/tasks/${taskId}`, payload);
+    return this.apiClient
+      .patch<{ task: TaskDto }>(`/tasks/${taskId}`, payload)
+      .pipe(map(({ task }) => task));
   }
 
   deleteTask(taskId: string): Observable<void> {

@@ -16,6 +16,10 @@ npm-debug.log*
 # Hermes local attachments/session-only files
 .hermes/
 
+# Local Codex/browser-test artifacts
+.freebuff/
+dogfood-output/
+
 # Environment secrets
 .env
 .env.*

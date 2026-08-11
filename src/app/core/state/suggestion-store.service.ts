@@ -1,23 +1,80 @@
-import { Injectable, inject, signal } from '@angular/core';
+// SuggestionStoreService — AI-style suggestions derived from real workspace data
+// (no seed data). Suggestions are computed from the loaded tasks and team roster.
+
+import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { suggestions as seedSuggestions } from '../../data/mock/mock-suggestions';
 import type { Suggestion } from '../../shared/models/suggestion.models';
 import { ToastService } from '../toast/toast.service';
+import { MemberDirectoryService } from './member-directory.service';
 import { TaskStoreService } from './task-store.service';
 
 @Injectable({ providedIn: 'root' })
 export class SuggestionStoreService {
   private readonly toast = inject(ToastService);
   private readonly tasks = inject(TaskStoreService);
+  private readonly members = inject(MemberDirectoryService);
   private readonly router = inject(Router);
 
-  readonly suggestions = signal<Suggestion[]>(seedSuggestions.slice(0, 4));
   readonly dismissed = signal<string[]>([]);
 
-  applySuggestion(suggestion: Suggestion): void {
-    this.suggestions.update((items) => items.filter((s) => s.id !== suggestion.id));
+  readonly suggestions = computed<Suggestion[]>(() => {
+    const open = this.tasks.tasks().filter((t) => t.status !== 'done');
+    const now = new Date();
+    const overdue = open.filter(
+      (t) => t.dueDate && new Date(t.dueDate).getTime() < now.getTime(),
+    );
+    const unscheduled = open.filter((t) => !t.dueDate);
+    const thin = open.filter((t) => t.subtasks.length <= 2);
 
-    // Lightweight demo actions aligned with suggestion categories
+    const list: Suggestion[] = [];
+    if (overdue.length > 0) {
+      list.push({
+        id: 'risk-overdue',
+        title: `${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}`,
+        body: `${overdue.length} open task${overdue.length === 1 ? ' is' : 's are'} past its due date. Review and reprioritize.`,
+        category: 'Risk',
+        impact: 'High',
+        action: 'Review overdue work',
+      });
+    }
+    if (unscheduled.length > 0) {
+      list.push({
+        id: 'timeline-unscheduled',
+        title: `${unscheduled.length} unscheduled task${unscheduled.length === 1 ? '' : 's'}`,
+        body: `Give ${unscheduled.length} open task${unscheduled.length === 1 ? '' : 's'} a due date so the timeline is clear.`,
+        category: 'Timeline',
+        impact: 'Medium',
+        action: 'Schedule work',
+      });
+    }
+    if (thin.length > 0) {
+      list.push({
+        id: 'tasks-subtasks',
+        title: 'Break large tasks into subtasks',
+        body: `${thin.length} open task${thin.length === 1 ? ' has' : 's have'} no subtasks. Smaller steps make progress visible.`,
+        category: 'Tasks',
+        impact: 'Medium',
+        action: 'Break down tasks',
+      });
+    }
+    if (this.members.memberCount() > 0) {
+      list.push({
+        id: 'workload-team',
+        title: 'Check team workload',
+        body: `Your team has ${this.members.memberCount()} members. Spot-check who is carrying the most open work.`,
+        category: 'Workload',
+        impact: 'Low',
+        action: 'View team',
+      });
+    }
+
+    return list.filter((s) => !this.dismissed().includes(s.id)).slice(0, 4);
+  });
+
+  applySuggestion(suggestion: Suggestion): void {
+    this.dismissed.update((ids) => [...ids, suggestion.id]);
+
+    // Lightweight actions aligned with suggestion categories
     switch (suggestion.category) {
       case 'Tasks': {
         const large = this.tasks
@@ -52,7 +109,6 @@ export class SuggestionStoreService {
   }
 
   dismissSuggestion(suggestion: Suggestion): void {
-    this.suggestions.update((items) => items.filter((s) => s.id !== suggestion.id));
     this.dismissed.update((ids) => [...ids, suggestion.id]);
     this.toast.show('Suggestion dismissed', 'info');
   }
