@@ -1,4 +1,12 @@
+// src/app/core/state/auth-store.service.ts
+//
+// Auth session state. Orchestrates the backend flow:
+//   - login -> POST /auth/login (accessToken) -> GET /auth/me (user) -> dashboard
+//   - register -> POST /auth/register -> /verify-email (the account must verify first)
+//   - restoreSession -> GET /auth/me using the stored token on app start.
+
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { Router } from '@angular/router';
 import { AuthService } from '../api/auth.service';
 import { ToastService } from '../toast/toast.service';
 import type { AuthUser } from '../../shared/models/auth.models';
@@ -9,6 +17,7 @@ const TOKEN_STORAGE_KEY = 'collabai_access_token';
 export class AuthStoreService {
   private readonly auth = inject(AuthService);
   private readonly toast = inject(ToastService);
+  private readonly router = inject(Router);
 
   readonly currentUser = signal<AuthUser | null>(null);
   readonly accessToken = signal<string | null>(sessionStorage.getItem(TOKEN_STORAGE_KEY));
@@ -21,10 +30,22 @@ export class AuthStoreService {
     this.isLoading.set(true);
     this.authError.set(null);
     this.auth.login({ email, password }).subscribe({
-      next: ({ accessToken, user }) => {
-        this.setSession(accessToken, user);
-        this.isLoading.set(false);
-        this.toast.show(`Welcome back, ${user.name}`, 'success');
+      next: ({ accessToken }) => {
+        this.setToken(accessToken);
+        // Fetch the user (backend login returns only the token).
+        this.auth.me().subscribe({
+          next: ({ user }) => {
+            this.currentUser.set(user);
+            this.isLoading.set(false);
+            this.toast.show(`Welcome back, ${user.name}`, 'success');
+            void this.router.navigate(['/dashboard']);
+          },
+          error: () => {
+            this.isLoading.set(false);
+            this.clearSession();
+            this.authError.set('Could not load your account. Please try again.');
+          },
+        });
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -33,14 +54,14 @@ export class AuthStoreService {
     });
   }
 
-  register(name: string, email: string, password: string): void {
+  register(firstName: string, lastName: string, email: string, password: string): void {
     this.isLoading.set(true);
     this.authError.set(null);
-    this.auth.register({ name, email, password }).subscribe({
-      next: ({ accessToken, user }) => {
-        this.setSession(accessToken, user);
+    this.auth.register({ firstName, lastName, email, password }).subscribe({
+      next: () => {
         this.isLoading.set(false);
-        this.toast.show('Account created', 'success');
+        this.toast.show('Check your email for a verification code', 'success');
+        void this.router.navigate(['/verify-email'], { queryParams: { email } });
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -50,16 +71,16 @@ export class AuthStoreService {
   }
 
   logout(): void {
-    this.auth.logout().subscribe(() => {
-      this.clearSession();
-      this.toast.show('Logged out', 'info');
+    this.auth.logout().subscribe({
+      next: () => this.finishLogout(),
+      error: () => this.finishLogout(),
     });
   }
 
   restoreSession(): void {
     const token = this.accessToken();
     if (!token) return;
-    this.auth.me(token).subscribe({
+    this.auth.me().subscribe({
       next: ({ user }) => this.currentUser.set(user),
       error: () => this.clearSession(),
     });
@@ -69,9 +90,14 @@ export class AuthStoreService {
     this.authError.set(null);
   }
 
-  private setSession(token: string, user: AuthUser): void {
+  private finishLogout(): void {
+    this.clearSession();
+    this.toast.show('Logged out', 'info');
+    void this.router.navigate(['/login']);
+  }
+
+  private setToken(token: string): void {
     this.accessToken.set(token);
-    this.currentUser.set(user);
     sessionStorage.setItem(TOKEN_STORAGE_KEY, token);
   }
 

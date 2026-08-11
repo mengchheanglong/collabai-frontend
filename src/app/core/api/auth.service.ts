@@ -1,7 +1,20 @@
-import { Injectable } from '@angular/core';
-import { Observable, delay, of, throwError } from 'rxjs';
+// src/app/core/api/auth.service.ts
+//
+// Real auth client for the NestJS backend (cookie + email-verification flow).
+// It ADAPTS the backend to the shapes the pages expect:
+//   - the email in verify/reset flows is carried by an httpOnly cookie, so the body only
+//     ever sends the fields the backend DTOs allow (extra fields are rejected by the API's
+//     forbidNonWhitelisted validation);
+//   - every call sends credentials so the registration/reset/refresh cookies flow;
+//   - responses are unwrapped from the { success, data } envelope;
+//   - errors are normalised to { error: { code, message } } so pages/stores can read
+//     `err.error.message`.
+
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { Observable, catchError, map, throwError } from 'rxjs';
+import { environment } from '../../../environments/environment';
 import type {
-  AuthUser,
   ForgotPasswordRequest,
   ForgotPasswordResponse,
   LoginRequest,
@@ -19,175 +32,118 @@ import type {
   VerifyResetCodeResponse,
 } from '../../shared/models/auth.models';
 
-interface MockAccount {
-  user: AuthUser;
-  password: string;
-  verified: boolean;
+/** Backend success envelope: { success, data }. */
+interface ApiSuccess<T> {
+  success: true;
+  data: T;
+  message?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly accounts = new Map<string, MockAccount>();
-  private readonly tokenMap = new Map<string, string>();
-  private readonly resetTokens = new Map<string, string>();
-  private readonly resetCodes = new Map<string, string>();
-  private readonly verifyCodes = new Map<string, string>();
-
-  constructor() {
-    const now = new Date('2026-01-01').toISOString();
-    this.accounts.set('seoul@example.com', {
-      user: {
-        _id: 'user_seed_1',
-        name: 'Seoul',
-        email: 'seoul@example.com',
-        avatarUrl: null,
-        createdAt: now,
-        updatedAt: now,
-      },
-      password: 'Password123!',
-      verified: true,
-    });
-  }
+  private readonly http = inject(HttpClient);
+  private readonly base = environment.apiBaseUrl;
 
   register(body: RegisterRequest): Observable<RegisterResponse> {
-    const email = body.email.trim().toLowerCase();
-    if (this.accounts.has(email)) {
-      return throwError(() => ({
-        error: { code: 'CONFLICT', message: 'Email already registered' },
-      })).pipe(delay(600));
-    }
-
-    const now = new Date().toISOString();
-    const user: AuthUser = {
-      _id: this.mockToken(email),
-      name: body.name.trim(),
-      email,
-      avatarUrl: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    this.accounts.set(email, { user, password: body.password, verified: false });
-    const accessToken = this.mockToken(email);
-    this.tokenMap.set(accessToken, email);
-    return of({ accessToken, user }).pipe(delay(800));
+    // Backend responds { message } and emails a verification code + sets a cookie.
+    return this.post<{ message?: string }>('/auth/register', {
+      firstName: body.firstName,
+      lastName: body.lastName,
+      email: body.email,
+      password: body.password,
+    }).pipe(map((d) => ({ message: d.message ?? 'Account created.' })));
   }
 
   login(body: LoginRequest): Observable<LoginResponse> {
-    const email = body.email.trim().toLowerCase();
-    const account = this.accounts.get(email);
-    if (!account || account.password !== body.password) {
-      return throwError(() => ({
-        error: { code: 'UNAUTHORIZED', message: 'Invalid email or password' },
-      })).pipe(delay(600));
-    }
+    return this.post<{ accessToken: string }>('/auth/login', {
+      email: body.email,
+      password: body.password,
+    }).pipe(map((d) => ({ accessToken: d.accessToken })));
+  }
 
-    const accessToken = this.mockToken(email);
-    this.tokenMap.set(accessToken, email);
-    return of({ accessToken, user: account.user }).pipe(delay(700));
+  me(): Observable<MeResponse> {
+    return this.get<{ user: MeResponse['user'] }>('/auth/me').pipe(
+      map((d) => ({ user: d.user })),
+    );
   }
 
   logout(): Observable<null> {
-    return of(null).pipe(delay(300));
+    return this.post<unknown>('/auth/logout', {}).pipe(map(() => null));
   }
 
-  me(token: string): Observable<MeResponse> {
-    const email = this.tokenMap.get(token);
-    if (!email) {
-      return throwError(() => ({
-        error: { code: 'UNAUTHORIZED', message: 'Invalid or expired session' },
-      })).pipe(delay(400));
-    }
-
-    const account = this.accounts.get(email);
-    if (!account) {
-      return throwError(() => ({
-        error: { code: 'UNAUTHORIZED', message: 'User not found' },
-      })).pipe(delay(400));
-    }
-
-    return of({ user: account.user }).pipe(delay(400));
-  }
-
-  forgotPassword(body: ForgotPasswordRequest): Observable<ForgotPasswordResponse> {
-    const email = body.email.trim().toLowerCase();
-    if (this.accounts.has(email)) {
-      const code = this.generateCode();
-      this.resetCodes.set(email, code);
-      // eslint-disable-next-line no-console
-      console.info('[mock] password reset code for', email, '=', code);
-    }
-    return of({ message: 'If that email exists, a 6-digit code has been sent.' }).pipe(delay(800));
-  }
-
-  verifyResetCode(body: VerifyResetCodeRequest): Observable<VerifyResetCodeResponse> {
-    const email = body.email.trim().toLowerCase();
-    const expected = this.resetCodes.get(email);
-    if (!expected || expected !== body.code) {
-      return throwError(() => ({
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid or expired code' },
-      })).pipe(delay(500));
-    }
-
-    this.resetCodes.delete(email);
-    const resetToken = this.mockToken(email);
-    this.resetTokens.set(resetToken, email);
-    return of({ resetToken }).pipe(delay(500));
-  }
-
-  resetPassword(body: ResetPasswordRequest): Observable<ResetPasswordResponse> {
-    const email = this.resetTokens.get(body.token);
-    if (!email) {
-      return throwError(() => ({
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid or expired reset token' },
-      })).pipe(delay(500));
-    }
-
-    const account = this.accounts.get(email);
-    if (!account) {
-      return throwError(() => ({
-        error: { code: 'NOT_FOUND', message: 'Account not found' },
-      })).pipe(delay(500));
-    }
-
-    account.password = body.password;
-    this.resetTokens.delete(body.token);
-    return of({ message: 'Password reset successfully' }).pipe(delay(600));
-  }
-
-  sendVerification(body: ResendVerificationRequest): Observable<ResendVerificationResponse> {
-    const email = body.email.trim().toLowerCase();
-    if (this.accounts.has(email)) {
-      const code = this.generateCode();
-      this.verifyCodes.set(email, code);
-      // eslint-disable-next-line no-console
-      console.info('[mock] verification code for', email, '=', code);
-    }
-    return of({ message: 'Verification code sent.' }).pipe(delay(700));
-  }
+  // ----- email verification (email comes from the registration cookie) -----
 
   verifyEmail(body: VerifyEmailRequest): Observable<VerifyEmailResponse> {
-    const email = body.email.trim().toLowerCase();
-    const expected = this.verifyCodes.get(email);
-    if (!expected || expected !== body.code) {
-      return throwError(() => ({
-        error: { code: 'VALIDATION_ERROR', message: 'Invalid or expired code' },
-      })).pipe(delay(500));
-    }
-
-    const account = this.accounts.get(email);
-    if (account) {
-      account.verified = true;
-      this.verifyCodes.delete(email);
-    }
-    return of({ message: 'Email verified. You can now log in.' }).pipe(delay(600));
+    return this.post<unknown>('/auth/verify-email', { code: body.code }).pipe(
+      map(() => ({ message: 'Email verified. You can now log in.' })),
+    );
   }
 
-  private mockToken(email: string): string {
-    return `${email}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`;
+  sendVerification(
+    _body: ResendVerificationRequest,
+  ): Observable<ResendVerificationResponse> {
+    // No body — the backend reads the email from the registration cookie.
+    return this.post<unknown>('/auth/resend-email-verification', {}).pipe(
+      map(() => ({ message: 'Verification code sent.' })),
+    );
   }
 
-  private generateCode(): string {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  // ----- password reset (email/session carried by cookies) -----
+
+  forgotPassword(
+    body: ForgotPasswordRequest,
+  ): Observable<ForgotPasswordResponse> {
+    return this.post<unknown>('/auth/request-password-reset', {
+      email: body.email,
+    }).pipe(
+      map(() => ({
+        message: 'If that email exists, a 6-digit code has been sent.',
+      })),
+    );
   }
+
+  verifyResetCode(
+    body: VerifyResetCodeRequest,
+  ): Observable<VerifyResetCodeResponse> {
+    // Verifying issues a short-lived reset-session cookie; there is no token in the body.
+    return this.post<unknown>('/auth/verify-password-reset', {
+      code: body.code,
+    }).pipe(map(() => ({ resetToken: 'session' })));
+  }
+
+  resetPassword(
+    body: ResetPasswordRequest,
+  ): Observable<ResetPasswordResponse> {
+    // The reset session is the cookie; only the new password is sent.
+    return this.post<unknown>('/auth/reset-password', {
+      password: body.password,
+    }).pipe(map(() => ({ message: 'Password reset successfully.' })));
+  }
+
+  // ----- helpers -----
+
+  private post<T>(path: string, body: unknown): Observable<T> {
+    return this.http
+      .post<ApiSuccess<T>>(`${this.base}${path}`, body, { withCredentials: true })
+      .pipe(map((res) => res.data), catchError(normalizeError));
+  }
+
+  private get<T>(path: string): Observable<T> {
+    return this.http
+      .get<ApiSuccess<T>>(`${this.base}${path}`, { withCredentials: true })
+      .pipe(map((res) => res.data), catchError(normalizeError));
+  }
+}
+
+function normalizeError(err: HttpErrorResponse): Observable<never> {
+  const body = err.error as
+    | { error?: { code?: string; message?: string } }
+    | undefined;
+  return throwError(() => ({
+    status: err.status,
+    error: {
+      code: body?.error?.code ?? 'ERROR',
+      message: body?.error?.message ?? err.message ?? 'Request failed',
+    },
+  }));
 }

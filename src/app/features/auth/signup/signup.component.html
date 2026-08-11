@@ -24,10 +24,16 @@
       </div>
 
       <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
-        <label for="name">Full name</label>
-        <input id="name" type="text" formControlName="name" placeholder="Dara Sok" />
-        @if (form.controls.name.touched && form.controls.name.invalid) {
-          <span class="field-error"><i class="err-icon">!</i> Name must be 2-80 characters</span>
+        <label for="firstName">First name</label>
+        <input id="firstName" type="text" formControlName="firstName" placeholder="Dara" />
+        @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> First name is required</span>
+        }
+
+        <label for="lastName">Last name</label>
+        <input id="lastName" type="text" formControlName="lastName" placeholder="Sok" />
+        @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
+          <span class="field-error"><i class="err-icon">!</i> Last name is required</span>
         }
 
         <label for="email">Email</label>

@@ -16,7 +16,8 @@ export class SignupComponent {
   readonly showPassword = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    name: ['', [Validators.required, Validators.minLength(2), Validators.maxLength(80)]],
+    firstName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(60)]],
+    lastName: ['', [Validators.required, Validators.minLength(1), Validators.maxLength(60)]],
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
@@ -31,7 +32,7 @@ export class SignupComponent {
       this.form.markAllAsTouched();
       return;
     }
-    const { name, email, password } = this.form.getRawValue();
-    this.authStore.register(name, email, password);
+    const { firstName, lastName, email, password } = this.form.getRawValue();
+    this.authStore.register(firstName, lastName, email, password);
   }
 }
