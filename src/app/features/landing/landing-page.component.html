@@ -8,7 +8,7 @@
   </div>
 
   <!-- ─── Navigation ─── -->
-  <header class="nav" id="top">
+  <header class="nav" [class.nav-scrolled]="navScrolled" id="top">
     <a class="nav-logo" routerLink="/landing" aria-label="CollabAI home">
       <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
     </a>
@@ -33,6 +33,17 @@
   @if (!detailPage) {
   <!-- ─── Hero ─── -->
   <section class="hero" aria-labelledby="hero-title">
+    <div
+      class="hero-grid"
+      [style.--grid-shift-x]="heroPointerX + 'px'"
+      [style.--grid-shift-y]="heroPointerY + 'px'"
+      [style.--grid-pointer-x]="heroPointerXPct + '%'"
+      [style.--grid-pointer-y]="heroPointerYPct + '%'"
+      [style.--grid-tilt-x]="heroTiltX + 'deg'"
+      [style.--grid-tilt-y]="heroTiltY + 'deg'"
+      aria-hidden="true"
+    ></div>
+
     <div class="hero-badge">
       <span class="badge-dot"></span>
       Enterprise work management, intelligently connected
