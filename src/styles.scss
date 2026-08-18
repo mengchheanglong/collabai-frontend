@@ -1,4 +1,4 @@
-﻿:root {
+:root {
   color-scheme: dark;
 
   /* Zinc neutrals - calm, developer-first dark UI */
@@ -267,10 +267,44 @@ select:focus-visible {
   height: 4px !important;
 }
 
-.mat-mdc-tooltip {
-  --mdc-plain-tooltip-container-color: #27272a;
-  --mdc-plain-tooltip-supporting-text-color: #fafafa;
-  --mdc-plain-tooltip-supporting-text-size: 12px;
+.cdk-overlay-container {
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.cdk-overlay-pane {
+  pointer-events: auto;
+}
+
+.mat-mdc-tooltip,
+.mdc-tooltip {
+  pointer-events: none !important;
+}
+
+.mdc-tooltip__surface,
+.mat-mdc-tooltip .mdc-tooltip__surface {
+  display: inline-block !important;
+  background-color: #18181b !important;
+  color: #ffffff !important;
+  font-family: var(--font, system-ui) !important;
+  font-size: 11px !important;
+  font-weight: 550 !important;
+  line-height: 1.3 !important;
+  padding: 4px 8px !important;
+  border-radius: 6px !important;
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35) !important;
+  pointer-events: none !important;
+  text-align: center !important;
+  white-space: nowrap !important;
+}
+
+:root[data-theme='light'] .mdc-tooltip__surface,
+:root[data-theme='ocean'] .mdc-tooltip__surface {
+  background-color: #0f172a !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.15) !important;
 }
 
 :root[data-theme='light'],

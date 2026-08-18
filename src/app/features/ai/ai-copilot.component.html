@@ -12,7 +12,7 @@
               <span class="ai-brand-name">CollabAI</span>
               <span class="ai-badge-live">Online</span>
             </div>
-            <div class="ai-brand-context" [matTooltip]="'Active project: ' + (workspace.activeProjectName() || 'None')">
+            <div class="ai-brand-context">
               <span class="material-symbols-rounded sm">folder</span>
               <span class="ai-brand-project">{{ workspace.activeProjectName() || 'No project selected' }}</span>
             </div>
@@ -163,7 +163,7 @@
 
         <!-- Active Context & Quick Toolbar -->
         <div class="ai-composer-bar">
-          <div class="ai-context-tag" [matTooltip]="'Active project: ' + (workspace.activeProjectName() || 'None')">
+          <div class="ai-context-tag">
             <span class="material-symbols-rounded sm">folder</span>
             <span class="ai-context-name">{{ workspace.activeProjectName() || 'Select Project' }}</span>
           </div>
@@ -172,7 +172,6 @@
               type="button"
               class="ai-tool-pill"
               (click)="openSlashPalette()"
-              matTooltip="Open command palette (/)"
             >
               <code>/</code>
               <span>commands</span>
