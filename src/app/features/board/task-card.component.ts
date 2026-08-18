@@ -1,5 +1,4 @@
 import { Component, computed, inject, input, output } from '@angular/core';
-import { DatePipe } from '@angular/common';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import type { Task } from '../../shared/models/task.models';
@@ -9,7 +8,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 @Component({
   selector: 'app-task-card',
   standalone: true,
-  imports: [MatTooltipModule, DatePipe],
+  imports: [MatTooltipModule],
   templateUrl: './task-card.component.html',
   styleUrl: './task-card.component.scss',
   host: {

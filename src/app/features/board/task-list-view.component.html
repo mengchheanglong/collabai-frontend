@@ -11,6 +11,7 @@
     </thead>
     <tbody>
       @for (task of tasks.filteredTasks(); track task.id) {
+        <tr
           class="tl-row"
           [class.is-selected]="tasks.selectedTask()?.id === task.id"
           (click)="tasks.selectTask(task)"
