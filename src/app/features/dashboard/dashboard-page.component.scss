@@ -48,14 +48,6 @@
   letter-spacing: 0.01em;
 }
 
-.db-eyebrow-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--green);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 18%, transparent);
-}
-
 .db-eyebrow-sep {
   color: var(--line-2);
 }
@@ -223,6 +215,9 @@
 }
 
 .db-kpi {
+  --db-tone: var(--brand);
+  --db-tone-soft: var(--brand-soft);
+
   position: relative;
   display: flex;
   flex-direction: column;
@@ -232,28 +227,84 @@
   box-shadow: var(--db-elev);
   overflow: hidden;
   transition:
-    border-color 0.18s var(--db-ease),
-    transform 0.18s var(--db-ease),
-    box-shadow 0.18s var(--db-ease);
+    border-color 0.22s var(--db-ease),
+    transform 0.22s var(--db-ease),
+    box-shadow 0.22s var(--db-ease);
 
-  /* Hairline accent that reveals on hover — restrained, not decorative noise. */
+  &.tone-cyan {
+    --db-tone: var(--cyan);
+    --db-tone-soft: var(--cyan-soft);
+  }
+  &.tone-green {
+    --db-tone: var(--green);
+    --db-tone-soft: var(--green-soft);
+  }
+  &.tone-amber {
+    --db-tone: var(--amber);
+    --db-tone-soft: var(--amber-soft);
+  }
+  &.is-alert {
+    --db-tone: var(--red);
+    --db-tone-soft: var(--red-soft);
+  }
+
+  /* Accent rail: wipes across the top edge rather than sitting there half-drawn. */
   &::before {
     content: '';
     position: absolute;
     inset: 0 0 auto;
+    z-index: 1;
     height: 2px;
-    background: linear-gradient(90deg, var(--brand), transparent);
+    background: linear-gradient(90deg, var(--db-tone), transparent 88%);
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform 0.4s var(--db-ease);
+  }
+
+  /* Tinted wash anchored to the icon corner, so the colour has a source. */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+      120% 90% at 0% 0%,
+      var(--db-tone-soft),
+      transparent 62%
+    );
     opacity: 0;
-    transition: opacity 0.18s var(--db-ease);
+    transition: opacity 0.28s var(--db-ease);
+  }
+
+  > * {
+    position: relative;
+    z-index: 1;
   }
 
   &:hover {
-    border-color: var(--line-2);
-    transform: translateY(-2px);
-    box-shadow: var(--db-elev-hover);
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--db-tone) 42%, var(--line));
+    box-shadow:
+      var(--db-elev-hover),
+      0 16px 36px color-mix(in srgb, var(--db-tone) 15%, transparent);
 
     &::before {
+      transform: scaleX(1);
+    }
+
+    &::after {
       opacity: 1;
+    }
+
+    .db-kpi-icon {
+      color: var(--db-tone);
+      background: var(--db-tone-soft);
+      border-color: color-mix(in srgb, var(--db-tone) 34%, transparent);
+      transform: scale(1.06);
+    }
+
+    .db-kpi-head {
+      border-bottom-color: color-mix(in srgb, var(--db-tone) 30%, var(--line));
     }
   }
 }
@@ -264,6 +315,7 @@
   gap: 10px;
   padding: 13px 16px 11px;
   border-bottom: 1px dashed var(--line);
+  transition: border-color 0.22s var(--db-ease);
 }
 
 .db-kpi-icon {
@@ -277,9 +329,10 @@
   border: 1px solid var(--line);
   border-radius: 10px;
   transition:
-    color 0.18s var(--db-ease),
-    background 0.18s var(--db-ease),
-    border-color 0.18s var(--db-ease);
+    color 0.22s var(--db-ease),
+    background 0.22s var(--db-ease),
+    border-color 0.22s var(--db-ease),
+    transform 0.22s var(--db-ease);
 
   .material-symbols-rounded {
     font-size: 18px;
@@ -321,21 +374,9 @@
 }
 
 .db-kpi-delta {
+  color: var(--db-tone);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
-
-  &.tone-brand {
-    color: var(--brand);
-  }
-  &.tone-cyan {
-    color: var(--cyan);
-  }
-  &.tone-green {
-    color: var(--green);
-  }
-  &.tone-amber {
-    color: var(--amber);
-  }
 }
 
 .db-kpi-caption {
@@ -346,17 +387,11 @@
   white-space: nowrap;
 }
 
-/* Overdue work is the one state worth escalating past the shared treatment. */
-.db-kpi.is-alert {
-  .db-kpi-icon {
-    color: var(--red);
-    background: var(--red-soft);
-    border-color: color-mix(in srgb, var(--red) 28%, transparent);
-  }
-
-  .db-kpi-delta {
-    color: var(--red);
-  }
+/* Overdue work escalates at rest, not only on hover. */
+.db-kpi.is-alert .db-kpi-icon {
+  color: var(--red);
+  background: var(--red-soft);
+  border-color: color-mix(in srgb, var(--red) 28%, transparent);
 }
 
 /* ── Grid + panels ──────────────────────────────────────────── */
@@ -550,7 +585,8 @@
   display: flex;
   align-items: flex-end;
   gap: 5px;
-  height: 52px;
+  height: 60px;
+  padding-top: 8px; /* headroom so a popped bar is not clipped */
 }
 
 .db-bar {
@@ -559,9 +595,14 @@
   height: 100%;
   border-radius: 7px;
   background: var(--line);
+  transform-origin: bottom center;
+  /* "backwards" rather than "both", so the finished animation stops
+     overriding the :hover transform. */
+  animation: db-bar-rise 420ms var(--db-ease) backwards;
   transition:
-    background 0.35s var(--db-ease),
-    box-shadow 0.35s var(--db-ease);
+    background 0.3s var(--db-ease),
+    transform 0.22s var(--db-ease),
+    box-shadow 0.22s var(--db-ease);
 
   &.is-filled {
     background: linear-gradient(
@@ -571,6 +612,44 @@
     );
     box-shadow: 0 2px 7px color-mix(in srgb, var(--brand) 26%, transparent);
   }
+}
+
+/* Bars rise in sequence on first paint, left to right. */
+@for $i from 1 through 20 {
+  .db-bar:nth-child(#{$i}) {
+    animation-delay: #{($i - 1) * 26}ms;
+  }
+}
+
+@keyframes db-bar-rise {
+  from {
+    transform: scaleY(0.2);
+    opacity: 0;
+  }
+  to {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+/* Dock-style hover: the bar under the cursor pops, its neighbours follow gently. */
+.db-bar:hover {
+  transform: scaleY(1.16) translateY(-4px);
+  background: color-mix(in srgb, var(--line) 55%, var(--line-2));
+}
+
+.db-bar.is-filled:hover {
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--brand) 86%, #ffffff),
+    var(--brand-hover)
+  );
+  box-shadow: 0 9px 20px color-mix(in srgb, var(--brand) 34%, transparent);
+}
+
+.db-bar:hover + .db-bar,
+.db-bar:has(+ .db-bar:hover) {
+  transform: scaleY(1.07) translateY(-2px);
 }
 
 .db-trend-note {
@@ -1305,7 +1384,7 @@
   }
 
   .db-bars {
-    height: 46px;
+    height: 54px;
     gap: 4px;
   }
 
@@ -1338,8 +1417,30 @@
     transform: none;
   }
 
+  .db-kpi::before,
+  .db-kpi::after,
+  .db-kpi-icon,
+  .db-kpi-head {
+    transition: none;
+  }
+
+  .db-kpi:hover .db-kpi-icon {
+    transform: none;
+  }
+
   .db-skeleton {
     animation: none;
+  }
+
+  .db-bar {
+    animation: none;
+    transition: background 0.3s var(--db-ease);
+  }
+
+  .db-bar:hover,
+  .db-bar:hover + .db-bar,
+  .db-bar:has(+ .db-bar:hover) {
+    transform: none;
   }
 }
 

@@ -4,24 +4,42 @@
       <span class="page-eyebrow">Project delivery</span>
       <h1>{{ workspace.activeProjectName() }}</h1>
       <p>
-        {{ workspace.activeProjectId()
-          ? workspace.activeWorkspace().name
-          : 'Create a project to set up your first board and task.' }}
+        {{
+          workspace.activeProjectId()
+            ? workspace.activeWorkspace().name
+            : "Create a project to set up your first board and task."
+        }}
       </p>
     </div>
     <div class="header-actions board-actions">
       <app-theme-toggle />
       <div class="segmented" role="tablist" aria-label="Board view">
-        <button type="button" [class.active]="tasks.boardView() === 'kanban'" (click)="setBoardView('kanban')" [attr.aria-selected]="tasks.boardView() === 'kanban'" [disabled]="!workspace.activeProjectId()" role="tab">
+        <button
+          type="button"
+          [class.active]="tasks.boardView() === 'kanban'"
+          (click)="setBoardView('kanban')"
+          [attr.aria-selected]="tasks.boardView() === 'kanban'"
+          [disabled]="!workspace.activeProjectId()"
+          role="tab"
+        >
           Board
         </button>
-        <button type="button" [class.active]="tasks.boardView() === 'list'" (click)="setBoardView('list')" [attr.aria-selected]="tasks.boardView() === 'list'" [disabled]="!workspace.activeProjectId()" role="tab">
+        <button
+          type="button"
+          [class.active]="tasks.boardView() === 'list'"
+          (click)="setBoardView('list')"
+          [attr.aria-selected]="tasks.boardView() === 'list'"
+          [disabled]="!workspace.activeProjectId()"
+          role="tab"
+        >
           List
         </button>
       </div>
 
       <div class="search-field">
-        <span class="material-symbols-rounded sm" aria-hidden="true">filter_list</span>
+        <span class="material-symbols-rounded sm" aria-hidden="true"
+          >filter_list</span
+        >
         <input
           [value]="tasks.searchQuery()"
           (input)="onFilterInput($any($event.target).value)"
@@ -31,7 +49,13 @@
         />
       </div>
 
-      <button type="button" class="btn primary" matRipple (click)="addQuickTask()" [disabled]="!workspace.activeProjectId()">
+      <button
+        type="button"
+        class="btn primary"
+        matRipple
+        (click)="addQuickTask()"
+        [disabled]="!workspace.activeProjectId()"
+      >
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         New task
       </button>
@@ -40,21 +64,30 @@
 
   @if (tasks.smartFilterIds(); as ids) {
     <div class="board-ai-banner" role="status" aria-live="polite">
-      <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
+      <span class="material-symbols-rounded sm filled" aria-hidden="true"
+        >auto_awesome</span
+      >
       <span>
         AI filter active · showing
         <strong>{{ ids.length }}</strong>
-        match{{ ids.length === 1 ? '' : 'es' }}
+        match{{ ids.length === 1 ? "" : "es" }}
       </span>
-      <button type="button" class="btn ghost sm" (click)="clearAiFilter()">Clear AI filter</button>
+      <button type="button" class="btn ghost sm" (click)="clearAiFilter()">
+        Clear AI filter
+      </button>
     </div>
   }
 
   @if (!workspace.activeProjectId()) {
     <section class="board-empty-state" aria-labelledby="no-project-title">
-      <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
+      <span class="material-symbols-rounded" aria-hidden="true"
+        >folder_off</span
+      >
       <h2 id="no-project-title">No project selected</h2>
-      <p>Create your first project to unlock a board, tasks, and team collaboration.</p>
+      <p>
+        Create your first project to unlock a board, tasks, and team
+        collaboration.
+      </p>
       <a class="btn primary sm" routerLink="/dashboard" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         Create project
@@ -62,13 +95,18 @@
     </section>
   } @else if (workspace.boards().length === 0) {
     <section class="board-empty-state" role="status">
-      <span class="material-symbols-rounded" aria-hidden="true">view_kanban</span>
+      <span class="material-symbols-rounded" aria-hidden="true"
+        >view_kanban</span
+      >
       <h2>No board available</h2>
-      <p>This project has not received a board yet. Refresh the page in a moment or create another project.</p>
+      <p>
+        This project has not received a board yet. Refresh the page in a moment
+        or create another project.
+      </p>
     </section>
   } @else {
     <div class="board-layout">
-      @if (tasks.boardView() === 'kanban') {
+      @if (tasks.boardView() === "kanban") {
         <app-kanban-board />
       } @else {
         <app-task-list-view />

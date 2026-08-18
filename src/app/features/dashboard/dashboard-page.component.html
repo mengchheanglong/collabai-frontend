@@ -3,7 +3,6 @@
   <header class="db-hero">
     <div class="db-hero-copy">
       <p class="db-eyebrow">
-        <span class="db-eyebrow-dot" aria-hidden="true"></span>
         {{ workspace.activeWorkspace().name }}
         <span class="db-eyebrow-sep" aria-hidden="true">·</span>
         <span class="db-eyebrow-date">{{ today() | date: 'EEEE, d MMMM' }}</span>
@@ -35,7 +34,7 @@
 
   <!-- ── KPI strip ──────────────────────────────────────────── -->
   <div class="db-kpis" role="region" aria-label="Workspace metrics">
-    <article class="db-kpi">
+    <article class="db-kpi tone-brand">
       <div class="db-kpi-head">
         <span class="db-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">folder_open</span>
@@ -45,13 +44,13 @@
       <div class="db-kpi-body">
         <strong class="db-kpi-value">{{ workspace.filteredProjects().length }}</strong>
         <p class="db-kpi-foot">
-          <span class="db-kpi-delta tone-brand">{{ members.memberCount() }}</span>
+          <span class="db-kpi-delta">{{ members.memberCount() }}</span>
           <span class="db-kpi-caption">people collaborating</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi">
+    <article class="db-kpi tone-cyan">
       <div class="db-kpi-head">
         <span class="db-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">bolt</span>
@@ -61,13 +60,13 @@
       <div class="db-kpi-body">
         <strong class="db-kpi-value">{{ inProgressTasks() }}</strong>
         <p class="db-kpi-foot">
-          <span class="db-kpi-delta tone-cyan">{{ todoTasks() }}</span>
+          <span class="db-kpi-delta">{{ todoTasks() }}</span>
           <span class="db-kpi-caption">waiting in the backlog</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi">
+    <article class="db-kpi tone-green">
       <div class="db-kpi-head">
         <span class="db-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">check_circle</span>
@@ -77,13 +76,13 @@
       <div class="db-kpi-body">
         <strong class="db-kpi-value">{{ completedTasks() }}</strong>
         <p class="db-kpi-foot">
-          <span class="db-kpi-delta tone-green">{{ completionRate() + '%' }}</span>
+          <span class="db-kpi-delta">{{ completionRate() + '%' }}</span>
           <span class="db-kpi-caption">of all tasks</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi" [class.is-alert]="overdueTasks() > 0">
+    <article class="db-kpi tone-amber" [class.is-alert]="overdueTasks() > 0">
       <div class="db-kpi-head">
         <span class="db-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">priority_high</span>
@@ -93,7 +92,7 @@
       <div class="db-kpi-body">
         <strong class="db-kpi-value">{{ overdueTasks() }}</strong>
         <p class="db-kpi-foot">
-          <span class="db-kpi-delta tone-amber">{{ highPriorityOpen() }}</span>
+          <span class="db-kpi-delta">{{ highPriorityOpen() }}</span>
           <span class="db-kpi-caption">high-priority open</span>
         </p>
       </div>
