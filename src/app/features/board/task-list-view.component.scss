@@ -1,0 +1,94 @@
+/* Task list — the table alternative to the kanban surface. */
+
+:host {
+  --tl-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+
+  display: block;
+  min-width: 0;
+}
+
+.tl {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(15, 23, 42, 0.05));
+  overflow: auto hidden;
+}
+
+.tl-table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0 16px;
+    vertical-align: middle;
+  }
+
+  thead th {
+    height: 48px;
+    color: var(--muted);
+    background: var(--panel-2);
+    border-bottom: 1px solid var(--line);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+}
+
+.tl-col-task {
+  width: 40%;
+}
+
+.tl-row {
+  height: 58px;
+  cursor: pointer;
+  transition: background 0.16s var(--tl-ease);
+
+  + .tl-row td {
+    border-top: 1px solid var(--line);
+  }
+
+  &:hover {
+    background: var(--panel-2);
+  }
+
+  &.is-selected {
+    background: var(--brand-soft);
+
+    .ui-task-title {
+      color: var(--text);
+    }
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: -2px;
+  }
+}
+
+.tl-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-2);
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+
+  &.is-empty {
+    color: var(--muted-2);
+    font-weight: 500;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .tl-row {
+      transition: none;
+    }
+}

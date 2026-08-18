@@ -1,204 +1,529 @@
-<section class="page dashboard-page">
-  <!-- Hero -->
-  <header class="dash-hero">
-    <div class="dash-hero-copy">
-      <span class="page-eyebrow">Workspace overview</span>
-      <h1>
-        {{ greeting() }}, {{ members.currentUser.name }}
-      </h1>
-      <p class="dash-sub">
-        {{ workspace.activeWorkspace().name }} · {{ analytics.totalTasks() || tasks.totalTasks() }} tasks ·
-        {{ analytics.completionRate() || tasks.completionRate() }}% complete
+<section class="page dashboard-page db ui-page">
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="ui-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">
+        {{ workspace.activeWorkspace().name }}
+        <span class="ui-eyebrow-sep" aria-hidden="true">·</span>
+        <span class="ui-eyebrow-date">{{ today() | date: 'EEEE, d MMMM' }}</span>
+      </p>
+      <h1>{{ greeting() }}, {{ firstName() }}</h1>
+      <p class="ui-sub">
+        You have <strong>{{ openTasks() }}</strong> open
+        {{ openTasks() === 1 ? 'task' : 'tasks' }}
+        @if (overdueTasks() > 0) {
+          and <strong class="is-risk">{{ overdueTasks() }}</strong> needing attention today.
+        } @else {
+          and nothing overdue. Nice and clean.
+        }
       </p>
     </div>
-    <div class="header-actions">
+
+    <div class="ui-hero-actions">
       <app-theme-toggle />
-      <a class="btn ghost" routerLink="/board" matRipple>
+      <a class="ui-btn ghost" routerLink="/board" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">view_kanban</span>
         Open board
       </a>
-      <button type="button" class="btn primary" matRipple (click)="addQuickTask()">
+      <button type="button" class="ui-btn primary" matRipple (click)="addQuickTask()">
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         New task
       </button>
     </div>
   </header>
 
-  <!-- Stats -->
-  <div class="stats dash-stats" role="region" aria-label="Workspace stats">
-    <div class="stat stat-rich">
-      <div class="stat-top">
-        <span class="stat-icon brand"><span class="material-symbols-rounded sm" aria-hidden="true">folder</span></span>
-        <span class="stat-label">Projects</span>
+  <!-- ── KPI strip ──────────────────────────────────────────── -->
+  <div class="ui-kpis" role="region" aria-label="Workspace metrics">
+    <article class="ui-kpi tone-brand">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">folder_open</span>
+        </span>
+        <span class="ui-kpi-title">Projects</span>
       </div>
-      <strong>{{ workspace.filteredProjects().length }}</strong>
-      <span class="stat-hint">In this workspace</span>
-    </div>
-    <div class="stat stat-rich">
-      <div class="stat-top">
-        <span class="stat-icon cyan"><span class="material-symbols-rounded sm" aria-hidden="true">progress_activity</span></span>
-        <span class="stat-label">In progress</span>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ workspace.filteredProjects().length }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ members.memberCount() }}</span>
+          <span class="ui-kpi-caption">people collaborating</span>
+        </p>
       </div>
-      <strong>{{ analytics.inProgressTasks() || tasks.inProgressTasks() }}</strong>
-      <span class="stat-hint">{{ reviewTasks() }} completed</span>
-    </div>
-    <div class="stat stat-rich">
-      <div class="stat-top">
-        <span class="stat-icon green"><span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span></span>
-        <span class="stat-label">Done</span>
+    </article>
+
+    <article class="ui-kpi tone-cyan">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">bolt</span>
+        </span>
+        <span class="ui-kpi-title">In progress</span>
       </div>
-      <strong>{{ analytics.completedTasks() || tasks.doneTasks() }}</strong>
-      <div class="stat-bar" [attr.aria-label]="'Completion rate: ' + (analytics.completionRate() || tasks.completionRate()) + '%'">
-        <mat-progress-bar mode="determinate" [value]="analytics.completionRate() || tasks.completionRate()"></mat-progress-bar>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ inProgressTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ todoTasks() }}</span>
+          <span class="ui-kpi-caption">waiting in the backlog</span>
+        </p>
       </div>
-    </div>
-    <div class="stat stat-rich">
-      <div class="stat-top">
-        <span class="stat-icon amber"><span class="material-symbols-rounded sm" aria-hidden="true">priority_high</span></span>
-        <span class="stat-label">High priority</span>
+    </article>
+
+    <article class="ui-kpi tone-green">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">check_circle</span>
+        </span>
+        <span class="ui-kpi-title">Completed</span>
       </div>
-      <strong>{{ analytics.overdueTasks() || highPriorityOpen() }}</strong>
-      <span class="stat-hint">@if (analytics.overdueTasks()) { Overdue } @else { Open critical &amp; high }</span>
-    </div>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ completedTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ completionRate() + '%' }}</span>
+          <span class="ui-kpi-caption">of all tasks</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="ui-kpi tone-amber" [class.is-alert]="overdueTasks() > 0">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">priority_high</span>
+        </span>
+        <span class="ui-kpi-title">Needs attention</span>
+      </div>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ overdueTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ highPriorityOpen() }}</span>
+          <span class="ui-kpi-caption">high-priority open</span>
+        </p>
+      </div>
+    </article>
   </div>
 
-  <div class="home-grid dash-grid">
-    <!-- Projects -->
-    <section class="card dash-card">
-      <div class="card-head">
-        <h2>Projects</h2>
-        <a class="link" routerLink="/board">Open board</a>
-      </div>
-      <div class="project-list">
-        @for (project of workspace.filteredProjects(); track project.id) {
-          <a class="project-row project-row-rich" routerLink="/board" [title]="project.name + ' — ' + project.team" matRipple>
-            <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
-            <span class="project-body">
-              <strong>{{ project.name }}</strong>
-              <small>{{ project.team }}</small>
-              <div class="project-progress" [attr.aria-label]="'Progress: ' + project.progress + '%'">
-                <mat-progress-bar mode="determinate" [value]="project.progress"></mat-progress-bar>
-              </div>
-            </span>
-            <span class="project-pct">{{ project.progress }}%</span>
-          </a>
-        } @empty {
-          <div class="empty">
-            <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
-            <p>No projects in this workspace yet.</p>
-          </div>
-        }
-      </div>
-    </section>
-
-    <!-- Up next -->
-    <section class="card dash-card">
-      <div class="card-head">
-        <h2>Up next</h2>
-        <button type="button" class="link" (click)="openBoard()">View all</button>
-      </div>
-      <div class="simple-list">
-        @for (task of tasks.upcomingTasks(); track task.id) {
-          <button type="button" class="list-row up-next-row" (click)="openTaskOnBoard(task)" [title]="task.title" matRipple>
-            <span class="prio-dot" [class]="tasks.priorityClass(task.priority)"></span>
-            <span class="list-title">
-              <span class="task-id">{{ task.id }}</span>
-              {{ task.title }}
-            </span>
-            <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
-            <span class="list-meta">{{ task.dueDate }}</span>
-          </button>
-        } @empty {
-          <div class="empty">
-            <span class="material-symbols-rounded" aria-hidden="true">inbox</span>
-            <p>No open tasks. Create one to get started.</p>
-          </div>
-        }
-      </div>
-    </section>
-
-    <!-- AI Suggestions copilot -->
-    <section class="card dash-card ai-surface suggestions-card">
-      <div class="card-head">
-        <h2>
-          <span class="material-symbols-rounded md filled" aria-hidden="true">auto_awesome</span>
-          AI suggestions
+  <!-- ── Row: delivery overview + up next ───────────────────── -->
+  <div class="db-grid">
+    <section class="ui-panel db-span-5 db-delivery" aria-labelledby="db-progress-title">
+      <div class="ui-panel-head is-plain">
+        <h2 id="db-progress-title">
+          Delivery overview
+          <span
+            class="db-status-dot"
+            [class.is-warn]="overdueTasks() > 0"
+            role="img"
+            [matTooltip]="
+              overdueTasks() > 0 ? overdueTasks() + ' tasks past their due date' : 'On track'
+            "
+            [attr.aria-label]="overdueTasks() > 0 ? 'Needs attention' : 'On track'"
+          ></span>
         </h2>
-        <span class="muted-count">{{ suggestions.suggestions().length }} active</span>
+        <button
+          type="button"
+          class="db-info"
+          [matTooltip]="
+            'Completed tasks out of ' + totalTasks() + ' on the board. Each bar is 5%.'
+          "
+          aria-label="How delivery overview is calculated"
+        >
+          <span class="material-symbols-rounded sm" aria-hidden="true">info</span>
+        </button>
       </div>
 
-      @if (suggestions.suggestions().length) {
-        <div class="suggestion-list">
-          @for (s of suggestions.suggestions(); track s.id) {
-            <article class="suggestion-card">
-              <div class="suggestion-card-top">
-                <span class="suggestion-cat">
-                  <span class="material-symbols-rounded sm" aria-hidden="true">{{ categoryIcon(s.category) }}</span>
-                  {{ s.category }}
-                </span>
-                <span class="impact-pill" [class]="impactClass(s.impact)">{{ s.impact }} impact</span>
-              </div>
-              <strong>{{ s.title }}</strong>
-              <p>{{ s.body }}</p>
-              <div class="suggestion-actions">
-                <button type="button" class="btn primary sm" matRipple (click)="suggestions.applySuggestion(s)">
-                  <span class="material-symbols-rounded sm" aria-hidden="true">bolt</span>
-                  {{ s.action }}
-                </button>
-                <button
-                  type="button"
-                  class="btn ghost sm"
-                  matTooltip="Dismiss"
-                  (click)="suggestions.dismissSuggestion(s)"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </article>
+      <div class="db-delivery-body">
+        <p class="db-headline">
+          <strong>{{ completedTasks() }}</strong>
+          <span>{{ completedTasks() === 1 ? 'Task done' : 'Tasks done' }}</span>
+        </p>
+
+        <div
+          class="db-bars"
+          role="img"
+          [attr.aria-label]="completionRate() + '% of tasks complete'"
+        >
+          @for (filled of meterSegments(); track $index) {
+            <span class="db-bar" [class.is-filled]="filled"></span>
           }
         </div>
-      } @else {
-        <div class="smart-empty">
-          <span class="material-symbols-rounded" aria-hidden="true">verified</span>
-          <p>You're all caught up. New AI suggestions will appear as the board changes.</p>
+
+        <p class="db-trend-note" [class]="deliveryTrend().tone">
+          <span class="material-symbols-rounded sm" aria-hidden="true">
+            {{ deliveryTrend().icon }}
+          </span>
+          {{ deliveryTrend().text }}
+        </p>
+      </div>
+
+      <div class="ui-panel-section">
+        <div class="ui-section-head">
+          <span class="ui-section-title">Status breakdown</span>
+          <a class="ui-link" routerLink="/board">Board</a>
+        </div>
+        <ul class="db-legend">
+          @for (segment of statusSegments(); track segment.key) {
+            <li>
+              <span class="ui-dot" [class]="'seg-' + segment.key" aria-hidden="true"></span>
+              <span class="db-legend-label">{{ segment.label }}</span>
+              <strong>{{ segment.value }}</strong>
+            </li>
+          }
+        </ul>
+      </div>
+      @if (burndown(); as spark) {
+        <div class="ui-panel-section">
+          <div class="ui-section-head">
+            <span class="ui-section-title">Burndown</span>
+            <span
+              class="db-trend"
+              [class.is-good]="burndownDelta() < 0"
+              [class.is-bad]="burndownDelta() > 0"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">
+                {{ burndownDelta() <= 0 ? 'trending_down' : 'trending_up' }}
+              </span>
+              {{ burndownRemaining() }} remaining
+            </span>
+          </div>
+          <svg
+            class="db-spark"
+            viewBox="0 0 260 64"
+            preserveAspectRatio="none"
+            role="img"
+            aria-label="Remaining tasks over time"
+          >
+            <defs>
+              <linearGradient id="dbSparkFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" class="db-spark-stop-top" />
+                <stop offset="100%" class="db-spark-stop-bottom" />
+              </linearGradient>
+            </defs>
+            <path class="db-spark-area" [attr.d]="spark.area" fill="url(#dbSparkFill)" />
+            <path class="db-spark-line" [attr.d]="spark.line" />
+            <circle class="db-spark-tip" [attr.cx]="spark.last.x" [attr.cy]="spark.last.y" r="3" />
+          </svg>
+        </div>
+      }
+
+      @if (workload().length) {
+        <div class="ui-panel-section">
+          <div class="ui-section-head">
+            <span class="ui-section-title">Team workload</span>
+            <a class="ui-link" routerLink="/team">Team</a>
+          </div>
+          <ul class="db-workload">
+            @for (row of workload(); track row.userId) {
+              <li>
+                <span class="ui-avatar sm" [style.background]="members.memberColor(row.name)">
+                  {{ members.initials(row.name) }}
+                </span>
+                <span class="db-workload-name">{{ row.name }}</span>
+                <span class="db-workload-bar" [attr.aria-label]="row.total + ' tasks assigned'">
+                  <span class="db-workload-fill" [style.width.%]="row.share"></span>
+                </span>
+                <span class="db-workload-count">{{ row.done }}/{{ row.total }}</span>
+              </li>
+            }
+          </ul>
         </div>
       }
     </section>
 
-    <!-- Activity -->
-    <section class="card dash-card">
-      <div class="card-head">
-        <h2>Activity</h2>
+    <section class="ui-panel db-span-7" aria-labelledby="db-upnext-title">
+      <div class="ui-panel-head">
+        <h2 id="db-upnext-title">Up next</h2>
+        <button type="button" class="ui-link" (click)="openBoard()">View all</button>
       </div>
-      <div class="simple-list">
-        @for (activity of recentActivities(); track $index) {
-          <div class="activity-row" [class.ai-activity]="activity.type === 'ai'">
-            <span
-              class="avatar sm"
-              [class.ai-avatar]="activity.type === 'ai'"
-              [style.background]="activity.type === 'ai' ? null : members.memberColor(activity.actor)"
-              aria-hidden="true"
-            >
-              @if (activity.type === 'ai') {
-                <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
-              } @else {
-                {{ members.initials(activity.actor) }}
-              }
-            </span>
-            <div>
-              <p>
-                <strong>{{ activity.actor }}</strong> {{ activity.text }}
-              </p>
-              <small>{{ activity.time | date:'short' }}</small>
-            </div>
-          </div>
-        } @empty {
-          <div class="empty">
-            <span class="material-symbols-rounded" aria-hidden="true">history</span>
-            <p>No recent activity.</p>
-          </div>
+
+      <div class="ui-panel-body">
+        @if (tasks.isLoading()) {
+          <ul class="ui-skeletons">
+            @for (row of skeletonRows; track row) {
+              <li class="ui-skeleton"></li>
+            }
+          </ul>
+        } @else {
+          <ul class="ui-tasks">
+            @for (task of upNext(); track task.id) {
+              <li>
+                <button
+                  type="button"
+                  class="ui-task"
+                  matRipple
+                  (click)="openTaskOnBoard(task)"
+                  [attr.aria-label]="'Open task ' + task.title"
+                >
+                  <span
+                    class="ui-prio"
+                    [class]="tasks.priorityClass(task.priority)"
+                    [matTooltip]="task.priority + ' priority'"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span class="ui-task-main">
+                    <span class="ui-task-title">{{ task.title }}</span>
+                    <span class="ui-task-sub">
+                      <span class="ui-chip" [attr.data-status]="task.status">
+                        {{ tasks.statusLabel(task.status) }}
+                      </span>
+                      @if (subtaskProgress(task); as progress) {
+                        <span class="ui-task-fact">
+                          <span class="material-symbols-rounded sm" aria-hidden="true">checklist</span>
+                          {{ progress }}
+                        </span>
+                      }
+                      @if (task.comments > 0) {
+                        <span class="ui-task-fact">
+                          <span class="material-symbols-rounded sm" aria-hidden="true">chat_bubble</span>
+                          {{ task.comments }}
+                        </span>
+                      }
+                      @for (label of task.labels.slice(0, 2); track label) {
+                        <span class="ui-tag">{{ label }}</span>
+                      }
+                    </span>
+                  </span>
+
+                  <span class="ui-task-end">
+                    <span class="ui-due" [class.is-overdue]="isOverdue(task)">
+                      <span class="material-symbols-rounded sm" aria-hidden="true">
+                        {{ isOverdue(task) ? 'event_busy' : 'calendar_today' }}
+                      </span>
+                      {{ dueLabel(task) }}
+                    </span>
+                    @if (assigneeName(task); as name) {
+                      <span
+                        class="ui-avatar sm"
+                        [style.background]="members.memberColor(name)"
+                        [matTooltip]="name"
+                      >{{ members.initials(name) }}</span>
+                    } @else {
+                      <span class="ui-avatar sm is-empty" matTooltip="Unassigned" aria-hidden="true">
+                        <span class="material-symbols-rounded sm">person</span>
+                      </span>
+                    }
+                  </span>
+                </button>
+              </li>
+            } @empty {
+              <li class="ui-empty">
+                <span class="material-symbols-rounded" aria-hidden="true">task_alt</span>
+                <strong>Your queue is clear</strong>
+                <p>Every open task is done. Create a new one to keep the board moving.</p>
+                <button type="button" class="ui-btn primary sm" (click)="addQuickTask()">
+                  <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
+                  New task
+                </button>
+              </li>
+            }
+          </ul>
         }
       </div>
     </section>
+
+    <!-- ── Insights trigger ─────────────────────────────────── -->
+    <button
+      type="button"
+      class="db-insights-trigger db-span-12"
+      matRipple
+      (click)="openInsights()"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="isInsightsOpen()"
+    >
+      <span class="db-insights-icon" aria-hidden="true">
+        <span class="material-symbols-rounded">dashboard_customize</span>
+      </span>
+
+      <span class="db-insights-copy">
+        <span class="db-insights-name">Workspace insights</span>
+        <span class="db-insights-sub">Projects, recent activity, and AI suggestions</span>
+      </span>
+
+      <span class="db-insights-chips">
+        <span class="db-insights-chip">
+          <span class="material-symbols-rounded sm" aria-hidden="true">folder_open</span>
+          <strong>{{ workspace.filteredProjects().length }}</strong> Projects
+        </span>
+        <span class="db-insights-chip">
+          <span class="material-symbols-rounded sm" aria-hidden="true">history</span>
+          <strong>{{ recentActivities().length }}</strong> Updates
+        </span>
+        <span class="db-insights-chip is-ai">
+          <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
+          <strong>{{ suggestions.suggestions().length }}</strong> Suggestions
+        </span>
+      </span>
+
+      <span class="db-insights-open" aria-hidden="true">
+        <span class="material-symbols-rounded">open_in_full</span>
+      </span>
+    </button>
   </div>
+  <!-- ── Insights overlay ─────────────────────────────────────── -->
+  @if (isInsightsOpen()) {
+    <div class="db-scrim" role="presentation" (click)="closeInsights()">
+      <div
+        #insightsDialog
+        class="db-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="db-insights-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="db-modal-head">
+          <div class="db-modal-copy">
+            <h2 id="db-insights-title">Workspace insights</h2>
+            <p>Projects, recent activity, and AI suggestions</p>
+          </div>
+          <button
+            #insightsClose
+            type="button"
+            class="db-modal-close"
+            (click)="closeInsights()"
+            aria-label="Close insights"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="db-modal-body">
+            <section class="ui-panel" aria-labelledby="db-projects-title">
+              <div class="ui-panel-head">
+                <h2 id="db-projects-title">Projects</h2>
+                <span class="ui-count">{{ workspace.filteredProjects().length }}</span>
+              </div>
+              <div class="ui-panel-body">
+                <ul class="db-projects">
+                  @for (project of workspace.filteredProjects(); track project.id) {
+                    <li>
+                      <a
+                        class="db-project"
+                        routerLink="/board"
+                        matRipple
+                        [attr.aria-label]="project.name + ', ' + project.progress + '% complete'"
+                      >
+                        <span class="db-project-icon" [style.background]="project.accent">
+                          {{ project.icon }}
+                        </span>
+                        <span class="db-project-main">
+                          <span class="db-project-name">{{ project.name }}</span>
+                          <span class="db-project-team">{{ project.team }}</span>
+                          <span class="db-project-track">
+                            <span class="db-project-fill" [style.width.%]="project.progress"></span>
+                          </span>
+                        </span>
+                        <span class="db-project-pct">{{ project.progress }}%</span>
+                      </a>
+                    </li>
+                  } @empty {
+                    <li class="ui-empty">
+                      <span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>
+                      <strong>No projects yet</strong>
+                      <p>Create a project from the sidebar to start planning work.</p>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </section>
+
+            <section class="ui-panel" aria-labelledby="db-activity-title">
+              <div class="ui-panel-head">
+                <h2 id="db-activity-title">Activity</h2>
+              </div>
+              <div class="ui-panel-body">
+                <ol class="db-feed">
+                  @for (activity of recentActivities(); track $index) {
+                    <li class="db-feed-item" [class.is-ai]="activity.type === 'ai'">
+                      <span
+                        class="ui-avatar"
+                        [class.is-ai]="activity.type === 'ai'"
+                        [style.background]="
+                          activity.type === 'ai' ? null : members.memberColor(activity.actor)
+                        "
+                        aria-hidden="true"
+                      >
+                        @if (activity.type === 'ai') {
+                          <span class="material-symbols-rounded sm filled">auto_awesome</span>
+                        } @else {
+                          {{ members.initials(activity.actor) }}
+                        }
+                      </span>
+                      <div class="db-feed-body">
+                        <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
+                        <small>
+                          <span class="material-symbols-rounded sm" aria-hidden="true">
+                            {{ activityIcon(activity.type) }}
+                          </span>
+                          {{ activity.time | date: 'MMM d, h:mm a' }}
+                        </small>
+                      </div>
+                    </li>
+                  } @empty {
+                    <li class="ui-empty">
+                      <span class="material-symbols-rounded" aria-hidden="true">history</span>
+                      <strong>Nothing here yet</strong>
+                      <p>Board updates and comments will show up in this feed.</p>
+                    </li>
+                  }
+                </ol>
+              </div>
+            </section>
+
+            <section class="ui-panel db-ai" aria-labelledby="db-ai-title">
+              <div class="ui-panel-head">
+                <h2 id="db-ai-title">
+                  <span class="material-symbols-rounded md filled ui-ai-mark" aria-hidden="true">
+                    auto_awesome
+                  </span>
+                  AI suggestions
+                </h2>
+                <span class="ui-count">{{ suggestions.suggestions().length }}</span>
+              </div>
+
+              <div class="ui-panel-body">
+                @if (topSuggestions().length) {
+                  <ul class="db-suggestions">
+                    @for (s of topSuggestions(); track s.id) {
+                      <li class="db-suggestion">
+                        <div class="db-suggestion-top">
+                          <span class="db-suggestion-cat">
+                            <span class="material-symbols-rounded sm" aria-hidden="true">
+                              {{ categoryIcon(s.category) }}
+                            </span>
+                            {{ s.category }}
+                          </span>
+                          <span class="db-impact" [class]="impactClass(s.impact)">{{ s.impact }}</span>
+                        </div>
+                        <strong class="db-suggestion-title">{{ s.title }}</strong>
+                        <p class="db-suggestion-body">{{ s.body }}</p>
+                        <div class="db-suggestion-actions">
+                          <button
+                            type="button"
+                            class="ui-btn primary sm"
+                            matRipple
+                            (click)="suggestions.applySuggestion(s)"
+                          >
+                            {{ s.action }}
+                          </button>
+                          <button
+                            type="button"
+                            class="ui-btn quiet sm"
+                            matTooltip="Dismiss this suggestion"
+                            (click)="suggestions.dismissSuggestion(s)"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="ui-empty">
+                    <span class="material-symbols-rounded" aria-hidden="true">verified</span>
+                    <strong>All caught up</strong>
+                    <p>New suggestions appear as the board changes.</p>
+                  </div>
+                }
+              </div>
+            </section>
+        </div>
+      </div>
+    </div>
+  }
 </section>

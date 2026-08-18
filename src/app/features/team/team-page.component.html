@@ -1,40 +1,90 @@
-<section class="page team-page">
-  <header class="page-header team-header">
-    <div>
-      <span class="page-eyebrow">Workspace administration</span>
+<section class="page team-page tm ui-page">
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="ui-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">
+        {{ workspace.activeWorkspace().name }}
+        <span class="ui-eyebrow-sep" aria-hidden="true">·</span>
+        <span class="ui-eyebrow-date">Workspace administration</span>
+      </p>
       <h1>Team directory</h1>
-      <p>{{ workspace.activeWorkspace().name }} · {{ members.memberCount() }} members</p>
+      <p class="ui-sub">
+        <strong>{{ members.memberCount() }}</strong>
+        {{ members.memberCount() === 1 ? 'person has' : 'people have' }} access to this workspace,
+        <strong>{{ members.adminCount() }}</strong>
+        {{ members.adminCount() === 1 ? 'of them an admin' : 'of them admins' }}.
+      </p>
     </div>
-    <div class="header-actions">
+
+    <div class="ui-hero-actions">
       <app-theme-toggle />
-      <button type="button" class="btn primary" matRipple (click)="openInvite()">
+      <button type="button" class="ui-btn primary" matRipple (click)="openInvite()">
         <span class="material-symbols-rounded sm" aria-hidden="true">person_add</span>
         Invite
       </button>
     </div>
   </header>
 
-  <div class="team-stats">
-    <div class="team-stat">
-      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">group</span></span>
-      <span class="team-stat-label">Total members</span>
-      <strong>{{ members.memberCount() }}</strong>
-    </div>
-    <div class="team-stat">
-      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">admin_panel_settings</span></span>
-      <span class="team-stat-label">Admins</span>
-      <strong>{{ members.adminCount() }}</strong>
-    </div>
-    <div class="team-stat">
-      <span class="team-stat-icon"><span class="material-symbols-rounded" aria-hidden="true">sensors</span></span>
-      <span class="team-stat-label">Active now</span>
-      <strong>{{ members.activeCount() }}</strong>
-    </div>
+  <!-- ── KPI strip ──────────────────────────────────────────── -->
+  <div class="ui-kpis tm-kpis" role="region" aria-label="Team metrics">
+    <article class="ui-kpi tone-brand">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">group</span>
+        </span>
+        <span class="ui-kpi-title">Total members</span>
+      </div>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ members.memberCount() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ members.activeCount() }}</span>
+          <span class="ui-kpi-caption">active right now</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="ui-kpi tone-amber">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">admin_panel_settings</span>
+        </span>
+        <span class="ui-kpi-title">Admins</span>
+      </div>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ members.adminCount() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ nonAdminCount() }}</span>
+          <span class="ui-kpi-caption">members and viewers</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="ui-kpi tone-green">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
+          <span class="material-symbols-rounded">sensors</span>
+        </span>
+        <span class="ui-kpi-title">Active now</span>
+      </div>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ members.activeCount() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ activeRate() }}%</span>
+          <span class="ui-kpi-caption">of the workspace</span>
+        </p>
+      </div>
+    </article>
   </div>
 
-  <section class="team-directory" aria-label="Workspace members">
-    <div class="team-toolbar">
-      <div class="team-search">
+  <!-- ── Directory ──────────────────────────────────────────── -->
+  <section class="ui-panel" aria-labelledby="tm-directory-title">
+    <div class="ui-panel-head">
+      <h2 id="tm-directory-title">People</h2>
+      <span class="ui-count">{{ filteredMembers().length }}</span>
+    </div>
+
+    <div class="ui-toolbar">
+      <div class="ui-search">
         <span class="material-symbols-rounded sm" aria-hidden="true">search</span>
         <input
           type="search"
@@ -45,65 +95,76 @@
         />
       </div>
 
-      <div class="team-filters" role="tablist" aria-label="Filter by role">
-        <button type="button" [class.active]="roleFilter() === 'all'" (click)="setRoleFilter('all')">
+      <div class="ui-tabs" role="tablist" aria-label="Filter by role">
+        <button
+          type="button"
+          class="ui-tab"
+          role="tab"
+          [class.active]="roleFilter() === 'all'"
+          [attr.aria-selected]="roleFilter() === 'all'"
+          (click)="setRoleFilter('all')"
+        >
           All
         </button>
-        <button type="button" [class.active]="roleFilter() === 'Admin'" (click)="setRoleFilter('Admin')">
-          Admin
-        </button>
-        <button type="button" [class.active]="roleFilter() === 'Member'" (click)="setRoleFilter('Member')">
-          Member
-        </button>
-        <button type="button" [class.active]="roleFilter() === 'Viewer'" (click)="setRoleFilter('Viewer')">
-          Viewer
-        </button>
+        @for (role of roles; track role) {
+          <button
+            type="button"
+            class="ui-tab"
+            role="tab"
+            [class.active]="roleFilter() === role"
+            [attr.aria-selected]="roleFilter() === role"
+            (click)="setRoleFilter(role)"
+          >
+            {{ role }}
+          </button>
+        }
       </div>
     </div>
 
-    <div class="member-list-header">
+    <div class="tm-head" aria-hidden="true">
       <span>Name</span>
       <span>Status</span>
       <span>Role</span>
       <span></span>
     </div>
 
-    <div class="member-list" role="list">
+    <div class="tm-list" role="list">
       @for (member of filteredMembers(); track member.id) {
-        <article class="member-row" role="listitem">
-          <div class="member-person">
-            <span class="avatar-wrap">
-              <span class="avatar" [style.background]="member.color" aria-hidden="true">{{ member.avatar }}</span>
-              <span class="presence-dot" [attr.data-status]="member.status" [matTooltip]="member.status" aria-hidden="true"></span>
+        <article class="tm-row" role="listitem">
+          <div class="tm-person">
+            <span class="tm-avatar-wrap">
+              <span class="ui-avatar" [style.background]="member.color" aria-hidden="true">
+                {{ member.avatar }}
+              </span>
+              <span
+                class="tm-presence"
+                [attr.data-state]="member.status"
+                [matTooltip]="member.status"
+                aria-hidden="true"
+              ></span>
             </span>
-            <div class="member-main">
-              <div class="member-name-line">
+            <div class="tm-person-main">
+              <span class="tm-name-line">
                 <strong [title]="member.name">{{ member.name }}</strong>
                 @if (isYou(member)) {
-                  <span class="you-badge">you</span>
+                  <span class="tm-you">you</span>
                 }
-              </div>
+              </span>
               <small [title]="member.email">{{ member.email }}</small>
             </div>
           </div>
 
-          <div class="member-status-cell">
-            <span class="status-pill" [attr.data-status]="member.status">
-              <span class="status-dot"></span>
+          <div class="tm-cell">
+            <span class="ui-chip tm-status" [attr.data-state]="member.status">
+              <span class="tm-status-dot" aria-hidden="true"></span>
               {{ member.status }}
             </span>
           </div>
 
-          <div class="member-role-cell">
-            <label
-              class="role-select-wrap"
-              [class.role-admin]="member.role === 'Admin'"
-              [class.role-member]="member.role === 'Member'"
-              [class.role-viewer]="member.role === 'Viewer'"
-            >
+          <div class="tm-cell">
+            <label class="tm-role" [attr.data-role]="member.role">
               <span class="sr-only">Role for {{ member.name }}</span>
               <select
-                class="role-select"
                 [value]="member.role"
                 [disabled]="isYou(member) && members.adminCount() <= 1 && member.role === 'Admin'"
                 (change)="onRoleChange(member, $any($event.target).value)"
@@ -112,15 +173,16 @@
                   <option [value]="role">{{ role }}</option>
                 }
               </select>
+              <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
             </label>
           </div>
 
-          <div class="member-actions" (click)="$event.stopPropagation()">
+          <div class="tm-cell tm-actions" (click)="$event.stopPropagation()">
             @if (!isYou(member)) {
-              <div class="menu-wrap">
+              <div class="tm-menu-wrap">
                 <button
                   type="button"
-                  class="icon-btn member-more"
+                  class="tm-more"
                   [class.active]="menuOpenId() === member.id"
                   [attr.aria-expanded]="menuOpenId() === member.id"
                   aria-haspopup="menu"
@@ -131,13 +193,14 @@
                 </button>
 
                 @if (menuOpenId() === member.id) {
-                  <div class="member-menu" role="menu">
+                  <div class="tm-menu" role="menu">
                     <button
                       type="button"
-                      class="member-menu-item danger"
+                      class="tm-menu-item is-danger"
                       role="menuitem"
                       (click)="openRemoveDialog($event, member)"
                     >
+                      <span class="material-symbols-rounded sm" aria-hidden="true">person_remove</span>
                       Remove from workspace
                     </button>
                   </div>
@@ -147,19 +210,21 @@
           </div>
         </article>
       } @empty {
-        <div class="team-empty">
+        <div class="ui-empty">
           <span class="material-symbols-rounded" aria-hidden="true">group_off</span>
-          <p>
-            @if (searchQuery() || roleFilter() !== 'all') {
-              No people match your search.
-            } @else {
-              No members yet.
-            }
-          </p>
           @if (searchQuery() || roleFilter() !== 'all') {
-            <button type="button" class="link" (click)="clearFilters()">Clear filters</button>
+            <strong>No people match</strong>
+            <p>Nothing here fits that search and role filter.</p>
+            <button type="button" class="ui-btn quiet sm" (click)="clearFilters()">
+              Clear filters
+            </button>
           } @else {
-            <button type="button" class="link" (click)="openInvite()">Invite someone</button>
+            <strong>No members yet</strong>
+            <p>Invite people to give them access to this workspace and its boards.</p>
+            <button type="button" class="ui-btn primary sm" matRipple (click)="openInvite()">
+              <span class="material-symbols-rounded sm" aria-hidden="true">person_add</span>
+              Invite someone
+            </button>
           }
         </div>
       }
@@ -167,24 +232,31 @@
   </section>
 </section>
 
+<!-- ── Invite dialog ────────────────────────────────────────── -->
 @if (inviteOpen()) {
-  <div class="team-dialog-overlay" role="presentation" (click)="closeInvite()">
+  <div class="tm-scrim" role="presentation" (click)="closeInvite()">
     <div
-      class="team-dialog"
+      class="tm-dialog"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="invite-dialog-title"
+      aria-labelledby="tm-invite-title"
       (click)="$event.stopPropagation()"
     >
-      <header class="team-dialog-head">
-        <h2 id="invite-dialog-title">Invite people</h2>
-        <button type="button" class="icon-btn" (click)="closeInvite()" aria-label="Close invite dialog" title="Close">
+      <header class="tm-dialog-head">
+        <h2 id="tm-invite-title">Invite people</h2>
+        <button
+          type="button"
+          class="tm-more"
+          (click)="closeInvite()"
+          aria-label="Close invite dialog"
+          title="Close"
+        >
           <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
         </button>
       </header>
 
-      <div class="team-dialog-body">
-        <label class="field">
+      <div class="tm-dialog-body">
+        <label class="tm-field">
           <span>Email</span>
           <input
             type="email"
@@ -196,7 +268,7 @@
             aria-required="true"
           />
         </label>
-        <label class="field">
+        <label class="tm-field">
           <span>Role</span>
           <select
             [value]="inviteRole()"
@@ -210,11 +282,11 @@
         </label>
       </div>
 
-      <footer class="team-dialog-footer">
-        <button type="button" class="btn ghost sm" matRipple (click)="closeInvite()">Cancel</button>
+      <footer class="tm-dialog-foot">
+        <button type="button" class="ui-btn ghost sm" matRipple (click)="closeInvite()">Cancel</button>
         <button
           type="button"
-          class="btn primary sm"
+          class="ui-btn primary sm"
           matRipple
           [disabled]="!inviteEmail().trim()"
           (click)="sendInvite()"
@@ -226,39 +298,52 @@
   </div>
 }
 
+<!-- ── Remove dialog ────────────────────────────────────────── -->
 @if (removeTarget(); as target) {
-  <div class="team-dialog-overlay" role="presentation" (click)="closeRemoveDialog()">
+  <div class="tm-scrim" role="presentation" (click)="closeRemoveDialog()">
     <div
-      class="team-dialog"
+      class="tm-dialog"
       role="dialog"
       aria-modal="true"
-      aria-labelledby="remove-dialog-title"
+      aria-labelledby="tm-remove-title"
       (click)="$event.stopPropagation()"
     >
-      <header class="team-dialog-head">
-        <h2 id="remove-dialog-title">Remove {{ target.name }}?</h2>
-        <button type="button" class="icon-btn" (click)="closeRemoveDialog()" aria-label="Close remove dialog" title="Close">
+      <header class="tm-dialog-head">
+        <h2 id="tm-remove-title">Remove {{ target.name }}?</h2>
+        <button
+          type="button"
+          class="tm-more"
+          (click)="closeRemoveDialog()"
+          aria-label="Close remove dialog"
+          title="Close"
+        >
           <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
         </button>
       </header>
 
-      <div class="team-dialog-body">
-        <p class="team-dialog-copy">
-          They’ll lose access to <strong>{{ workspace.activeWorkspace().name }}</strong>
-          and its boards.
+      <div class="tm-dialog-body">
+        <p class="tm-dialog-copy">
+          They’ll lose access to <strong>{{ workspace.activeWorkspace().name }}</strong> and its
+          boards. This can’t be undone from here.
         </p>
-        <div class="remove-preview">
-          <span class="avatar" [style.background]="target.color" aria-hidden="true">{{ target.avatar }}</span>
-          <div>
+        <div class="tm-preview">
+          <span class="ui-avatar" [style.background]="target.color" aria-hidden="true">
+            {{ target.avatar }}
+          </span>
+          <div class="tm-person-main">
             <strong>{{ target.name }}</strong>
             <small>{{ target.email }}</small>
           </div>
         </div>
       </div>
 
-      <footer class="team-dialog-footer">
-        <button type="button" class="btn ghost sm" matRipple (click)="closeRemoveDialog()">Cancel</button>
-        <button type="button" class="btn danger sm" matRipple (click)="confirmRemove()">Remove</button>
+      <footer class="tm-dialog-foot">
+        <button type="button" class="ui-btn ghost sm" matRipple (click)="closeRemoveDialog()">
+          Cancel
+        </button>
+        <button type="button" class="ui-btn danger sm" matRipple (click)="confirmRemove()">
+          Remove
+        </button>
       </footer>
     </div>
   </div>

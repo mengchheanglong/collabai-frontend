@@ -1,12 +1,20 @@
-<div class="kanban" cdkDropListGroup role="region" aria-label="Kanban board">
+<div class="kb" cdkDropListGroup role="region" aria-label="Kanban board">
   @for (column of tasks.columns; track column.key) {
-    <section class="column" [attr.data-column]="column.key" [attr.aria-label]="column.label + ' column'">
-      <header>
-        <span class="column-title"><span class="column-indicator" aria-hidden="true"></span>{{ column.label }}</span>
-        <span class="count">{{ tasks.tasksByStatus(column.key).length }}</span>
+    <section
+      class="kb-column"
+      [attr.data-column]="column.key"
+      [attr.aria-label]="column.label + ' column'"
+    >
+      <header class="kb-column-head">
+        <span class="kb-column-title">
+          <span class="ui-dot" aria-hidden="true"></span>
+          {{ column.label }}
+        </span>
+        <span class="ui-count">{{ tasks.tasksByStatus(column.key).length }}</span>
       </header>
+
       <div
-        class="column-body"
+        class="kb-column-body"
         cdkDropList
         [id]="'col-' + column.key"
         [cdkDropListData]="tasks.tasksByStatus(column.key)"
@@ -21,13 +29,14 @@
             [cdkDragData]="task"
             [task]="task"
             [selected]="tasks.selectedTask()?.id === task.id"
-            [memberColor]="memberColor"
-            [initials]="initials"
             (select)="tasks.selectTask($event)"
             role="listitem"
           />
         } @empty {
-          <div class="column-empty">Drop here</div>
+          <div class="kb-column-empty">
+            <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
+            Drop tasks here
+          </div>
         }
       </div>
     </section>
