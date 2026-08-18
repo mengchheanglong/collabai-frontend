@@ -11,7 +11,16 @@
     </thead>
     <tbody>
       @for (task of tasks.filteredTasks(); track task.id) {
-        <tr [class.selected]="tasks.selectedTask()?.id === task.id" (click)="tasks.selectTask(task)" tabindex="0" [title]="task.title">
+        <tr
+          [class.selected]="tasks.selectedTask()?.id === task.id"
+          (click)="tasks.selectTask(task)"
+          (keydown.enter)="tasks.selectTask(task)"
+          (keydown.space)="tasks.selectTask(task); $event.preventDefault()"
+          tabindex="0"
+          role="button"
+          [attr.aria-pressed]="tasks.selectedTask()?.id === task.id"
+          [title]="task.title"
+        >
           <td>
             <span class="task-id">{{ task.id }}</span>
             <strong>{{ task.title }}</strong>
@@ -21,7 +30,7 @@
               <span class="avatar sm" [style.background]="members.memberColor(task.assigneeId || '')" aria-hidden="true">
                 {{ members.initials(task.assigneeId || '') }}
               </span>
-              {{ task.assigneeId }}
+              {{ members.memberName(task.assigneeId || '') }}
             </span>
           </td>
           <td>
@@ -30,7 +39,7 @@
           <td>
             <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
           </td>
-          <td>{{ task.dueDate }}</td>
+          <td>{{ task.dueDate ? (task.dueDate | date:'mediumDate') : '—' }}</td>
         </tr>
       } @empty {
         <tr>

@@ -46,11 +46,12 @@ export class WorkPageComponent {
   readonly priorities = PRIORITIES;
   readonly statuses = this.taskStore.columns;
 
-  readonly personalTasks = computed(() =>
-    this.taskStore
+  readonly personalTasks = computed(() => {
+    const user = this.memberDirectory.currentUser;
+    return this.taskStore
       .tasks()
-      .filter((task) => task.assigneeId === this.memberDirectory.currentUser.id),
-  );
+      .filter((task) => task.assigneeId && (task.assigneeId === user.id || task.assigneeId === user.name));
+  });
 
   readonly projects = computed(() =>
     [...new Set(this.personalTasks().map((task) => this.projectName(task)))].sort((a, b) =>
@@ -182,7 +183,8 @@ export class WorkPageComponent {
   }
 
   addQuickTask(): void {
-    this.taskStore.addQuickTask();
+    const currentUserId = this.memberDirectory.currentUser.id;
+    this.taskStore.addQuickTask({ assigneeId: currentUserId });
     void this.router.navigate(['/board']);
   }
 

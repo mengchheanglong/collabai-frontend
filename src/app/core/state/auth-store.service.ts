@@ -7,6 +7,7 @@ import { Router } from '@angular/router';
 import { AuthService } from '../api/auth.service';
 import { TokenStore } from '../api/token.store';
 import { ToastService } from '../toast/toast.service';
+import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import type { AuthUser } from '../../shared/models/auth.models';
 
 @Injectable({ providedIn: 'root' })
@@ -15,13 +16,14 @@ export class AuthStoreService {
   private readonly tokens = inject(TokenStore);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly workspace = inject(WorkspaceContextService);
 
   readonly currentUser = signal<AuthUser | null>(null);
   readonly accessToken = signal<string | null>(this.tokens.get());
   readonly isLoading = signal(false);
   readonly authError = signal<string | null>(null);
 
-  readonly isAuthenticated = computed(() => !!this.accessToken());
+  readonly isAuthenticated = computed(() => Boolean(this.accessToken()));
 
   login(email: string, password: string): void {
     this.isLoading.set(true);
@@ -62,8 +64,14 @@ export class AuthStoreService {
 
   logout(): void {
     this.auth.logout().subscribe({
-      next: () => this.clearSession(),
-      error: () => this.clearSession(),
+      next: () => {
+        this.clearSession();
+        void this.router.navigate(['/login']);
+      },
+      error: () => {
+        this.clearSession();
+        void this.router.navigate(['/login']);
+      },
     });
   }
 
@@ -78,9 +86,11 @@ export class AuthStoreService {
   }
 
   private loadCurrentUser(options: { welcome: boolean }): void {
+    this.isLoading.set(true);
     this.auth.me().subscribe({
       next: ({ user }) => {
         this.currentUser.set(user);
+        this.workspace.reloadProjects();
         this.isLoading.set(false);
         if (options.welcome) this.toast.show(`Welcome back, ${user.name}`, 'success');
       },
@@ -97,10 +107,11 @@ export class AuthStoreService {
     });
   }
 
-  private clearSession(): void {
+  clearSession(): void {
     this.tokens.clear();
     this.accessToken.set(null);
     this.currentUser.set(null);
+    this.workspace.selectProject('');
   }
 
   private errorMessage(err: unknown): string {

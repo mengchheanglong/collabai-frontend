@@ -1,20 +1,28 @@
 <div class="ai-copilot" [class.is-open]="open()">
   @if (open()) {
     <section class="ai-copilot-panel" role="dialog" aria-label="CollabAI chat" aria-modal="false">
+      <!-- Luxury Brand Header -->
       <header class="ai-copilot-head">
-        <div class="ai-copilot-title">
-          <span class="ai-copilot-orb" aria-hidden="true">
+        <div class="ai-copilot-brand">
+          <div class="ai-brand-orb" aria-hidden="true">
             <span class="material-symbols-rounded filled">auto_awesome</span>
-          </span>
-          <div>
-            <strong>CollabAI</strong>
-            <small>Ask anything about your work</small>
+          </div>
+          <div class="ai-brand-info">
+            <div class="ai-brand-title-row">
+              <span class="ai-brand-name">CollabAI</span>
+              <span class="ai-badge-live">Online</span>
+            </div>
+            <div class="ai-brand-context" [matTooltip]="'Active project: ' + (workspace.activeProjectName() || 'None')">
+              <span class="material-symbols-rounded sm">folder</span>
+              <span class="ai-brand-project">{{ workspace.activeProjectName() || 'No project selected' }}</span>
+            </div>
           </div>
         </div>
+
         <div class="ai-copilot-head-actions">
           <button
             type="button"
-            class="icon-btn"
+            class="ai-action-btn"
             matTooltip="Clear chat"
             aria-label="Clear chat"
             (click)="clearChat()"
@@ -23,7 +31,7 @@
           </button>
           <button
             type="button"
-            class="icon-btn"
+            class="ai-action-btn close-btn"
             matTooltip="Close"
             aria-label="Close AI chat"
             (click)="close()"
@@ -33,92 +41,185 @@
         </div>
       </header>
 
+      <!-- Message Stream -->
       <div class="ai-copilot-thread" #thread aria-live="polite" aria-atomic="false">
         @for (msg of messages(); track msg.id) {
           <div class="ai-msg" [class.user]="msg.role === 'user'" [class.assistant]="msg.role === 'assistant'">
             @if (msg.role === 'assistant') {
-              <span class="ai-msg-avatar" aria-hidden="true">
-                <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
-              </span>
+              <div class="ai-msg-avatar" aria-hidden="true">
+                <span class="material-symbols-rounded sm filled">auto_awesome</span>
+              </div>
             }
-            <div class="ai-msg-body">
-              <p [class.pending]="msg.pending">{{ msg.text }}</p>
+            <div class="ai-msg-content">
+              <div class="ai-msg-bubble">
+                <p [class.pending]="msg.pending">{{ msg.text }}</p>
 
-              @if (msg.chips?.length) {
-                <div class="smart-chips ai-msg-chips" aria-label="Interpreted filters">
-                  @for (chip of msg.chips; track chip.key) {
-                    <span class="ai-chip" [attr.data-tone]="chip.tone ?? 'default'">{{ chip.label }}</span>
-                  }
-                </div>
-              }
+                @if (msg.chips?.length) {
+                  <div class="ai-msg-chips" aria-label="Interpreted filters">
+                    @for (chip of msg.chips; track chip.key) {
+                      <span class="ai-chip" [attr.data-tone]="chip.tone ?? 'default'">{{ chip.label }}</span>
+                    }
+                  </div>
+                }
 
-              @if (msg.tasks?.length) {
-                <div class="ai-msg-tasks">
-                  @for (task of msg.tasks; track task.id) {
-                    <button type="button" class="ai-task-row" matRipple (click)="openTask(task)" [title]="task.title">
-                      <span class="prio-dot" [class]="'priority-' + task.priority"></span>
-                      <span class="ai-task-copy">
-                        <span class="task-id">{{ task.id }}</span>
-                        <strong>{{ task.title }}</strong>
-                      </span>
-                      <span class="status" [attr.data-status]="task.status">
-                        {{ task.status.replace('_', ' ') }}
-                      </span>
+                @if (msg.tasks?.length) {
+                  <div class="ai-msg-tasks">
+                    <div class="ai-tasks-header">
+                      <span class="material-symbols-rounded sm">checklist</span>
+                      <span>Tasks ({{ msg.tasks!.length }})</span>
+                    </div>
+                    <div class="ai-tasks-list">
+                      @for (task of msg.tasks; track task.id) {
+                        <button type="button" class="ai-task-card" matRipple (click)="openTask(task)" [title]="task.title">
+                          <div class="ai-task-card-left">
+                            <span class="prio-indicator" [class]="'priority-' + task.priority"></span>
+                            <span class="ai-task-id">{{ task.id }}</span>
+                            <span class="ai-task-title">{{ task.title }}</span>
+                          </div>
+                          <span class="ai-task-status" [attr.data-status]="task.status">
+                            {{ task.status.replace('_', ' ') }}
+                          </span>
+                        </button>
+                      }
+                    </div>
+
+                    <button
+                      type="button"
+                      class="ai-show-board-btn"
+                      matRipple
+                      (click)="filterBoard(msg.tasks!.map((t) => t.id), msg.queryLabel || 'AI filter')"
+                    >
+                      <span class="material-symbols-rounded sm" aria-hidden="true">filter_alt</span>
+                      Show on board
                     </button>
-                  }
+                  </div>
+                }
 
-                  <button
-                    type="button"
-                    class="btn primary sm ai-filter-btn"
-                    matRipple
-                    (click)="filterBoard(msg.tasks!.map((t) => t.id), msg.queryLabel || 'AI filter')"
-                  >
-                    <span class="material-symbols-rounded sm" aria-hidden="true">filter_alt</span>
-                    Show on board
-                  </button>
-                </div>
+                @if (msg.suggestions?.length) {
+                  <div class="ai-msg-suggestions">
+                    <span class="suggestions-label">Suggestions</span>
+                    <div class="suggestions-list">
+                      @for (sug of msg.suggestions; track sug) {
+                        <button type="button" class="suggestion-pill" (click)="applySuggestion(sug)">
+                          <span>{{ sug }}</span>
+                          <span class="material-symbols-rounded sm">arrow_forward</span>
+                        </button>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Modern Prompt Composer -->
+      <footer class="ai-copilot-composer">
+        <!-- Slash Command Autocomplete Palette (Raycast / Linear Style) -->
+        @if (showSlashMenu() && filteredCommands().length > 0) {
+          <div class="ai-slash-palette" role="listbox" aria-label="Command suggestions">
+            <div class="ai-slash-palette-head">
+              <div class="palette-head-title">
+                <span class="material-symbols-rounded sm">terminal</span>
+                <span>COMMANDS</span>
+                <span class="palette-count">{{ filteredCommands().length }}</span>
+              </div>
+              <div class="palette-shortcuts">
+                <kbd>↑</kbd><kbd>↓</kbd> <span>nav</span>
+                <kbd>↵</kbd> <span>select</span>
+                <kbd>esc</kbd> <span>close</span>
+              </div>
+            </div>
+            <div class="ai-slash-palette-list">
+              @for (cmd of filteredCommands(); track cmd.name; let idx = $index) {
+                <button
+                  type="button"
+                  class="ai-slash-row"
+                  [class.active]="selectedCommandIndex() === idx"
+                  (click)="selectCommand(cmd)"
+                  (mouseenter)="selectedCommandIndex.set(idx)"
+                >
+                  <div class="ai-slash-icon-wrap" [attr.data-cat]="cmd.category || 'Tasks'">
+                    <span class="material-symbols-rounded sm">{{ cmd.icon }}</span>
+                  </div>
+                  <div class="ai-slash-info">
+                    <div class="ai-slash-name-row">
+                      <code class="ai-slash-code">{{ cmd.name }}</code>
+                      @if (cmd.syntax && cmd.syntax !== cmd.name) {
+                        <span class="ai-slash-syntax">{{ cmd.syntax }}</span>
+                      }
+                    </div>
+                    <span class="ai-slash-desc">{{ cmd.description }}</span>
+                  </div>
+                  <div class="ai-slash-enter-hint">
+                    <span class="material-symbols-rounded sm">keyboard_return</span>
+                  </div>
+                </button>
               }
             </div>
           </div>
         }
 
-        @if (messages().length <= 1) {
-          <div class="ai-copilot-prompts" role="list">
-            @for (p of prompts; track p) {
-              <button type="button" class="smart-prompt" role="listitem" matRipple (click)="usePrompt(p)">
-                <span class="material-symbols-rounded sm" aria-hidden="true">bolt</span>
-                {{ p }}
-              </button>
-            }
+        <!-- Active Context & Quick Toolbar -->
+        <div class="ai-composer-bar">
+          <div class="ai-context-tag" [matTooltip]="'Active project: ' + (workspace.activeProjectName() || 'None')">
+            <span class="material-symbols-rounded sm">folder</span>
+            <span class="ai-context-name">{{ workspace.activeProjectName() || 'Select Project' }}</span>
           </div>
-        }
-      </div>
+          <div class="ai-quick-tools">
+            <button
+              type="button"
+              class="ai-tool-pill"
+              (click)="openSlashPalette()"
+              matTooltip="Open command palette (/)"
+            >
+              <code>/</code>
+              <span>commands</span>
+            </button>
+          </div>
+        </div>
 
-      <footer class="ai-copilot-composer">
-        <textarea
-          #composer
-          rows="1"
-          [value]="draft()"
-          (input)="draft.set($any($event.target).value)"
-          (keydown)="onKeydown($event)"
-          placeholder="Ask CollabAI…"
-          aria-label="Message CollabAI"
-        ></textarea>
-        <button
-          type="button"
-          class="ai-send"
-          matRipple
-          [disabled]="!draft().trim() || sending()"
-          (click)="send()"
-          matTooltip="Send"
-          [attr.aria-label]="sending() ? 'Sending message' : 'Send message'"
-        >
-          <span class="material-symbols-rounded sm" [class.spin]="sending()" aria-hidden="true">{{ sending() ? 'progress_activity' : 'arrow_upward' }}</span>
-        </button>
+        <!-- Single Cohesive Input Box -->
+        <div class="ai-input-card" [class.focused]="isInputFocused()">
+          <textarea
+            #composer
+            rows="2"
+            class="ai-prompt-input"
+            [value]="draft()"
+            (input)="onDraftInput($any($event.target).value)"
+            (keydown)="onKeydown($event)"
+            (focus)="isInputFocused.set(true)"
+            (blur)="isInputFocused.set(false)"
+            placeholder="Type / for commands or ask anything in English..."
+            aria-label="CollabAI prompt input"
+          ></textarea>
+
+          <div class="ai-input-bottom">
+            <span class="ai-input-hint">
+              <kbd>↵</kbd> send &bull; <kbd>Shift</kbd>+<kbd>↵</kbd> newline
+            </span>
+
+            <button
+              type="button"
+              class="ai-send-btn"
+              matRipple
+              [disabled]="!draft().trim() || sending()"
+              (click)="send()"
+              [matTooltip]="sending() ? 'Running...' : 'Send message (Enter)'"
+              [attr.aria-label]="sending() ? 'Running command' : 'Run command'"
+            >
+              <span class="material-symbols-rounded sm" [class.spin]="sending()" aria-hidden="true">
+                {{ sending() ? 'progress_activity' : 'arrow_upward' }}
+              </span>
+            </button>
+          </div>
+        </div>
       </footer>
     </section>
   }
 
+  <!-- Floating Action Button -->
   <button
     type="button"
     class="ai-copilot-fab"
@@ -126,10 +227,9 @@
     (click)="toggle()"
     [attr.aria-expanded]="open()"
     [attr.aria-label]="open() ? 'Close CollabAI' : 'Open CollabAI'"
-    matTooltip="{{ open() ? 'Close' : 'Ask CollabAI' }}"
+    matTooltip="{{ open() ? 'Close CollabAI' : 'CollabAI Copilot' }}"
     matTooltipPosition="left"
   >
-    <span class="ai-copilot-fab-ring" aria-hidden="true"></span>
     <span class="material-symbols-rounded filled">
       {{ open() ? 'close' : 'auto_awesome' }}
     </span>

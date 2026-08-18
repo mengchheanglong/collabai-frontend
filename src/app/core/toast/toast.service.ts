@@ -1,6 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 
-export type ToastTone = 'success' | 'info' | 'ai';
+export type ToastTone = 'success' | 'info' | 'ai' | 'error';
 
 export interface ToastMessage {
   message: string;

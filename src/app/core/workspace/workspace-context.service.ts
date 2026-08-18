@@ -72,46 +72,83 @@ export class WorkspaceContextService {
     this.reloadProjects();
   }
 
-  reloadProjects(): void {
+  reloadProjects(preferredProjectId?: string): void {
     this.projectApi.list({ limit: 50 }).subscribe({
       next: ({ projects }) => {
         this.projectsState.set(projects.map(toProject));
-        if (projects.length > 0 && !this.activeProjectId()) {
-          this.selectProject(projects[0]._id);
-          this.selectedWorkspaceId.set(projects[0]._id);
+        if (projects.length > 0) {
+          const currentId = preferredProjectId || this.activeProjectId();
+          const exists = currentId && projects.some((p) => (p._id || (p as any).id) === currentId);
+          const targetId = exists ? currentId : (projects[0]._id || (projects[0] as any).id);
+          this.selectProject(targetId);
+        } else {
+          this.activeProjectId.set(null);
+          this.selectedWorkspaceId.set(null);
+          this.boardsState.set([]);
+          this.activeBoardId.set(null);
         }
       },
       error: () => {
         /* not signed in / backend down -> empty list */
+        this.projectsState.set([]);
+        this.activeProjectId.set(null);
+        this.selectedWorkspaceId.set(null);
+        this.boardsState.set([]);
+        this.activeBoardId.set(null);
       },
     });
   }
 
   selectProject(projectId: string): void {
+    if (!projectId) {
+      this.activeProjectId.set(null);
+      this.selectedWorkspaceId.set(null);
+      this.boardsState.set([]);
+      this.activeBoardId.set(null);
+      return;
+    }
+    if (this.activeProjectId() !== projectId) {
+      // Switching projects: immediately clear previous boards so stale board tasks are not shown
+      this.boardsState.set([]);
+      this.activeBoardId.set(null);
+    }
     this.activeProjectId.set(projectId);
     this.selectedWorkspaceId.set(projectId);
     this.reloadBoards(projectId);
   }
 
   reloadBoards(projectId: string): void {
+    if (!projectId) {
+      this.boardsState.set([]);
+      this.activeBoardId.set(null);
+      return;
+    }
     this.boardApi.listBoards(projectId).subscribe({
       next: (boards) => {
         this.boardsState.set(boards);
-        this.activeBoardId.set(boards.length > 0 ? boards[0]._id : null);
+        const firstBoardId = boards.length > 0 ? (boards[0]._id || (boards[0] as any).id) : null;
+        this.activeBoardId.set(firstBoardId);
       },
-      error: () => this.boardsState.set([]),
+      error: () => {
+        this.boardsState.set([]);
+        this.activeBoardId.set(null);
+      },
     });
   }
 
   createProject(name: string, description?: string, color?: string): void {
     this.projectApi.create({ name, description, color }).subscribe({
-      next: () => {
+      next: (res) => {
         this.isWorkspaceCreatorOpen.set(false);
         this.newWorkspaceName.set('');
-        this.reloadProjects();
+        const newId = res._id || (res as any).id;
+        this.reloadProjects(newId);
         this.toast.show(`Created ${name}`, 'success');
       },
-      error: () => this.toast.show('Could not create project', 'info'),
+      error: (err) => {
+        const msg = err?.error?.error?.message || err?.error?.message || 'Could not create project';
+        this.toast.show(msg, 'error');
+      },
     });
   }
 
@@ -139,15 +176,17 @@ export class WorkspaceContextService {
 // ----- mapping: contract DTO -> component model -----
 
 function toProject(dto: ProjectDto, index: number): Project {
-  const memberCount = dto.members.length;
+  const projId = dto._id || (dto as any).id;
+  const members = dto.members || [];
+  const memberCount = members.length;
   return {
-    id: dto._id,
+    id: projId,
     name: dto.name,
     team: `${memberCount} member${memberCount === 1 ? '' : 's'}`,
     progress: 0, // computed once tasks are wired
     icon: dto.icon ?? '📁',
     accent: dto.color ?? ACCENTS[index % ACCENTS.length],
-    members: dto.members.map((m) => m.name),
+    members: members.map((m) => m.name),
     description: dto.description ?? undefined,
   };
 }

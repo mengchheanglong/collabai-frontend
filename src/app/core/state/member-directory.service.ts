@@ -11,6 +11,8 @@ import { initials } from '../../shared/lib/person-display';
 import type { Member } from '../../shared/models/member.models';
 import { ProjectApiService } from '../api/project-api.service';
 import { AuthStoreService } from './auth-store.service';
+import { ToastService } from '../toast/toast.service';
+import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import type {
   ProjectMemberDto,
   ProjectRole,
@@ -22,10 +24,12 @@ const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#
 export class MemberDirectoryService {
   private readonly projectApi = inject(ProjectApiService);
   private readonly auth = inject(AuthStoreService);
+  private readonly workspace = inject(WorkspaceContextService);
+  private readonly toast = inject(ToastService);
 
   private readonly membersState = signal<Member[]>([]);
-  /** The project whose members are shown (first project the user belongs to). */
-  private readonly activeProjectId = signal<string | null>(null);
+  /** The project whose members are currently shown, tracked reactively. */
+  readonly activeProjectId = computed(() => this.workspace.activeProjectId());
 
   /** Reactive workspace roster. */
   readonly members = this.membersState.asReadonly();
@@ -57,48 +61,58 @@ export class MemberDirectoryService {
   };
 
   constructor() {
-    this.loadFromApi();
+    effect(() => {
+      const projectId = this.workspace.activeProjectId();
+      if (projectId) {
+        this.loadMembersForProject(projectId);
+      } else {
+        this.membersState.set([]);
+      }
+    });
+
     effect(() => {
       const user = this.auth.currentUser();
       if (user) {
         Object.assign(this.currentUser, {
-          id: user._id,
+          id: user._id || (user as any).id,
           name: user.name,
           email: user.email,
           avatar: initials(user.name),
           role: 'Member',
         });
-        if (!this.membersState().length) this.loadFromApi();
       }
     });
   }
 
-  /** Load the user's first project and its members from the backend. */
-  private loadFromApi(): void {
-    this.projectApi.list({ limit: 1 }).subscribe({
-      next: ({ projects }) => {
-        const first = projects[0];
-        if (!first) return; // no projects yet -> empty roster
-        this.activeProjectId.set(first._id);
-        this.projectApi.listMembers(first._id).subscribe({
-          next: (dtos) => this.membersState.set(dtos.map(toMember)),
-          error: () => {
-            /* leave roster empty; surfaced by the UI */
-          },
-        });
-      },
+  /** Load members for the given project from the backend. */
+  private loadMembersForProject(projectId: string): void {
+    this.projectApi.listMembers(projectId).subscribe({
+      next: (dtos) => this.membersState.set(dtos.map(toMember)),
       error: () => {
-        /* not signed in / backend down -> empty roster */
+        this.membersState.set([]);
       },
     });
   }
 
-  initials(name: string): string {
-    return initials(name);
+  initials(idOrName: string): string {
+    if (!idOrName) return '—';
+    const member = this.membersState().find((m) => m.id === idOrName || m.name === idOrName);
+    return initials(member ? member.name : idOrName);
   }
 
-  memberColor(name: string): string {
-    return this.membersState().find((m) => m.name === name)?.color ?? '#3b82f6';
+  memberColor(idOrName: string): string {
+    if (!idOrName) return '#94a3b8';
+    return (
+      this.membersState().find((m) => m.id === idOrName || m.name === idOrName)?.color ??
+      '#3b82f6'
+    );
+  }
+
+  memberName(idOrName: string): string {
+    if (!idOrName) return 'Unassigned';
+    return (
+      this.membersState().find((m) => m.id === idOrName || m.name === idOrName)?.name ?? idOrName
+    );
   }
 
   updateCurrentUserProfile(
@@ -143,7 +157,13 @@ export class MemberDirectoryService {
     if (projectId) {
       this.projectApi
         .updateMemberRole(projectId, memberId, toBackendRole(role))
-        .subscribe({ error: () => this.reload() });
+        .subscribe({
+          next: () => this.toast.show('Role updated', 'success'),
+          error: () => {
+            this.toast.show('Failed to update role', 'info');
+            this.reload();
+          },
+        });
     }
     return { ok: true };
   }
@@ -165,7 +185,13 @@ export class MemberDirectoryService {
     if (projectId) {
       this.projectApi
         .removeMember(projectId, memberId)
-        .subscribe({ error: () => this.reload() });
+        .subscribe({
+          next: () => this.toast.show('Member removed', 'success'),
+          error: () => {
+            this.toast.show('Failed to remove member', 'info');
+            this.reload();
+          },
+        });
     }
     return { ok: true };
   }
@@ -203,8 +229,14 @@ export class MemberDirectoryService {
     if (projectId) {
       const backendRole = toBackendRole(role) as Exclude<ProjectRole, 'owner'>;
       this.projectApi.addMember(projectId, normalized, backendRole).subscribe({
-        next: () => this.reload(), // replace the optimistic row with the real member
-        error: () => this.reload(),
+        next: () => {
+          this.toast.show(`Added ${name} to team`, 'success');
+          this.reload(); // replace the optimistic row with the real member
+        },
+        error: () => {
+          this.toast.show('Failed to add member', 'info');
+          this.reload();
+        },
       });
     }
     return member;
@@ -212,13 +244,11 @@ export class MemberDirectoryService {
 
   private reload(): void {
     const projectId = this.activeProjectId();
-    if (!projectId) return;
-    this.projectApi.listMembers(projectId).subscribe({
-      next: (dtos) => this.membersState.set(dtos.map(toMember)),
-      error: () => {
-        /* ignore */
-      },
-    });
+    if (!projectId) {
+      this.membersState.set([]);
+      return;
+    }
+    this.loadMembersForProject(projectId);
   }
 }
 

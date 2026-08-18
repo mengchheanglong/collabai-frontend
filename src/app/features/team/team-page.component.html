@@ -46,16 +46,40 @@
       </div>
 
       <div class="team-filters" role="tablist" aria-label="Filter by role">
-        <button type="button" [class.active]="roleFilter() === 'all'" (click)="setRoleFilter('all')">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="roleFilter() === 'all'"
+          [attr.aria-selected]="roleFilter() === 'all'"
+          (click)="setRoleFilter('all')"
+        >
           All
         </button>
-        <button type="button" [class.active]="roleFilter() === 'Admin'" (click)="setRoleFilter('Admin')">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="roleFilter() === 'Admin'"
+          [attr.aria-selected]="roleFilter() === 'Admin'"
+          (click)="setRoleFilter('Admin')"
+        >
           Admin
         </button>
-        <button type="button" [class.active]="roleFilter() === 'Member'" (click)="setRoleFilter('Member')">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="roleFilter() === 'Member'"
+          [attr.aria-selected]="roleFilter() === 'Member'"
+          (click)="setRoleFilter('Member')"
+        >
           Member
         </button>
-        <button type="button" [class.active]="roleFilter() === 'Viewer'" (click)="setRoleFilter('Viewer')">
+        <button
+          type="button"
+          role="tab"
+          [class.active]="roleFilter() === 'Viewer'"
+          [attr.aria-selected]="roleFilter() === 'Viewer'"
+          (click)="setRoleFilter('Viewer')"
+        >
           Viewer
         </button>
       </div>

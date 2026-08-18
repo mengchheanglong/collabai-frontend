@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { CommentDto } from './api.types';
 import { ApiClient } from './api-client.service';
 
@@ -10,7 +10,9 @@ export class CommentApiService {
   private apiClient = inject(ApiClient);
 
   getComments(taskId: string): Observable<CommentDto[]> {
-    return this.apiClient.get<CommentDto[]>(`/tasks/${taskId}/comments`);
+    return this.apiClient
+      .get<{ comments: CommentDto[] }>(`/tasks/${taskId}/comments`)
+      .pipe(map(({ comments }) => comments));
   }
 
   createComment(taskId: string, body: string): Observable<{ comment: CommentDto }> {

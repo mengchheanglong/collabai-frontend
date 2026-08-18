@@ -55,10 +55,10 @@
       <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
       <h2 id="no-project-title">No project selected</h2>
       <p>Create your first project to unlock a board, tasks, and team collaboration.</p>
-      <a class="btn primary sm" routerLink="/dashboard" matRipple>
+      <button type="button" class="btn primary sm" (click)="openProjectCreator()" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         Create project
-      </a>
+      </button>
     </section>
   } @else if (workspace.boards().length === 0) {
     <section class="board-empty-state" role="status">

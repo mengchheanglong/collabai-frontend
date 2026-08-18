@@ -71,7 +71,7 @@
       </div>
       <div class="project-list">
         @for (project of workspace.filteredProjects(); track project.id) {
-          <a class="project-row project-row-rich" routerLink="/board" [title]="project.name + ' — ' + project.team" matRipple>
+          <button type="button" class="project-row project-row-rich" (click)="openProject(project)" [title]="project.name + ' — ' + project.team" matRipple style="text-align: left; background: none; border: none; width: 100%; font-family: inherit; cursor: pointer; color: inherit;">
             <span class="project-icon" [style.background]="project.accent">{{ project.icon }}</span>
             <span class="project-body">
               <strong>{{ project.name }}</strong>
@@ -81,11 +81,15 @@
               </div>
             </span>
             <span class="project-pct">{{ project.progress }}%</span>
-          </a>
+          </button>
         } @empty {
           <div class="empty">
             <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
             <p>No projects in this workspace yet.</p>
+            <button type="button" class="btn primary sm" (click)="workspace.toggleWorkspaceCreator()" matRipple style="margin-top: 8px;">
+              <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
+              Create your first project
+            </button>
           </div>
         }
       </div>
@@ -106,7 +110,7 @@
               {{ task.title }}
             </span>
             <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
-            <span class="list-meta">{{ task.dueDate }}</span>
+            <span class="list-meta">{{ task.dueDate ? (task.dueDate | date:'mediumDate') : '' }}</span>
           </button>
         } @empty {
           <div class="empty">

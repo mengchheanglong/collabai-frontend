@@ -14,7 +14,6 @@ import { TaskListViewComponent } from './task-list-view.component';
   standalone: true,
   imports: [
     MatRippleModule,
-    RouterLink,
     KanbanBoardComponent,
     TaskListViewComponent,
     TaskDetailDrawerComponent,
@@ -42,5 +41,9 @@ export class BoardPageComponent {
   clearAiFilter(): void {
     this.tasks.clearSmartSearch();
     this.tasks.searchQuery.set('');
+  }
+
+  openProjectCreator(): void {
+    this.workspace.isWorkspaceCreatorOpen.set(true);
   }
 }

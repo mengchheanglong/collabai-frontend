@@ -23,10 +23,13 @@ export class NotificationStoreService {
     this.isLoading.set(true);
     this.notificationApi.getNotifications().subscribe({
       next: (res) => {
-        this.notifications.set(res.data.map(toAppNotification));
+        this.notifications.set((res.data || []).map(toAppNotification));
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false),
+      error: () => {
+        this.notifications.set([]);
+        this.isLoading.set(false);
+      },
     });
   }
 
@@ -37,6 +40,9 @@ export class NotificationStoreService {
           list.map((n) => (n.id === id ? { ...n, read: true } : n)),
         );
       },
+      error: () => {
+        this.loadNotifications();
+      },
     });
   }
 
@@ -44,6 +50,9 @@ export class NotificationStoreService {
     this.notificationApi.markAllAsRead().subscribe({
       next: () => {
         this.notifications.update((list) => list.map((n) => ({ ...n, read: true })));
+      },
+      error: () => {
+        this.loadNotifications();
       },
     });
   }
