@@ -20,7 +20,6 @@ import { TaskStoreService } from '../../core/state/task-store.service';
 import { AnalyticsStoreService } from '../../core/state/analytics-store.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import { priorityRank } from '../../shared/lib/person-display';
-import type { Project } from '../../shared/models/project.models';
 import type { Suggestion } from '../../shared/models/suggestion.models';
 import type { Task } from '../../shared/models/task.models';
 import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
@@ -365,11 +364,6 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   addQuickTask(): void {
     this.tasks.addQuickTask();
-    void this.router.navigate(['/board']);
-  }
-
-  openProject(project: Project): void {
-    this.workspace.selectProject(project.id);
     void this.router.navigate(['/board']);
   }
 
