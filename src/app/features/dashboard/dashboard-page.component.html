@@ -318,145 +318,213 @@
       </div>
     </section>
 
-    <!-- ── Row: projects · activity · AI ────────────────────── -->
-    <section class="db-panel db-span-4" aria-labelledby="db-projects-title">
-      <div class="db-panel-head">
-        <h2 id="db-projects-title">Projects</h2>
-        <span class="db-count">{{ workspace.filteredProjects().length }}</span>
-      </div>
-      <div class="db-panel-body">
-        <ul class="db-projects">
-          @for (project of workspace.filteredProjects(); track project.id) {
-            <li>
-              <a
-                class="db-project"
-                routerLink="/board"
-                matRipple
-                [attr.aria-label]="project.name + ', ' + project.progress + '% complete'"
-              >
-                <span class="db-project-icon" [style.background]="project.accent">
-                  {{ project.icon }}
-                </span>
-                <span class="db-project-main">
-                  <span class="db-project-name">{{ project.name }}</span>
-                  <span class="db-project-team">{{ project.team }}</span>
-                  <span class="db-project-track">
-                    <span class="db-project-fill" [style.width.%]="project.progress"></span>
-                  </span>
-                </span>
-                <span class="db-project-pct">{{ project.progress }}%</span>
-              </a>
-            </li>
-          } @empty {
-            <li class="db-empty">
-              <span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>
-              <strong>No projects yet</strong>
-              <p>Create a project from the sidebar to start planning work.</p>
-            </li>
-          }
-        </ul>
-      </div>
-    </section>
+    <!-- ── Insights trigger ─────────────────────────────────── -->
+    <button
+      type="button"
+      class="db-insights-trigger db-span-12"
+      matRipple
+      (click)="openInsights()"
+      aria-haspopup="dialog"
+      [attr.aria-expanded]="isInsightsOpen()"
+    >
+      <span class="db-insights-icon" aria-hidden="true">
+        <span class="material-symbols-rounded">dashboard_customize</span>
+      </span>
 
-    <section class="db-panel db-span-4" aria-labelledby="db-activity-title">
-      <div class="db-panel-head">
-        <h2 id="db-activity-title">Activity</h2>
-      </div>
-      <div class="db-panel-body">
-        <ol class="db-feed">
-          @for (activity of recentActivities(); track $index) {
-            <li class="db-feed-item" [class.is-ai]="activity.type === 'ai'">
-              <span
-                class="db-avatar"
-                [class.is-ai]="activity.type === 'ai'"
-                [style.background]="
-                  activity.type === 'ai' ? null : members.memberColor(activity.actor)
-                "
-                aria-hidden="true"
-              >
-                @if (activity.type === 'ai') {
-                  <span class="material-symbols-rounded sm filled">auto_awesome</span>
-                } @else {
-                  {{ members.initials(activity.actor) }}
-                }
-              </span>
-              <div class="db-feed-body">
-                <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
-                <small>
-                  <span class="material-symbols-rounded sm" aria-hidden="true">
-                    {{ activityIcon(activity.type) }}
-                  </span>
-                  {{ activity.time | date: 'MMM d, h:mm a' }}
-                </small>
-              </div>
-            </li>
-          } @empty {
-            <li class="db-empty">
-              <span class="material-symbols-rounded" aria-hidden="true">history</span>
-              <strong>Nothing here yet</strong>
-              <p>Board updates and comments will show up in this feed.</p>
-            </li>
-          }
-        </ol>
-      </div>
-    </section>
+      <span class="db-insights-copy">
+        <span class="db-insights-name">Workspace insights</span>
+        <span class="db-insights-sub">Projects, recent activity, and AI suggestions</span>
+      </span>
 
-    <section class="db-panel db-span-4 db-ai" aria-labelledby="db-ai-title">
-      <div class="db-panel-head">
-        <h2 id="db-ai-title">
-          <span class="material-symbols-rounded md filled db-ai-mark" aria-hidden="true">
-            auto_awesome
-          </span>
-          AI suggestions
-        </h2>
-        <span class="db-count">{{ suggestions.suggestions().length }}</span>
-      </div>
+      <span class="db-insights-chips">
+        <span class="db-insights-chip">
+          <span class="material-symbols-rounded sm" aria-hidden="true">folder_open</span>
+          <strong>{{ workspace.filteredProjects().length }}</strong> Projects
+        </span>
+        <span class="db-insights-chip">
+          <span class="material-symbols-rounded sm" aria-hidden="true">history</span>
+          <strong>{{ recentActivities().length }}</strong> Updates
+        </span>
+        <span class="db-insights-chip is-ai">
+          <span class="material-symbols-rounded sm filled" aria-hidden="true">auto_awesome</span>
+          <strong>{{ suggestions.suggestions().length }}</strong> Suggestions
+        </span>
+      </span>
 
-      <div class="db-panel-body">
-        @if (topSuggestions().length) {
-          <ul class="db-suggestions">
-            @for (s of topSuggestions(); track s.id) {
-              <li class="db-suggestion">
-                <div class="db-suggestion-top">
-                  <span class="db-suggestion-cat">
-                    <span class="material-symbols-rounded sm" aria-hidden="true">
-                      {{ categoryIcon(s.category) }}
-                    </span>
-                    {{ s.category }}
-                  </span>
-                  <span class="db-impact" [class]="impactClass(s.impact)">{{ s.impact }}</span>
-                </div>
-                <strong class="db-suggestion-title">{{ s.title }}</strong>
-                <p class="db-suggestion-body">{{ s.body }}</p>
-                <div class="db-suggestion-actions">
-                  <button
-                    type="button"
-                    class="db-btn primary sm"
-                    matRipple
-                    (click)="suggestions.applySuggestion(s)"
-                  >
-                    {{ s.action }}
-                  </button>
-                  <button
-                    type="button"
-                    class="db-btn quiet sm"
-                    matTooltip="Dismiss this suggestion"
-                    (click)="suggestions.dismissSuggestion(s)"
-                  >
-                    Dismiss
-                  </button>
-                </div>
-              </li>
-            }
-          </ul>
-        } @else {
-          <div class="db-empty">
-            <span class="material-symbols-rounded" aria-hidden="true">verified</span>
-            <strong>All caught up</strong>
-            <p>New suggestions appear as the board changes.</p>
-          </div>
-        }
-      </div>
-    </section>
+      <span class="db-insights-open" aria-hidden="true">
+        <span class="material-symbols-rounded">open_in_full</span>
+      </span>
+    </button>
   </div>
+  <!-- ── Insights overlay ─────────────────────────────────────── -->
+  @if (isInsightsOpen()) {
+    <div class="db-scrim" role="presentation" (click)="closeInsights()">
+      <div
+        #insightsDialog
+        class="db-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="db-insights-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="db-modal-head">
+          <div class="db-modal-copy">
+            <h2 id="db-insights-title">Workspace insights</h2>
+            <p>Projects, recent activity, and AI suggestions</p>
+          </div>
+          <button
+            #insightsClose
+            type="button"
+            class="db-modal-close"
+            (click)="closeInsights()"
+            aria-label="Close insights"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="db-modal-body">
+            <section class="db-panel" aria-labelledby="db-projects-title">
+              <div class="db-panel-head">
+                <h2 id="db-projects-title">Projects</h2>
+                <span class="db-count">{{ workspace.filteredProjects().length }}</span>
+              </div>
+              <div class="db-panel-body">
+                <ul class="db-projects">
+                  @for (project of workspace.filteredProjects(); track project.id) {
+                    <li>
+                      <a
+                        class="db-project"
+                        routerLink="/board"
+                        matRipple
+                        [attr.aria-label]="project.name + ', ' + project.progress + '% complete'"
+                      >
+                        <span class="db-project-icon" [style.background]="project.accent">
+                          {{ project.icon }}
+                        </span>
+                        <span class="db-project-main">
+                          <span class="db-project-name">{{ project.name }}</span>
+                          <span class="db-project-team">{{ project.team }}</span>
+                          <span class="db-project-track">
+                            <span class="db-project-fill" [style.width.%]="project.progress"></span>
+                          </span>
+                        </span>
+                        <span class="db-project-pct">{{ project.progress }}%</span>
+                      </a>
+                    </li>
+                  } @empty {
+                    <li class="db-empty">
+                      <span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>
+                      <strong>No projects yet</strong>
+                      <p>Create a project from the sidebar to start planning work.</p>
+                    </li>
+                  }
+                </ul>
+              </div>
+            </section>
+
+            <section class="db-panel" aria-labelledby="db-activity-title">
+              <div class="db-panel-head">
+                <h2 id="db-activity-title">Activity</h2>
+              </div>
+              <div class="db-panel-body">
+                <ol class="db-feed">
+                  @for (activity of recentActivities(); track $index) {
+                    <li class="db-feed-item" [class.is-ai]="activity.type === 'ai'">
+                      <span
+                        class="db-avatar"
+                        [class.is-ai]="activity.type === 'ai'"
+                        [style.background]="
+                          activity.type === 'ai' ? null : members.memberColor(activity.actor)
+                        "
+                        aria-hidden="true"
+                      >
+                        @if (activity.type === 'ai') {
+                          <span class="material-symbols-rounded sm filled">auto_awesome</span>
+                        } @else {
+                          {{ members.initials(activity.actor) }}
+                        }
+                      </span>
+                      <div class="db-feed-body">
+                        <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
+                        <small>
+                          <span class="material-symbols-rounded sm" aria-hidden="true">
+                            {{ activityIcon(activity.type) }}
+                          </span>
+                          {{ activity.time | date: 'MMM d, h:mm a' }}
+                        </small>
+                      </div>
+                    </li>
+                  } @empty {
+                    <li class="db-empty">
+                      <span class="material-symbols-rounded" aria-hidden="true">history</span>
+                      <strong>Nothing here yet</strong>
+                      <p>Board updates and comments will show up in this feed.</p>
+                    </li>
+                  }
+                </ol>
+              </div>
+            </section>
+
+            <section class="db-panel db-ai" aria-labelledby="db-ai-title">
+              <div class="db-panel-head">
+                <h2 id="db-ai-title">
+                  <span class="material-symbols-rounded md filled db-ai-mark" aria-hidden="true">
+                    auto_awesome
+                  </span>
+                  AI suggestions
+                </h2>
+                <span class="db-count">{{ suggestions.suggestions().length }}</span>
+              </div>
+
+              <div class="db-panel-body">
+                @if (topSuggestions().length) {
+                  <ul class="db-suggestions">
+                    @for (s of topSuggestions(); track s.id) {
+                      <li class="db-suggestion">
+                        <div class="db-suggestion-top">
+                          <span class="db-suggestion-cat">
+                            <span class="material-symbols-rounded sm" aria-hidden="true">
+                              {{ categoryIcon(s.category) }}
+                            </span>
+                            {{ s.category }}
+                          </span>
+                          <span class="db-impact" [class]="impactClass(s.impact)">{{ s.impact }}</span>
+                        </div>
+                        <strong class="db-suggestion-title">{{ s.title }}</strong>
+                        <p class="db-suggestion-body">{{ s.body }}</p>
+                        <div class="db-suggestion-actions">
+                          <button
+                            type="button"
+                            class="db-btn primary sm"
+                            matRipple
+                            (click)="suggestions.applySuggestion(s)"
+                          >
+                            {{ s.action }}
+                          </button>
+                          <button
+                            type="button"
+                            class="db-btn quiet sm"
+                            matTooltip="Dismiss this suggestion"
+                            (click)="suggestions.dismissSuggestion(s)"
+                          >
+                            Dismiss
+                          </button>
+                        </div>
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <div class="db-empty">
+                    <span class="material-symbols-rounded" aria-hidden="true">verified</span>
+                    <strong>All caught up</strong>
+                    <p>New suggestions appear as the board changes.</p>
+                  </div>
+                }
+              </div>
+            </section>
+        </div>
+      </div>
+    </div>
+  }
 </section>

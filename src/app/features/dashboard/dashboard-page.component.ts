@@ -1,4 +1,14 @@
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  HostListener,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { DatePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
@@ -54,7 +64,7 @@ interface Sparkline {
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss',
 })
-export class DashboardPageComponent implements OnInit {
+export class DashboardPageComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   readonly workspace = inject(WorkspaceContextService);
   readonly tasks = inject(TaskStoreService);
@@ -64,6 +74,15 @@ export class DashboardPageComponent implements OnInit {
   readonly analytics = inject(AnalyticsStoreService);
 
   readonly today = signal(new Date());
+
+  // ----- insights overlay -----
+
+  @ViewChild('insightsDialog') private insightsDialog?: ElementRef<HTMLElement>;
+  @ViewChild('insightsClose') private insightsClose?: ElementRef<HTMLButtonElement>;
+
+  readonly isInsightsOpen = signal(false);
+  private lastFocusedElement: HTMLElement | null = null;
+  private previousBodyOverflow = '';
 
   ngOnInit(): void {
     const projectId = this.workspace.activeProjectId();
@@ -284,6 +303,64 @@ export class DashboardPageComponent implements OnInit {
   }
 
   // ----- actions -----
+
+  openInsights(): void {
+    if (this.isInsightsOpen()) return;
+    this.lastFocusedElement =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    this.isInsightsOpen.set(true);
+    this.lockBodyScroll(true);
+    queueMicrotask(() => this.insightsClose?.nativeElement.focus());
+  }
+
+  closeInsights(): void {
+    if (!this.isInsightsOpen()) return;
+    this.isInsightsOpen.set(false);
+    this.lockBodyScroll(false);
+    queueMicrotask(() => this.lastFocusedElement?.focus());
+  }
+
+  /** Escape closes the overlay; Tab stays inside it while it is open. */
+  @HostListener('document:keydown', ['$event'])
+  onDocumentKeydown(event: KeyboardEvent): void {
+    if (!this.isInsightsOpen()) return;
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      this.closeInsights();
+      return;
+    }
+    if (event.key === 'Tab') this.trapFocus(event);
+  }
+
+  ngOnDestroy(): void {
+    // Navigating away with the overlay open must not leave the page unscrollable.
+    if (this.isInsightsOpen()) this.lockBodyScroll(false);
+  }
+
+  private trapFocus(event: KeyboardEvent): void {
+    const focusable = this.insightsDialog?.nativeElement.querySelectorAll<HTMLElement>(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex=\"-1\"])',
+    );
+    if (!focusable?.length) return;
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (event.shiftKey && document.activeElement === first) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+      event.preventDefault();
+      first.focus();
+    }
+  }
+
+  private lockBodyScroll(lock: boolean): void {
+    if (lock) {
+      this.previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = this.previousBodyOverflow;
+    }
+  }
 
   addQuickTask(): void {
     this.tasks.addQuickTask();
