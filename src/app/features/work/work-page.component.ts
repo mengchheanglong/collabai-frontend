@@ -1,6 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
+import { DatePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -25,7 +27,7 @@ const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low'];
 @Component({
   selector: 'app-work-page',
   standalone: true,
-  imports: [MatRippleModule, ThemeToggleComponent],
+  imports: [RouterLink, MatRippleModule, MatTooltipModule, ThemeToggleComponent, DatePipe],
   templateUrl: './work-page.component.html',
   styleUrl: './work-page.component.scss',
 })
@@ -42,6 +44,8 @@ export class WorkPageComponent {
   readonly statusFilter = signal<WorkStatusFilter>('open');
   readonly editingTaskId = signal<string | null>(null);
   readonly expandedGroups = signal<Set<WorkGroupKey>>(new Set());
+
+  readonly currentDate = signal(new Date());
 
   readonly priorities = PRIORITIES;
   readonly statuses = this.taskStore.columns;
@@ -147,6 +151,23 @@ export class WorkPageComponent {
       completed: tasks.filter((task) => task.status === 'done').length,
     };
   });
+
+  readonly totalAssigned = computed(() => this.personalTasks().length);
+
+  readonly completionRate = computed(() => {
+    const total = this.totalAssigned();
+    return total ? Math.round((this.overview().completed / total) * 100) : 0;
+  });
+
+  /** Matches the dashboard's greeting so the two pages read as one product. */
+  readonly greeting = computed(() => {
+    const hour = this.currentDate().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  });
+
+  readonly firstName = computed(() => this.memberDirectory.currentUser.name.split(' ')[0]);
 
   readonly hasFilters = computed(
     () =>
