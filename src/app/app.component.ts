@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { ThemeService } from './core/theme/theme.service';
 import { AuthStoreService } from './core/state/auth-store.service';
@@ -9,11 +9,11 @@ import { AuthStoreService } from './core/state/auth-store.service';
   imports: [RouterOutlet],
   templateUrl: './app.component.html',
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   private readonly theme = inject(ThemeService);
-  private readonly auth = inject(AuthStoreService);
+  private readonly authStore = inject(AuthStoreService);
 
-  constructor() {
-    this.auth.restoreSession();
+  ngOnInit(): void {
+    this.authStore.restoreSession().subscribe();
   }
 }

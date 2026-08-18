@@ -24,11 +24,10 @@ export function chipsFromFilters(filters: AiSearchFilters): AiSearchChip[] {
   }
 
   for (const p of filters.priority ?? []) {
-    const label = p === 'urgent' ? 'critical' : p;
     chips.push({
       key: `priority:${p}`,
-      label: `${label} priority`,
-      tone: label === 'high' || label === 'critical' ? 'red' : 'default',
+      label: `${p} priority`,
+      tone: p === 'high' || p === 'urgent' ? 'red' : 'default',
     });
   }
 
@@ -65,5 +64,5 @@ export const SMART_SEARCH_PROMPTS = [
   'high priority due this week',
   'AI tasks assigned to Lina',
   'overdue backend work',
-  'tasks in review',
+  'urgent tasks due this week',
 ] as const;

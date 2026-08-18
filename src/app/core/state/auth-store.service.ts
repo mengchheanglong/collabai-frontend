@@ -1,9 +1,10 @@
-// AuthStoreService — session state on top of the real backend.
+// AuthStoreService - session state on top of the real backend.
 // Tokens live in TokenStore (localStorage) so the HTTP interceptor can attach them;
 // the profile comes from GET /auth/me.
 
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
+import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 import { AuthService } from '../api/auth.service';
 import { TokenStore } from '../api/token.store';
 import { ToastService } from '../toast/toast.service';
@@ -21,20 +22,32 @@ export class AuthStoreService {
   readonly currentUser = signal<AuthUser | null>(null);
   readonly accessToken = signal<string | null>(this.tokens.get());
   readonly isLoading = signal(false);
+  readonly isRestoring = signal(false);
   readonly authError = signal<string | null>(null);
 
   readonly isAuthenticated = computed(() => Boolean(this.accessToken()));
+
+  private restoreSessionRequest: Observable<boolean> | null = null;
 
   login(email: string, password: string): void {
     this.isLoading.set(true);
     this.authError.set(null);
     this.auth.login({ email, password }).subscribe({
       next: ({ accessToken }) => {
-        this.tokens.setToken(accessToken);
-        this.accessToken.set(accessToken);
-        this.isLoading.set(false);
-        void this.router.navigate(['/dashboard']);
-        this.loadCurrentUser({ welcome: true });
+        this.setToken(accessToken);
+        this.auth.me().subscribe({
+          next: ({ user }) => {
+            this.currentUser.set(user);
+            this.isLoading.set(false);
+            this.toast.show(`Welcome back, ${user.name}`, 'success');
+            void this.router.navigate(['/dashboard']);
+          },
+          error: () => {
+            this.isLoading.set(false);
+            this.clearSession();
+            this.authError.set('Could not load your account. Please try again.');
+          },
+        });
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -50,7 +63,7 @@ export class AuthStoreService {
       next: () => {
         this.isLoading.set(false);
         this.toast.show(
-          'Account created — check your email for a 6-digit verification code',
+          'Account created - check your email for a 6-digit verification code',
           'success',
         );
         void this.router.navigate(['/verify-email'], { queryParams: { email } });
@@ -64,47 +77,55 @@ export class AuthStoreService {
 
   logout(): void {
     this.auth.logout().subscribe({
-      next: () => {
-        this.clearSession();
-        void this.router.navigate(['/login']);
-      },
-      error: () => {
-        this.clearSession();
-        void this.router.navigate(['/login']);
-      },
+      next: () => this.finishLogout(),
+      error: () => this.finishLogout(),
     });
   }
 
-  /** Hydrate the profile on app start if a token already exists. */
-  restoreSession(): void {
-    if (!this.accessToken()) return;
-    this.loadCurrentUser({ welcome: false });
+  restoreSession(): Observable<boolean> {
+    const token = this.accessToken();
+    if (!token) {
+      this.currentUser.set(null);
+      return of(false);
+    }
+
+    if (this.currentUser()) return of(true);
+    if (this.restoreSessionRequest) return this.restoreSessionRequest;
+
+    this.isRestoring.set(true);
+    this.restoreSessionRequest = this.auth.me().pipe(
+      tap(({ user }) => {
+        this.currentUser.set(user);
+        this.workspace.reloadProjects();
+      }),
+      map(() => true),
+      catchError(() => {
+        this.clearSession();
+        return of(false);
+      }),
+      finalize(() => {
+        this.isRestoring.set(false);
+        this.restoreSessionRequest = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+
+    return this.restoreSessionRequest;
   }
 
   clearAuthError(): void {
     this.authError.set(null);
   }
 
-  private loadCurrentUser(options: { welcome: boolean }): void {
-    this.isLoading.set(true);
-    this.auth.me().subscribe({
-      next: ({ user }) => {
-        this.currentUser.set(user);
-        this.workspace.reloadProjects();
-        this.isLoading.set(false);
-        if (options.welcome) this.toast.show(`Welcome back, ${user.name}`, 'success');
-      },
-      error: (err: unknown) => {
-        this.isLoading.set(false);
-        const status = (err as { status?: number })?.status;
-        if (status === 401) {
-          // Invalid/expired token — the session is gone, send the user to login.
-          this.clearSession();
-          void this.router.navigate(['/login']);
-        }
-        // 429 / 5xx / network — keep the session; the profile just didn't hydrate.
-      },
-    });
+  private finishLogout(): void {
+    this.clearSession();
+    this.toast.show('Logged out', 'info');
+    void this.router.navigate(['/login']);
+  }
+
+  private setToken(token: string): void {
+    this.tokens.setToken(token);
+    this.accessToken.set(token);
   }
 
   clearSession(): void {

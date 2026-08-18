@@ -108,7 +108,7 @@ export class WorkPageComponent {
       {
         key: 'in_progress',
         title: 'In motion',
-        description: 'Your active and review tasks',
+        description: 'Your active tasks',
         icon: 'progress_activity',
       },
       {

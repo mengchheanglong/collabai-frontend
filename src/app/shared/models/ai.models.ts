@@ -6,8 +6,7 @@ export interface AiSearchFilters {
   labels?: string[];
   status?: TaskStatus[];
   statusNot?: TaskStatus[];
-  /** Backend may use 'urgent'; UI maps critical ↔ urgent for mock. */
-  priority?: Array<Priority | 'urgent'>;
+  priority?: Priority[];
   dueRange?: 'today' | 'this_week' | 'overdue' | null;
   assigneeId?: string | null;
   assigneeName?: string | null;
