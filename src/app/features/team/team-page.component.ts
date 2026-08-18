@@ -14,6 +14,7 @@ type RoleFilter = 'all' | Member['role'];
   standalone: true,
   imports: [MatRippleModule, MatTooltipModule, ThemeToggleComponent],
   templateUrl: './team-page.component.html',
+  styleUrl: './team-page.component.scss',
 })
 export class TeamPageComponent {
   private readonly toast = inject(ToastService);
@@ -32,6 +33,12 @@ export class TeamPageComponent {
   readonly removeTarget = signal<Member | null>(null);
 
   readonly roles: Member['role'][] = ['Admin', 'Member', 'Viewer'];
+
+  readonly nonAdminCount = computed(() => this.members.memberCount() - this.members.adminCount());
+
+  readonly activeRate = computed(() =>
+    Math.round((this.members.activeCount() / Math.max(this.members.memberCount(), 1)) * 100),
+  );
 
   readonly filteredMembers = computed(() => {
     const q = this.searchQuery().trim().toLowerCase();

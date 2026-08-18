@@ -1,57 +1,30 @@
-<section class="page board-page">
-  <header class="page-header">
-    <div>
-      <span class="page-eyebrow">Project delivery</span>
+<section class="page board-page bd ui-page">
+  <!-- ── Header ─────────────────────────────────────────────── -->
+  <header class="ui-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">
+        Project delivery
+        <span class="ui-eyebrow-sep" aria-hidden="true">·</span>
+        <span class="ui-eyebrow-date">{{ currentDate() | date: 'EEEE, d MMMM' }}</span>
+      </p>
       <h1>{{ workspace.activeProjectName() }}</h1>
-      <p>
-        {{
-          workspace.activeProjectId()
-            ? workspace.activeWorkspace().name
-            : "Create a project to set up your first board and task."
-        }}
+      <p class="ui-sub">
+        @if (workspace.activeProjectId()) {
+          <strong>{{ tasks.totalTasks() }}</strong>
+          {{ tasks.totalTasks() === 1 ? 'task' : 'tasks' }} on this board ·
+          <strong>{{ tasks.inProgressTasks() }}</strong> in progress ·
+          <strong>{{ tasks.completionRate() }}%</strong> complete
+        } @else {
+          Create a project to set up your first board and task.
+        }
       </p>
     </div>
-    <div class="header-actions board-actions">
+
+    <div class="ui-hero-actions">
       <app-theme-toggle />
-      <div class="segmented" role="tablist" aria-label="Board view">
-        <button
-          type="button"
-          [class.active]="tasks.boardView() === 'kanban'"
-          (click)="setBoardView('kanban')"
-          [attr.aria-selected]="tasks.boardView() === 'kanban'"
-          [disabled]="!workspace.activeProjectId()"
-          role="tab"
-        >
-          Board
-        </button>
-        <button
-          type="button"
-          [class.active]="tasks.boardView() === 'list'"
-          (click)="setBoardView('list')"
-          [attr.aria-selected]="tasks.boardView() === 'list'"
-          [disabled]="!workspace.activeProjectId()"
-          role="tab"
-        >
-          List
-        </button>
-      </div>
-
-      <div class="search-field">
-        <span class="material-symbols-rounded sm" aria-hidden="true"
-          >filter_list</span
-        >
-        <input
-          [value]="tasks.searchQuery()"
-          (input)="onFilterInput($any($event.target).value)"
-          placeholder="Filter board"
-          aria-label="Filter board"
-          [disabled]="!workspace.activeProjectId()"
-        />
-      </div>
-
       <button
         type="button"
-        class="btn primary"
+        class="ui-btn primary"
         matRipple
         (click)="addQuickTask()"
         [disabled]="!workspace.activeProjectId()"
@@ -62,51 +35,110 @@
     </div>
   </header>
 
-  @if (tasks.smartFilterIds(); as ids) {
-    <div class="board-ai-banner" role="status" aria-live="polite">
-      <span class="material-symbols-rounded sm filled" aria-hidden="true"
-        >auto_awesome</span
-      >
-      <span>
-        AI filter active · showing
-        <strong>{{ ids.length }}</strong>
-        match{{ ids.length === 1 ? "" : "es" }}
+  <!-- ── Toolbar ────────────────────────────────────────────── -->
+  @if (workspace.activeProjectId()) {
+    <div class="ui-toolbar">
+      <div class="ui-tabs" role="tablist" aria-label="Board view">
+        <button
+          type="button"
+          role="tab"
+          class="ui-tab"
+          [class.active]="tasks.boardView() === 'kanban'"
+          [attr.aria-selected]="tasks.boardView() === 'kanban'"
+          (click)="setBoardView('kanban')"
+        >
+          <span class="material-symbols-rounded sm" aria-hidden="true">view_kanban</span>
+          Board
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="ui-tab"
+          [class.active]="tasks.boardView() === 'list'"
+          [attr.aria-selected]="tasks.boardView() === 'list'"
+          (click)="setBoardView('list')"
+        >
+          <span class="material-symbols-rounded sm" aria-hidden="true">list</span>
+          List
+        </button>
+      </div>
+
+      <label class="ui-search">
+        <span class="material-symbols-rounded sm" aria-hidden="true">search</span>
+        <span class="sr-only">Filter board</span>
+        <input
+          type="search"
+          [value]="tasks.searchQuery()"
+          (input)="onFilterInput($any($event.target).value)"
+          placeholder="Filter this board"
+        />
+      </label>
+
+      <span class="bd-result-count" aria-live="polite">
+        <strong>{{ tasks.filteredTasks().length }}</strong>
+        of {{ tasks.totalTasks() }} shown
       </span>
-      <button type="button" class="btn ghost sm" (click)="clearAiFilter()">
-        Clear AI filter
+    </div>
+  }
+
+  <!-- ── AI filter banner ───────────────────────────────────── -->
+  @if (tasks.smartFilterIds(); as ids) {
+    <div class="bd-ai-banner" role="status" aria-live="polite">
+      <span class="ui-ai-mark" aria-hidden="true">
+        <span class="material-symbols-rounded sm filled">auto_awesome</span>
+      </span>
+      <span class="bd-ai-copy">
+        AI filter active — showing <strong>{{ ids.length }}</strong>
+        {{ ids.length === 1 ? 'match' : 'matches' }}
+      </span>
+      <button type="button" class="ui-btn quiet sm" (click)="clearAiFilter()">
+        <span class="material-symbols-rounded sm" aria-hidden="true">filter_alt_off</span>
+        Clear
       </button>
     </div>
   }
 
+  <!-- ── Board surface ──────────────────────────────────────── -->
   @if (!workspace.activeProjectId()) {
-    <section class="board-empty-state" aria-labelledby="no-project-title">
-      <span class="material-symbols-rounded" aria-hidden="true"
-        >folder_off</span
-      >
-      <h2 id="no-project-title">No project selected</h2>
-      <p>
-        Create your first project to unlock a board, tasks, and team
-        collaboration.
-      </p>
-      <a class="btn primary sm" routerLink="/dashboard" matRipple>
+    <section class="ui-empty" aria-labelledby="bd-no-project">
+      <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
+      <strong id="bd-no-project">No project selected</strong>
+      <p>Create your first project to unlock a board, tasks, and team collaboration.</p>
+      <a class="ui-btn primary sm" routerLink="/dashboard" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         Create project
       </a>
     </section>
   } @else if (workspace.boards().length === 0) {
-    <section class="board-empty-state" role="status">
-      <span class="material-symbols-rounded" aria-hidden="true"
-        >view_kanban</span
-      >
-      <h2>No board available</h2>
-      <p>
-        This project has not received a board yet. Refresh the page in a moment
-        or create another project.
-      </p>
+    <section class="ui-empty" role="status">
+      <span class="material-symbols-rounded" aria-hidden="true">view_kanban</span>
+      <strong>No board available</strong>
+      <p>This project has not received a board yet. Refresh in a moment, or create another project.</p>
+    </section>
+  } @else if (tasks.isLoading()) {
+    <div class="ui-skeletons" aria-hidden="true">
+      @for (column of skeletonColumns; track column) {
+        <div class="bd-skeleton-col">
+          <div class="ui-skeleton bd-skeleton-head"></div>
+          @for (card of skeletonCards; track card) {
+            <div class="ui-skeleton bd-skeleton-card"></div>
+          }
+        </div>
+      }
+    </div>
+  } @else if (tasks.hasError()) {
+    <section class="ui-empty is-error" role="alert">
+      <span class="material-symbols-rounded" aria-hidden="true">cloud_off</span>
+      <strong>Could not load this board</strong>
+      <p>The board tasks failed to load. Check your connection and try again.</p>
+      <button type="button" class="ui-btn ghost sm" matRipple (click)="reloadBoard()">
+        <span class="material-symbols-rounded sm" aria-hidden="true">refresh</span>
+        Retry
+      </button>
     </section>
   } @else {
-    <div class="board-layout">
-      @if (tasks.boardView() === "kanban") {
+    <div class="bd-surface">
+      @if (tasks.boardView() === 'kanban') {
         <app-kanban-board />
       } @else {
         <app-task-list-view />

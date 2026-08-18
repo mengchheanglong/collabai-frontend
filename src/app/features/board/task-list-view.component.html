@@ -1,51 +1,78 @@
-<div class="card table-card">
-  <table>
+<div class="tl">
+  <table class="tl-table">
     <thead>
       <tr>
-        <th>Task</th>
-        <th>Assignee</th>
-        <th>Status</th>
-        <th>Priority</th>
-        <th>Due</th>
+        <th scope="col" class="tl-col-task">Task</th>
+        <th scope="col">Assignee</th>
+        <th scope="col">Status</th>
+        <th scope="col">Priority</th>
+        <th scope="col">Due</th>
       </tr>
     </thead>
     <tbody>
       @for (task of tasks.filteredTasks(); track task.id) {
-        <tr
-          [class.selected]="tasks.selectedTask()?.id === task.id"
+          class="tl-row"
+          [class.is-selected]="tasks.selectedTask()?.id === task.id"
           (click)="tasks.selectTask(task)"
           (keydown.enter)="tasks.selectTask(task)"
-          (keydown.space)="tasks.selectTask(task); $event.preventDefault()"
+          (keydown.space)="tasks.selectTask(task)"
           tabindex="0"
-          role="button"
-          [attr.aria-pressed]="tasks.selectedTask()?.id === task.id"
-          [title]="task.title"
+          [attr.aria-label]="'Open ' + task.title"
         >
-          <td>
-            <span class="task-id">{{ task.id }}</span>
-            <strong>{{ task.title }}</strong>
-          </td>
-          <td>
-            <span class="inline-person">
-              <span class="avatar sm" [style.background]="members.memberColor(task.assigneeId || '')" aria-hidden="true">
-                {{ members.initials(task.assigneeId || '') }}
-              </span>
-              {{ members.memberName(task.assigneeId || '') }}
+          <td class="tl-col-task">
+            <span class="ui-task">
+              <span
+                class="ui-prio"
+                [attr.data-priority]="task.priority"
+                aria-hidden="true"
+              ></span>
+              <span class="ui-task-title" [title]="task.title">{{ task.title }}</span>
             </span>
           </td>
           <td>
-            <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
+            @if (assignee(task); as person) {
+              <span class="tl-person">
+                <span class="ui-avatar" [style.background]="person.color" aria-hidden="true">
+                  {{ person.avatar }}
+                </span>
+                {{ person.name }}
+              </span>
+            } @else {
+              <span class="tl-person is-empty">
+                <span class="ui-avatar is-empty" aria-hidden="true">
+                  <span class="material-symbols-rounded sm">person</span>
+                </span>
+                Unassigned
+              </span>
+            }
           </td>
           <td>
-            <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
+            <span class="ui-chip" [attr.data-status]="task.status">
+              {{ tasks.statusLabel(task.status) }}
+            </span>
           </td>
-          <td>{{ task.dueDate ? (task.dueDate | date:'mediumDate') : '—' }}</td>
+          <td>
+            <span class="ui-chip is-priority" [attr.data-priority]="task.priority">
+              {{ task.priority }}
+            </span>
+          </td>
+          <td>
+            <span class="ui-due" [class.is-overdue]="isOverdue(task)">
+              <span class="material-symbols-rounded sm" aria-hidden="true">
+                {{ isOverdue(task) ? 'event_busy' : 'calendar_today' }}
+              </span>
+              {{ dueLabel(task) }}
+            </span>
+          </td>
         </tr>
       } @empty {
         <tr>
-          <td colspan="5" class="empty">
-            <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
-            <p>No matching tasks.</p>
+          <td colspan="5">
+            <div class="ui-empty">
+              <span class="material-symbols-rounded" aria-hidden="true">search_off</span>
+              <strong>No matching tasks</strong>
+              <p>Adjust the filter to see more of this board.</p>
+            </div>
           </td>
         </tr>
       }

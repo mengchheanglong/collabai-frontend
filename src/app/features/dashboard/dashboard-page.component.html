@@ -1,14 +1,14 @@
-<section class="page dashboard-page db">
+<section class="page dashboard-page db ui-page">
   <!-- ── Header ─────────────────────────────────────────────── -->
-  <header class="db-hero">
-    <div class="db-hero-copy">
-      <p class="db-eyebrow">
+  <header class="ui-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">
         {{ workspace.activeWorkspace().name }}
-        <span class="db-eyebrow-sep" aria-hidden="true">·</span>
-        <span class="db-eyebrow-date">{{ today() | date: 'EEEE, d MMMM' }}</span>
+        <span class="ui-eyebrow-sep" aria-hidden="true">·</span>
+        <span class="ui-eyebrow-date">{{ today() | date: 'EEEE, d MMMM' }}</span>
       </p>
       <h1>{{ greeting() }}, {{ firstName() }}</h1>
-      <p class="db-sub">
+      <p class="ui-sub">
         You have <strong>{{ openTasks() }}</strong> open
         {{ openTasks() === 1 ? 'task' : 'tasks' }}
         @if (overdueTasks() > 0) {
@@ -19,13 +19,13 @@
       </p>
     </div>
 
-    <div class="db-hero-actions">
+    <div class="ui-hero-actions">
       <app-theme-toggle />
-      <a class="db-btn ghost" routerLink="/board" matRipple>
+      <a class="ui-btn ghost" routerLink="/board" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">view_kanban</span>
         Open board
       </a>
-      <button type="button" class="db-btn primary" matRipple (click)="addQuickTask()">
+      <button type="button" class="ui-btn primary" matRipple (click)="addQuickTask()">
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         New task
       </button>
@@ -33,67 +33,67 @@
   </header>
 
   <!-- ── KPI strip ──────────────────────────────────────────── -->
-  <div class="db-kpis" role="region" aria-label="Workspace metrics">
-    <article class="db-kpi tone-brand">
-      <div class="db-kpi-head">
-        <span class="db-kpi-icon" aria-hidden="true">
+  <div class="ui-kpis" role="region" aria-label="Workspace metrics">
+    <article class="ui-kpi tone-brand">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">folder_open</span>
         </span>
-        <span class="db-kpi-title">Projects</span>
+        <span class="ui-kpi-title">Projects</span>
       </div>
-      <div class="db-kpi-body">
-        <strong class="db-kpi-value">{{ workspace.filteredProjects().length }}</strong>
-        <p class="db-kpi-foot">
-          <span class="db-kpi-delta">{{ members.memberCount() }}</span>
-          <span class="db-kpi-caption">people collaborating</span>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ workspace.filteredProjects().length }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ members.memberCount() }}</span>
+          <span class="ui-kpi-caption">people collaborating</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi tone-cyan">
-      <div class="db-kpi-head">
-        <span class="db-kpi-icon" aria-hidden="true">
+    <article class="ui-kpi tone-cyan">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">bolt</span>
         </span>
-        <span class="db-kpi-title">In progress</span>
+        <span class="ui-kpi-title">In progress</span>
       </div>
-      <div class="db-kpi-body">
-        <strong class="db-kpi-value">{{ inProgressTasks() }}</strong>
-        <p class="db-kpi-foot">
-          <span class="db-kpi-delta">{{ todoTasks() }}</span>
-          <span class="db-kpi-caption">waiting in the backlog</span>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ inProgressTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ todoTasks() }}</span>
+          <span class="ui-kpi-caption">waiting in the backlog</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi tone-green">
-      <div class="db-kpi-head">
-        <span class="db-kpi-icon" aria-hidden="true">
+    <article class="ui-kpi tone-green">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">check_circle</span>
         </span>
-        <span class="db-kpi-title">Completed</span>
+        <span class="ui-kpi-title">Completed</span>
       </div>
-      <div class="db-kpi-body">
-        <strong class="db-kpi-value">{{ completedTasks() }}</strong>
-        <p class="db-kpi-foot">
-          <span class="db-kpi-delta">{{ completionRate() + '%' }}</span>
-          <span class="db-kpi-caption">of all tasks</span>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ completedTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ completionRate() + '%' }}</span>
+          <span class="ui-kpi-caption">of all tasks</span>
         </p>
       </div>
     </article>
 
-    <article class="db-kpi tone-amber" [class.is-alert]="overdueTasks() > 0">
-      <div class="db-kpi-head">
-        <span class="db-kpi-icon" aria-hidden="true">
+    <article class="ui-kpi tone-amber" [class.is-alert]="overdueTasks() > 0">
+      <div class="ui-kpi-head">
+        <span class="ui-kpi-icon" aria-hidden="true">
           <span class="material-symbols-rounded">priority_high</span>
         </span>
-        <span class="db-kpi-title">Needs attention</span>
+        <span class="ui-kpi-title">Needs attention</span>
       </div>
-      <div class="db-kpi-body">
-        <strong class="db-kpi-value">{{ overdueTasks() }}</strong>
-        <p class="db-kpi-foot">
-          <span class="db-kpi-delta">{{ highPriorityOpen() }}</span>
-          <span class="db-kpi-caption">high-priority open</span>
+      <div class="ui-kpi-body">
+        <strong class="ui-kpi-value">{{ overdueTasks() }}</strong>
+        <p class="ui-kpi-foot">
+          <span class="ui-kpi-delta">{{ highPriorityOpen() }}</span>
+          <span class="ui-kpi-caption">high-priority open</span>
         </p>
       </div>
     </article>
@@ -101,8 +101,8 @@
 
   <!-- ── Row: delivery overview + up next ───────────────────── -->
   <div class="db-grid">
-    <section class="db-panel db-span-5 db-delivery" aria-labelledby="db-progress-title">
-      <div class="db-panel-head is-plain">
+    <section class="ui-panel db-span-5 db-delivery" aria-labelledby="db-progress-title">
+      <div class="ui-panel-head is-plain">
         <h2 id="db-progress-title">
           Delivery overview
           <span
@@ -151,15 +151,15 @@
         </p>
       </div>
 
-      <div class="db-panel-section">
-        <div class="db-section-head">
-          <span class="db-section-title">Status breakdown</span>
-          <a class="db-link" routerLink="/board">Board</a>
+      <div class="ui-panel-section">
+        <div class="ui-section-head">
+          <span class="ui-section-title">Status breakdown</span>
+          <a class="ui-link" routerLink="/board">Board</a>
         </div>
         <ul class="db-legend">
           @for (segment of statusSegments(); track segment.key) {
             <li>
-              <span class="db-dot" [class]="'seg-' + segment.key" aria-hidden="true"></span>
+              <span class="ui-dot" [class]="'seg-' + segment.key" aria-hidden="true"></span>
               <span class="db-legend-label">{{ segment.label }}</span>
               <strong>{{ segment.value }}</strong>
             </li>
@@ -167,9 +167,9 @@
         </ul>
       </div>
       @if (burndown(); as spark) {
-        <div class="db-panel-section">
-          <div class="db-section-head">
-            <span class="db-section-title">Burndown</span>
+        <div class="ui-panel-section">
+          <div class="ui-section-head">
+            <span class="ui-section-title">Burndown</span>
             <span
               class="db-trend"
               [class.is-good]="burndownDelta() < 0"
@@ -202,15 +202,15 @@
       }
 
       @if (workload().length) {
-        <div class="db-panel-section">
-          <div class="db-section-head">
-            <span class="db-section-title">Team workload</span>
-            <a class="db-link" routerLink="/team">Team</a>
+        <div class="ui-panel-section">
+          <div class="ui-section-head">
+            <span class="ui-section-title">Team workload</span>
+            <a class="ui-link" routerLink="/team">Team</a>
           </div>
           <ul class="db-workload">
             @for (row of workload(); track row.userId) {
               <li>
-                <span class="db-avatar sm" [style.background]="members.memberColor(row.name)">
+                <span class="ui-avatar sm" [style.background]="members.memberColor(row.name)">
                   {{ members.initials(row.name) }}
                 </span>
                 <span class="db-workload-name">{{ row.name }}</span>
@@ -225,63 +225,63 @@
       }
     </section>
 
-    <section class="db-panel db-span-7" aria-labelledby="db-upnext-title">
-      <div class="db-panel-head">
+    <section class="ui-panel db-span-7" aria-labelledby="db-upnext-title">
+      <div class="ui-panel-head">
         <h2 id="db-upnext-title">Up next</h2>
-        <button type="button" class="db-link" (click)="openBoard()">View all</button>
+        <button type="button" class="ui-link" (click)="openBoard()">View all</button>
       </div>
 
-      <div class="db-panel-body">
+      <div class="ui-panel-body">
         @if (tasks.isLoading()) {
-          <ul class="db-skeletons">
+          <ul class="ui-skeletons">
             @for (row of skeletonRows; track row) {
-              <li class="db-skeleton"></li>
+              <li class="ui-skeleton"></li>
             }
           </ul>
         } @else {
-          <ul class="db-tasks">
+          <ul class="ui-tasks">
             @for (task of upNext(); track task.id) {
               <li>
                 <button
                   type="button"
-                  class="db-task"
+                  class="ui-task"
                   matRipple
                   (click)="openTaskOnBoard(task)"
                   [attr.aria-label]="'Open task ' + task.title"
                 >
                   <span
-                    class="db-prio"
+                    class="ui-prio"
                     [class]="tasks.priorityClass(task.priority)"
                     [matTooltip]="task.priority + ' priority'"
                     aria-hidden="true"
                   ></span>
 
-                  <span class="db-task-main">
-                    <span class="db-task-title">{{ task.title }}</span>
-                    <span class="db-task-sub">
-                      <span class="db-chip" [attr.data-status]="task.status">
+                  <span class="ui-task-main">
+                    <span class="ui-task-title">{{ task.title }}</span>
+                    <span class="ui-task-sub">
+                      <span class="ui-chip" [attr.data-status]="task.status">
                         {{ tasks.statusLabel(task.status) }}
                       </span>
                       @if (subtaskProgress(task); as progress) {
-                        <span class="db-task-fact">
+                        <span class="ui-task-fact">
                           <span class="material-symbols-rounded sm" aria-hidden="true">checklist</span>
                           {{ progress }}
                         </span>
                       }
                       @if (task.comments > 0) {
-                        <span class="db-task-fact">
+                        <span class="ui-task-fact">
                           <span class="material-symbols-rounded sm" aria-hidden="true">chat_bubble</span>
                           {{ task.comments }}
                         </span>
                       }
                       @for (label of task.labels.slice(0, 2); track label) {
-                        <span class="db-tag">{{ label }}</span>
+                        <span class="ui-tag">{{ label }}</span>
                       }
                     </span>
                   </span>
 
-                  <span class="db-task-end">
-                    <span class="db-due" [class.is-overdue]="isOverdue(task)">
+                  <span class="ui-task-end">
+                    <span class="ui-due" [class.is-overdue]="isOverdue(task)">
                       <span class="material-symbols-rounded sm" aria-hidden="true">
                         {{ isOverdue(task) ? 'event_busy' : 'calendar_today' }}
                       </span>
@@ -289,12 +289,12 @@
                     </span>
                     @if (assigneeName(task); as name) {
                       <span
-                        class="db-avatar sm"
+                        class="ui-avatar sm"
                         [style.background]="members.memberColor(name)"
                         [matTooltip]="name"
                       >{{ members.initials(name) }}</span>
                     } @else {
-                      <span class="db-avatar sm is-empty" matTooltip="Unassigned" aria-hidden="true">
+                      <span class="ui-avatar sm is-empty" matTooltip="Unassigned" aria-hidden="true">
                         <span class="material-symbols-rounded sm">person</span>
                       </span>
                     }
@@ -302,11 +302,11 @@
                 </button>
               </li>
             } @empty {
-              <li class="db-empty">
+              <li class="ui-empty">
                 <span class="material-symbols-rounded" aria-hidden="true">task_alt</span>
                 <strong>Your queue is clear</strong>
                 <p>Every open task is done. Create a new one to keep the board moving.</p>
-                <button type="button" class="db-btn primary sm" (click)="addQuickTask()">
+                <button type="button" class="ui-btn primary sm" (click)="addQuickTask()">
                   <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
                   New task
                 </button>
@@ -383,12 +383,12 @@
         </header>
 
         <div class="db-modal-body">
-            <section class="db-panel" aria-labelledby="db-projects-title">
-              <div class="db-panel-head">
+            <section class="ui-panel" aria-labelledby="db-projects-title">
+              <div class="ui-panel-head">
                 <h2 id="db-projects-title">Projects</h2>
-                <span class="db-count">{{ workspace.filteredProjects().length }}</span>
+                <span class="ui-count">{{ workspace.filteredProjects().length }}</span>
               </div>
-              <div class="db-panel-body">
+              <div class="ui-panel-body">
                 <ul class="db-projects">
                   @for (project of workspace.filteredProjects(); track project.id) {
                     <li>
@@ -412,7 +412,7 @@
                       </a>
                     </li>
                   } @empty {
-                    <li class="db-empty">
+                    <li class="ui-empty">
                       <span class="material-symbols-rounded" aria-hidden="true">create_new_folder</span>
                       <strong>No projects yet</strong>
                       <p>Create a project from the sidebar to start planning work.</p>
@@ -422,16 +422,16 @@
               </div>
             </section>
 
-            <section class="db-panel" aria-labelledby="db-activity-title">
-              <div class="db-panel-head">
+            <section class="ui-panel" aria-labelledby="db-activity-title">
+              <div class="ui-panel-head">
                 <h2 id="db-activity-title">Activity</h2>
               </div>
-              <div class="db-panel-body">
+              <div class="ui-panel-body">
                 <ol class="db-feed">
                   @for (activity of recentActivities(); track $index) {
                     <li class="db-feed-item" [class.is-ai]="activity.type === 'ai'">
                       <span
-                        class="db-avatar"
+                        class="ui-avatar"
                         [class.is-ai]="activity.type === 'ai'"
                         [style.background]="
                           activity.type === 'ai' ? null : members.memberColor(activity.actor)
@@ -455,7 +455,7 @@
                       </div>
                     </li>
                   } @empty {
-                    <li class="db-empty">
+                    <li class="ui-empty">
                       <span class="material-symbols-rounded" aria-hidden="true">history</span>
                       <strong>Nothing here yet</strong>
                       <p>Board updates and comments will show up in this feed.</p>
@@ -465,18 +465,18 @@
               </div>
             </section>
 
-            <section class="db-panel db-ai" aria-labelledby="db-ai-title">
-              <div class="db-panel-head">
+            <section class="ui-panel db-ai" aria-labelledby="db-ai-title">
+              <div class="ui-panel-head">
                 <h2 id="db-ai-title">
-                  <span class="material-symbols-rounded md filled db-ai-mark" aria-hidden="true">
+                  <span class="material-symbols-rounded md filled ui-ai-mark" aria-hidden="true">
                     auto_awesome
                   </span>
                   AI suggestions
                 </h2>
-                <span class="db-count">{{ suggestions.suggestions().length }}</span>
+                <span class="ui-count">{{ suggestions.suggestions().length }}</span>
               </div>
 
-              <div class="db-panel-body">
+              <div class="ui-panel-body">
                 @if (topSuggestions().length) {
                   <ul class="db-suggestions">
                     @for (s of topSuggestions(); track s.id) {
@@ -495,7 +495,7 @@
                         <div class="db-suggestion-actions">
                           <button
                             type="button"
-                            class="db-btn primary sm"
+                            class="ui-btn primary sm"
                             matRipple
                             (click)="suggestions.applySuggestion(s)"
                           >
@@ -503,7 +503,7 @@
                           </button>
                           <button
                             type="button"
-                            class="db-btn quiet sm"
+                            class="ui-btn quiet sm"
                             matTooltip="Dismiss this suggestion"
                             (click)="suggestions.dismissSuggestion(s)"
                           >
@@ -514,7 +514,7 @@
                     }
                   </ul>
                 } @else {
-                  <div class="db-empty">
+                  <div class="ui-empty">
                     <span class="material-symbols-rounded" aria-hidden="true">verified</span>
                     <strong>All caught up</strong>
                     <p>New suggestions appear as the board changes.</p>
