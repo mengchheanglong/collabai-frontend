@@ -274,14 +274,21 @@
 }
 
 .auth-link,
-.auth-links a {
+.auth-links a,
+.auth-links button {
   color: var(--brand);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
   text-decoration: none;
-  font-size: 13px;
+  font: inherit;
+  font-size: 13.5px;
 }
 
 .auth-link:hover,
-.auth-links a:hover {
+.auth-links a:hover,
+.auth-links button:hover {
   color: var(--brand-hover);
   text-decoration: underline;
 }

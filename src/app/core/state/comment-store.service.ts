@@ -22,33 +22,34 @@ export class CommentStoreService {
       const task = this.tasks.selectedTask();
       if (task) {
         this.loadComments(task.id);
+      } else {
+        this.isLoading.set(false);
+        this.commentDraft.set('');
       }
     });
   }
 
   loadComments(taskId: string): void {
-    // Check if we already have them loaded to avoid fetching again on every re-select,
-    // though fetching fresh might be better. We'll fetch fresh.
     this.isLoading.set(true);
     this.commentApi.getComments(taskId).subscribe({
       next: (dtos) => {
-        const mapped = dtos.map(dto => ({
-          id: dto._id,
+        const mapped = (dtos || []).map((dto) => ({
+          id: dto._id || (dto as any).id,
           authorId: dto.authorId,
           author: dto.author?.name || 'Unknown User',
           body: dto.body,
-          createdAt: dto.createdAt
+          createdAt: dto.createdAt,
         }));
-        this.commentsByTaskId.update(map => ({
+        this.commentsByTaskId.update((map) => ({
           ...map,
-          [taskId]: mapped
+          [taskId]: mapped,
         }));
         this.isLoading.set(false);
       },
       error: () => {
         this.toast.show('Failed to load comments', 'info');
         this.isLoading.set(false);
-      }
+      },
     });
   }
 
@@ -65,7 +66,7 @@ export class CommentStoreService {
     this.commentApi.createComment(task.id, body).subscribe({
       next: ({ comment: dto }) => {
         const newComment: Comment = {
-          id: dto._id,
+          id: dto._id || (dto as any).id,
           authorId: dto.authorId,
           author: dto.author?.name || this.members.currentUser.name,
           body: dto.body,

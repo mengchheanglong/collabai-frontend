@@ -12,7 +12,7 @@
         <div class="task-modal-chrome-left">
           <span class="task-key">{{ task.id }}</span>
           <span class="task-chrome-sep" aria-hidden="true">·</span>
-          <span class="task-chrome-project" [title]="task.projectId">{{ task.projectId }}</span>
+          <span class="task-chrome-project" [title]="projectName(task)">{{ projectName(task) }}</span>
         </div>
         <div class="task-modal-chrome-actions">
           <button
@@ -49,13 +49,24 @@
         </div>
       </header>
 
-      <!-- Title + status chips (Asana/Linear hierarchy) -->
+      <!-- Title + status chips (Asana/Linear hierarchy) with inline editing -->
       <div class="task-modal-title-block">
         <div class="drawer-chips">
           <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
           <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
         </div>
-        <h2 id="task-modal-title">{{ task.title }}</h2>
+        <div class="task-title-edit-wrap">
+          <input
+            class="task-title-input"
+            id="task-modal-title"
+            #titleInput
+            [value]="task.title"
+            (blur)="saveTitle(task, titleInput)"
+            (keydown.enter)="titleInput.blur()"
+            placeholder="Task title…"
+            aria-label="Task title"
+          />
+        </div>
       </div>
 
       <!-- Two-column body: content | properties (Jira issue dialog) -->
@@ -63,7 +74,15 @@
         <div class="task-modal-content">
           <section class="task-section">
             <h3>Description</h3>
-            <p class="desc">{{ task.description }}</p>
+            <textarea
+              class="task-desc-textarea"
+              #descInput
+              [value]="task.description"
+              (blur)="saveDescription(task, descInput.value)"
+              placeholder="Add a detailed description… (Click to edit, auto-saves on blur)"
+              rows="4"
+              aria-label="Task description"
+            ></textarea>
           </section>
 
           <section class="task-section">
@@ -75,14 +94,30 @@
               <mat-progress-bar mode="determinate" [value]="tasks.subtaskProgress(task)" [attr.aria-label]="'Subtask progress: ' + tasks.subtaskProgress(task) + '%'"></mat-progress-bar>
             }
             <div class="subtasks">
-              @for (sub of task.subtasks; track sub.title; let i = $index) {
+              @for (sub of task.subtasks; track sub.id || $index; let i = $index) {
                 <label class="check" [class.done]="sub.done">
                   <input type="checkbox" [checked]="sub.done" (change)="tasks.toggleSubtask(task, i)" [attr.aria-label]="(sub.done ? 'Mark incomplete: ' : 'Mark complete: ') + sub.title" />
                   <span>{{ sub.title }}</span>
                 </label>
-              } @empty {
-                <p class="empty">No subtasks yet. Use the tree icon above for AI subtasks.</p>
               }
+            </div>
+            <div class="subtask-add-inline">
+              <button
+                type="button"
+                class="icon-btn-inline"
+                (click)="handleAddSubtask(task, newSubtaskInput)"
+                aria-label="Add subtask"
+                title="Add subtask"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
+              </button>
+              <input
+                #newSubtaskInput
+                type="text"
+                placeholder="Add a subtask and press Enter…"
+                (keydown.enter)="handleAddSubtask(task, newSubtaskInput)"
+                aria-label="Add subtask"
+              />
             </div>
           </section>
 
@@ -93,7 +128,7 @@
                 type="button"
                 class="btn ghost sm"
                 [disabled]="tasks.isSummarizingComments() || !comments.selectedTaskComments().length"
-                (click)="tasks.summarizeComments(task, comments.selectedTaskComments())"
+                (click)="tasks.summarizeComments(task)"
               >
                 <span class="material-symbols-rounded sm" [class.spin]="tasks.isSummarizingComments()">
                   {{ tasks.isSummarizingComments() ? 'progress_activity' : 'summarize' }}
@@ -116,7 +151,7 @@
             }
 
             <div class="comments">
-              @for (c of comments.selectedTaskComments().slice(0, 6); track $index) {
+              @for (c of comments.selectedTaskComments(); track c.id || $index) {
                 <div class="comment">
                   <span class="avatar sm" [style.background]="members.memberColor(c.author)" aria-hidden="true">
                     {{ members.initials(c.author) }}
@@ -126,9 +161,8 @@
                     <small>{{ c.createdAt | date:'medium' }}</small>
                     <p>{{ c.body }}</p>
                   </div>
-                  @if (members.currentUser.name === c.author) {
-                    <!-- Simplistic ownership check or admin check; normally we'd check ID -->
-                    <button type="button" class="icon-btn delete-comment" (click)="comments.deleteComment(task.id, c.id)" aria-label="Delete comment" title="Delete comment">
+                  @if (members.currentUser.name === c.author || members.currentUser.id === c.authorId) {
+                    <button type="button" class="icon-btn delete-comment" (click)="comments.deleteComment(task.id, c.id)" [attr.aria-label]="'Delete comment from ' + c.author" title="Delete comment">
                       <span class="material-symbols-rounded sm" aria-hidden="true">delete</span>
                     </button>
                   }
@@ -146,28 +180,57 @@
         <aside class="task-modal-props" aria-label="Task properties">
           <div class="prop-row">
             <span class="prop-label">Status</span>
-            <span class="status" [attr.data-status]="task.status">{{ tasks.statusLabel(task.status) }}</span>
+            <select
+              class="prop-select"
+              [value]="task.status"
+              (change)="updateStatus(task, $any($event.target).value)"
+              aria-label="Status"
+            >
+              @for (s of statuses; track s) {
+                <option [value]="s">{{ tasks.statusLabel(s) }}</option>
+              }
+            </select>
           </div>
           <div class="prop-row">
             <span class="prop-label">Priority</span>
-            <span class="pill" [class]="tasks.priorityClass(task.priority)">{{ task.priority }}</span>
+            <select
+              class="prop-select"
+              [value]="task.priority"
+              (change)="updatePriority(task, $any($event.target).value)"
+              aria-label="Priority"
+            >
+              @for (p of priorities; track p) {
+                <option [value]="p">{{ p | titlecase }}</option>
+              }
+            </select>
           </div>
           <div class="prop-row">
             <span class="prop-label">Assignee</span>
-            <span class="inline-person">
-              <span class="avatar sm" [style.background]="members.memberColor(task.assigneeId || '')">
-                {{ members.initials(task.assigneeId || '') }}
-              </span>
-              {{ task.assigneeId }}
-            </span>
+            <select
+              class="prop-select"
+              [value]="task.assigneeId || ''"
+              (change)="updateAssignee(task, $any($event.target).value)"
+              aria-label="Assignee"
+            >
+              <option value="">Unassigned</option>
+              @for (m of members.members(); track m.id) {
+                <option [value]="m.id">{{ m.name }}</option>
+              }
+            </select>
           </div>
           <div class="prop-row">
             <span class="prop-label">Due date</span>
-            <span class="prop-value">{{ task.dueDate }}</span>
+            <input
+              type="date"
+              class="prop-date-input"
+              [value]="task.dueDate ? (task.dueDate | date:'yyyy-MM-dd') : ''"
+              (change)="updateDueDate(task, $any($event.target).value)"
+              aria-label="Due date"
+            />
           </div>
           <div class="prop-row">
             <span class="prop-label">Project</span>
-            <span class="prop-value">{{ task.projectId }}</span>
+            <span class="prop-value">{{ projectName(task) }}</span>
           </div>
           @if (task.labels.length) {
             <div class="prop-row prop-row-stack">

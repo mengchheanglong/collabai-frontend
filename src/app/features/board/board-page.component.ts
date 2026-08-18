@@ -16,7 +16,6 @@ import { TaskListViewComponent } from './task-list-view.component';
   imports: [
     DatePipe,
     MatRippleModule,
-    RouterLink,
     KanbanBoardComponent,
     TaskListViewComponent,
     TaskDetailDrawerComponent,
@@ -56,5 +55,9 @@ export class BoardPageComponent {
   reloadBoard(): void {
     const boardId = this.workspace.activeBoardId();
     if (boardId) this.tasks.loadBoard(boardId);
+  }
+
+  openProjectCreator(): void {
+    this.workspace.isWorkspaceCreatorOpen.set(true);
   }
 }

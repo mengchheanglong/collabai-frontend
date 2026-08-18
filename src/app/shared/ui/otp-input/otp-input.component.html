@@ -1,4 +1,4 @@
-﻿<div class="otp-input" (paste)="onPaste($event)">
+<div class="otp-input" (paste)="onPaste($event)">
   @for (i of boxes; track i) {
     <input
       #digitInput
@@ -7,6 +7,7 @@
       maxlength="1"
       class="otp-box"
       [value]="digits()[i]"
+      [attr.aria-label]="'Verification code digit ' + (i + 1) + ' of ' + length"
       (input)="onInput(i, $event)"
       (keydown)="onKeydown(i, $event)"
     />

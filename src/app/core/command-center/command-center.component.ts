@@ -334,10 +334,9 @@ export class CommandCenterComponent {
   }
 
   private openProject(project: Project): void {
-    const projectWorkspace = this.workspace.workspaces().find((item) => item.projectNames.includes(project.name));
-    if (projectWorkspace) this.workspace.selectWorkspace(projectWorkspace.id);
+    this.workspace.selectProject(project.id);
     this.tasks.clearUiState();
-    void this.router.navigate(['/dashboard']);
+    void this.router.navigate(['/board']);
   }
 
   private trapFocus(event: KeyboardEvent): void {

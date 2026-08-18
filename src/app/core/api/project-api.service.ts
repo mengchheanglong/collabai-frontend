@@ -39,26 +39,39 @@ export class ProjectApiService {
 
   list(query?: { q?: string; page?: number; limit?: number }): Observable<ProjectListPage> {
     return this.api
-      .getList<ProjectDto[]>('/projects', query)
-      .pipe(map((res) => ({ projects: res.data, meta: res.meta })));
+      .get<any>('/projects', query)
+      .pipe(
+        map((res) => {
+          if (Array.isArray(res)) {
+            return { projects: res };
+          }
+          if (res && Array.isArray(res.items)) {
+            return { projects: res.items, meta: res.meta };
+          }
+          if (res && Array.isArray(res.projects)) {
+            return { projects: res.projects, meta: res.meta };
+          }
+          return { projects: [] };
+        }),
+      );
   }
 
   create(input: CreateProjectInput): Observable<ProjectDto> {
     return this.api
-      .post<{ project: ProjectDto }>('/projects', input)
-      .pipe(map((d) => d.project));
+      .post<any>('/projects', input)
+      .pipe(map((d) => d?.project || d));
   }
 
   get(projectId: string): Observable<ProjectDto> {
     return this.api
-      .get<{ project: ProjectDto }>(`/projects/${projectId}`)
-      .pipe(map((d) => d.project));
+      .get<any>(`/projects/${projectId}`)
+      .pipe(map((d) => d?.project || d));
   }
 
   update(projectId: string, input: UpdateProjectInput): Observable<ProjectDto> {
     return this.api
-      .patch<{ project: ProjectDto }>(`/projects/${projectId}`, input)
-      .pipe(map((d) => d.project));
+      .patch<any>(`/projects/${projectId}`, input)
+      .pipe(map((d) => d?.project || d));
   }
 
   remove(projectId: string): Observable<void> {
@@ -69,8 +82,8 @@ export class ProjectApiService {
 
   listMembers(projectId: string): Observable<ProjectMemberDto[]> {
     return this.api
-      .get<{ members: ProjectMemberDto[] }>(`/projects/${projectId}/members`)
-      .pipe(map((d) => d.members));
+      .get<any>(`/projects/${projectId}/members`)
+      .pipe(map((d) => (Array.isArray(d) ? d : d?.members || [])));
   }
 
   addMember(
@@ -79,11 +92,11 @@ export class ProjectApiService {
     role: Exclude<ProjectRole, 'owner'> = 'member',
   ): Observable<ProjectDto> {
     return this.api
-      .post<{ project: ProjectDto }>(`/projects/${projectId}/members`, {
+      .post<any>(`/projects/${projectId}/members`, {
         email,
         role,
       })
-      .pipe(map((d) => d.project));
+      .pipe(map((d) => d?.project || d));
   }
 
   updateMemberRole(
@@ -92,16 +105,16 @@ export class ProjectApiService {
     role: ProjectRole,
   ): Observable<ProjectDto> {
     return this.api
-      .patch<{ project: ProjectDto }>(
+      .patch<any>(
         `/projects/${projectId}/members/${userId}`,
         { role },
       )
-      .pipe(map((d) => d.project));
+      .pipe(map((d) => d?.project || d));
   }
 
   removeMember(projectId: string, userId: string): Observable<ProjectDto> {
     return this.api
-      .delete<{ project: ProjectDto }>(`/projects/${projectId}/members/${userId}`)
-      .pipe(map((d) => d.project));
+      .delete<any>(`/projects/${projectId}/members/${userId}`)
+      .pipe(map((d) => d?.project || d));
   }
 }

@@ -59,3 +59,23 @@ export interface AiSearchChip {
   label: string;
   tone?: 'default' | 'brand' | 'amber' | 'red' | 'green' | 'cyan';
 }
+
+export interface StructuredTask {
+  title: string;
+  description: string;
+  subtasks: string[];
+  status?: TaskStatus;
+  priority?: Priority;
+  labels?: string[];
+  dueDate?: string;
+}
+
+export interface GenerateTasksRequest {
+  projectId: string;
+  prompt: string;
+  count?: number;
+}
+
+export interface GenerateTasksResponse {
+  tasks: StructuredTask[];
+}

@@ -16,11 +16,15 @@ export class BoardApiService {
   }
 
   getBoardWithTasks(boardId: string): Observable<BoardWithTasksDto> {
-    return this.apiClient.get<{ board: BoardDto; tasks: TaskDto[] }>(`/boards/${boardId}?includeTasks=true`).pipe(
-      map(res => ({
-        ...res.board,
-        tasks: res.tasks
-      }))
+    return this.apiClient.get<any>(`/boards/${boardId}?includeTasks=true`).pipe(
+      map((res) => {
+        const board = res?.board || res;
+        const tasks = res?.tasks || board?.tasks || [];
+        return {
+          ...board,
+          tasks,
+        };
+      }),
     );
   }
 }

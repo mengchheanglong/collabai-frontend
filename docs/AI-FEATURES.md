@@ -147,9 +147,30 @@ Embedding-based semantic search is optional bonus. Do not block MVP on it.
 - Comments panel: button `Summarize discussion`.
 - Dashboard/project board: smart search bar.
 
+## Copilot app actions
+
+The copilot may execute safe, authenticated app actions after resolving the active
+project context and the requested task. The frontend uses the same API clients as
+the corresponding UI controls, so an action persists exactly as a manual action
+would.
+
+Supported examples:
+
+- `create project Mobile launch`
+- `create task Prepare release notes`
+- `mark Build login page done`
+- `set Build login page to urgent priority`
+- `comment on Build login page saying API is ready`
+- `open My work`
+
+The current backend does not expose a general tool-calling AI endpoint. For actions
+outside this safe command set (especially delete, membership, and profile changes),
+add a backend-managed agent endpoint with explicit tool schemas, permission checks,
+and confirmation requirements. Do not let the browser decide or bypass authorization
+for destructive actions.
+
 ## Cost controls
 
 - Add per-user simple rate limit for AI endpoints.
 - Cache repeated subtask/description requests only if easy.
 - Limit AI input size, especially comments.
-

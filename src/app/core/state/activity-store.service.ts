@@ -10,10 +10,15 @@ export class ActivityStoreService {
   readonly activities = signal<Activity[]>([]);
 
   loadForProject(projectId: string): void {
-    if (!projectId) return;
+    if (!projectId) {
+      this.activities.set([]);
+      return;
+    }
     this.activityApi.getProjectActivity(projectId).subscribe({
-      next: (dtos) => this.activities.set(dtos.map(toActivity)),
-      error: () => {/* silently ignore — empty state shown in UI */},
+      next: (dtos) => this.activities.set((dtos || []).map(toActivity)),
+      error: () => {
+        this.activities.set([]);
+      },
     });
   }
 }

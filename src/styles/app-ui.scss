@@ -1549,7 +1549,8 @@ a.btn {
 
 .kanban {
   display: grid;
-  grid-template-columns: repeat(4, minmax(260px, 1fr));
+  /* The MVP workflow has three statuses: To Do, In Progress, and Done. */
+  grid-template-columns: repeat(3, minmax(260px, 1fr));
   gap: 12px;
   overflow-x: auto;
   min-width: 0;
@@ -1949,6 +1950,95 @@ tbody tr {
   }
 }
 
+.task-title-edit-wrap {
+  width: 100%;
+}
+
+.task-title-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 22px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  color: var(--text);
+  margin-left: -8px;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    background: var(--hover);
+  }
+  &:focus {
+    background: var(--panel);
+    border-color: var(--brand-border);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+}
+
+.task-desc-textarea {
+  width: 100%;
+  min-height: 90px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--text-2);
+  resize: vertical;
+  font-family: inherit;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:hover {
+    border-color: var(--line-2);
+  }
+  &:focus {
+    background: var(--panel);
+    border-color: var(--brand);
+    outline: none;
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+}
+
+.subtask-add-inline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--hover);
+  border: 1px dashed var(--line-2);
+  margin-top: 8px;
+  transition: border-color 0.15s, background 0.15s;
+
+  &:focus-within {
+    border-color: var(--brand);
+    background: var(--panel);
+  }
+
+  span {
+    color: var(--muted);
+  }
+
+  input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    font-size: 13px;
+    color: var(--text);
+
+    &::placeholder {
+      color: var(--muted-2);
+    }
+  }
+}
+
 .drawer-chips {
   display: flex;
   flex-wrap: wrap;
@@ -2011,6 +2101,28 @@ tbody tr {
 .prop-row {
   display: grid;
   gap: 6px;
+}
+
+.prop-select,
+.prop-date-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text);
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--line-2);
+  }
+  &:focus {
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px var(--brand-soft);
+  }
 }
 
 .prop-row-stack .drawer-chips {
@@ -3257,7 +3369,7 @@ tbody tr {
   }
 
   .kanban {
-    grid-template-columns: repeat(4, minmax(76vw, 1fr));
+    grid-template-columns: repeat(3, minmax(76vw, 1fr));
   }
 
   .stats {
@@ -3540,6 +3652,19 @@ tbody tr {
 .ai-msg-tasks {
   display: grid;
   gap: 6px;
+}
+
+.ai-msg-suggestions {
+  display: grid;
+  gap: 7px;
+  margin: 2px 0 0;
+  padding: 10px 12px 10px 30px;
+  border: 1px solid var(--brand-border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--brand-soft) 58%, var(--panel));
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .ai-task-row {

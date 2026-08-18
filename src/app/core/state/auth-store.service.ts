@@ -8,6 +8,7 @@ import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxj
 import { AuthService } from '../api/auth.service';
 import { TokenStore } from '../api/token.store';
 import { ToastService } from '../toast/toast.service';
+import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import type { AuthUser } from '../../shared/models/auth.models';
 
 @Injectable({ providedIn: 'root' })
@@ -16,6 +17,7 @@ export class AuthStoreService {
   private readonly tokens = inject(TokenStore);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly workspace = inject(WorkspaceContextService);
 
   readonly currentUser = signal<AuthUser | null>(null);
   readonly accessToken = signal<string | null>(this.tokens.get());
@@ -23,7 +25,7 @@ export class AuthStoreService {
   readonly isRestoring = signal(false);
   readonly authError = signal<string | null>(null);
 
-  readonly isAuthenticated = computed(() => !!this.accessToken());
+  readonly isAuthenticated = computed(() => Boolean(this.accessToken()));
 
   private restoreSessionRequest: Observable<boolean> | null = null;
 
@@ -92,7 +94,10 @@ export class AuthStoreService {
 
     this.isRestoring.set(true);
     this.restoreSessionRequest = this.auth.me().pipe(
-      tap(({ user }) => this.currentUser.set(user)),
+      tap(({ user }) => {
+        this.currentUser.set(user);
+        this.workspace.reloadProjects();
+      }),
       map(() => true),
       catchError(() => {
         this.clearSession();
@@ -123,10 +128,11 @@ export class AuthStoreService {
     this.accessToken.set(token);
   }
 
-  private clearSession(): void {
+  clearSession(): void {
     this.tokens.clear();
     this.accessToken.set(null);
     this.currentUser.set(null);
+    this.workspace.selectProject('');
   }
 
   private errorMessage(err: unknown): string {

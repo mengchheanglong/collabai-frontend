@@ -42,6 +42,10 @@ export class AuthService {
     return this.api.get<MeResponse>('/auth/me');
   }
 
+  refreshToken(): Observable<{ accessToken: string }> {
+    return this.api.post<{ accessToken: string }>('/auth/refresh-token');
+  }
+
   /** No body — the backend reads the email from the `registration_verification` cookie. */
   verifyEmail(body: VerifyEmailRequest): Observable<VerifyEmailResponse> {
     return this.api.post<VerifyEmailResponse>('/auth/verify-email', body);

@@ -442,8 +442,10 @@ Response `200`:
 ```json
 {
   "success": true,
-  "data": [ProjectDto],
-  "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+  "data": {
+    "items": [ProjectDto],
+    "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+  }
 }
 ```
 
@@ -775,8 +777,10 @@ Response `200`:
 ```json
 {
   "success": true,
-  "data": [TaskDto],
-  "meta": { "page": 1, "limit": 50, "total": 12, "totalPages": 1 }
+  "data": {
+    "items": [TaskDto],
+    "meta": { "page": 1, "limit": 50, "total": 12, "totalPages": 1 }
+  }
 }
 ```
 
@@ -934,7 +938,7 @@ Response `200`:
 ```json
 {
   "success": true,
-  "data": [CommentDto]
+  "data": { "comments": [CommentDto] }
 }
 ```
 
@@ -1018,6 +1022,8 @@ Socket event: `comment:deleted`.
 
 List recent project activity.
 
+> **Current backend status:** this endpoint is not implemented in the backend application yet. The frontend handles the resulting failure without breaking the dashboard; add the endpoint before relying on the activity feed in production.
+
 Auth: project member.
 
 Query:
@@ -1077,19 +1083,21 @@ Response `200`:
 ```json
 {
   "success": true,
-  "data": [
-    {
-      "_id": "66f000000000000000000060",
-      "userId": "66f000000000000000000001",
-      "projectId": "66f000000000000000000010",
-      "type": "task.assigned",
-      "title": "Task assigned",
-      "body": "You were assigned to Build login page",
-      "read": false,
-      "createdAt": "2026-01-01T00:00:00.000Z"
-    }
-  ],
-  "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+  "data": {
+    "items": [
+      {
+        "_id": "66f000000000000000000060",
+        "userId": "66f000000000000000000001",
+        "projectId": "66f000000000000000000010",
+        "type": "task.assigned",
+        "title": "Task assigned",
+        "body": "You were assigned to Build login page",
+        "read": false,
+        "createdAt": "2026-01-01T00:00:00.000Z"
+      }
+    ],
+    "meta": { "page": 1, "limit": 20, "total": 1, "totalPages": 1 }
+  }
 }
 ```
 

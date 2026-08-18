@@ -14,6 +14,8 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   host: {
     '[class.selected]': 'selected()',
     '(click)': 'select.emit(task())',
+    '(keydown.enter)': 'select.emit(task())',
+    '(keydown.space)': 'select.emit(task()); $event.preventDefault()',
   },
 })
 export class TaskCardComponent {

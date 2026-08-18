@@ -20,17 +20,26 @@ export class AnalyticsStoreService {
   readonly overdueTasks = computed(() => this.summary()?.overdueTasks ?? 0);
 
   loadForProject(projectId: string): void {
-    if (!projectId) return;
+    if (!projectId) {
+      this.summary.set(null);
+      this.burndown.set([]);
+      this.isLoading.set(false);
+      return;
+    }
     this.isLoading.set(true);
     this.analyticsApi.getSummary(projectId).subscribe({
       next: (data: ProjectAnalyticsSummaryDto) => {
         this.summary.set(data);
         this.isLoading.set(false);
       },
-      error: () => this.isLoading.set(false),
+      error: () => {
+        this.summary.set(null);
+        this.isLoading.set(false);
+      },
     });
     this.analyticsApi.getBurndown(projectId).subscribe({
-      next: (data: ProjectAnalyticsBurndownDto[]) => this.burndown.set(data),
+      next: (data: ProjectAnalyticsBurndownDto[]) => this.burndown.set(data || []),
+      error: () => this.burndown.set([]),
     });
   }
 }
