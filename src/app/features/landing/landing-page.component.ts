@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject } from '@angular/core';
+import { Component, HostListener, OnDestroy, inject } from '@angular/core';
 import {
   CdkDragDrop,
   DragDropModule,
@@ -24,6 +24,13 @@ export class LandingPageComponent implements OnDestroy {
   demoRunning = false;
   demoSecondsLeft = 10;
   demoMoveNotice = false;
+  navScrolled = false;
+  heroPointerX = 0;
+  heroPointerY = 0;
+  heroPointerXPct = 50;
+  heroPointerYPct = 50;
+  heroTiltX = 0;
+  heroTiltY = 0;
   private demoPageTimer?: number;
   private demoCountdownTimer?: number;
   private demoMoveTimer?: number;
@@ -36,6 +43,35 @@ export class LandingPageComponent implements OnDestroy {
   };
   aiDemoResponse =
     "I see you're starting the Q4 Roadmap. Would you like me to draft core milestones based on your team's velocity data?";
+
+  @HostListener('window:scroll')
+  onWindowScroll(): void {
+    this.navScrolled = window.scrollY > 16;
+  }
+
+  @HostListener('window:mousemove', ['$event'])
+  onWindowMouseMove(event: MouseEvent): void {
+    const normalizedX = (event.clientX / window.innerWidth) - 0.5;
+    const normalizedY = (event.clientY / window.innerHeight) - 0.5;
+    this.heroPointerX = normalizedX * 24;
+    this.heroPointerY = normalizedY * 18;
+    this.heroPointerXPct = event.clientX / window.innerWidth * 100;
+    this.heroPointerYPct = event.clientY / window.innerHeight * 100;
+    this.heroTiltX = normalizedY * -3;
+    this.heroTiltY = normalizedX * 3;
+  }
+
+  @HostListener('window:mouseout', ['$event'])
+  onWindowMouseOut(event: MouseEvent): void {
+    if (!event.relatedTarget) {
+      this.heroPointerX = 0;
+      this.heroPointerY = 0;
+      this.heroPointerXPct = 50;
+      this.heroPointerYPct = 50;
+      this.heroTiltX = 0;
+      this.heroTiltY = 0;
+    }
+  }
 
   private readonly footerDescriptions: Record<string, string> = {
     Security: 'CollabAI protects workspace data with role-based access, encrypted connections, activity history, and secure team controls.',
