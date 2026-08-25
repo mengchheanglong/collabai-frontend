@@ -19,9 +19,62 @@
 
   /* Page-root knobs consumed by the shared .ui-page rule. */
   --ui-page-gap: 26px;
-  --ui-page-max: 1400px;
+  --ui-page-max: 1540px;
 
   display: block;
+}
+
+/* ── Hero Actions Toggle Button ─────────────────────────────── */
+
+.collab-toggle-btn {
+  position: relative;
+  gap: 7px;
+
+  &.is-active {
+    background: var(--brand-soft);
+    color: var(--brand);
+    border-color: var(--brand-border);
+  }
+
+  .collab-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 30%, transparent);
+  }
+}
+
+/* ── Layout & Sidebar Container ──────────────────────────────── */
+
+.db-layout-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-page-gap);
+  width: 100%;
+
+  @media (min-width: 1100px) {
+    &.collab-open {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 24px;
+      align-items: start;
+    }
+  }
+}
+
+.db-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-page-gap);
+  min-width: 0;
+}
+
+.db-collab-sidebar-container {
+  position: sticky;
+  top: 20px;
+  height: calc(100vh - 120px);
+  min-height: 600px;
 }
 
 /* ── Grid + panels ──────────────────────────────────────────── */

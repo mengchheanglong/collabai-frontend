@@ -10,6 +10,8 @@ import { TaskStoreService } from '../state/task-store.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import { NotificationStoreService } from '../state/notification-store.service';
 
+import { SidebarNavStateService } from './sidebar-nav.service';
+
 @Component({
   selector: 'app-sidebar',
   standalone: true,
@@ -23,9 +25,14 @@ export class SidebarComponent implements OnInit {
   readonly tasks = inject(TaskStoreService);
   readonly commandCenter = inject(CommandCenterService);
   readonly notifications = inject(NotificationStoreService);
+  readonly navState = inject(SidebarNavStateService);
 
   readonly pages = MAIN_NAV_ITEMS;
   readonly currentUser = this.members.currentUser;
+
+  toggleCollapse(): void {
+    this.navState.toggle();
+  }
 
   ngOnInit(): void {
     this.notifications.loadNotifications();

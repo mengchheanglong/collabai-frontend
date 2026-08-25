@@ -1,12 +1,12 @@
-<section class="page profile-page">
-  <header class="page-header">
-    <div>
-      <span class="page-eyebrow">Personal settings</span>
+<section class="page profile-page ui-page">
+  <header class="ui-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">Personal settings</p>
       <h1>Profile</h1>
-      <p>Your CollabAI account and workspace access.</p>
+      <p class="ui-sub">Your CollabAI account and workspace access.</p>
     </div>
-    <div class="header-actions">
-      <a class="btn ghost" routerLink="/dashboard">
+    <div class="ui-hero-actions">
+      <a class="ui-btn ghost" routerLink="/dashboard" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">arrow_back</span>
         Back to dashboard
       </a>
@@ -14,7 +14,7 @@
   </header>
 
   <div class="profile-stack">
-    <section class="account-card" aria-labelledby="account-title">
+    <section class="account-card ui-panel" aria-labelledby="account-title">
       <div class="identity-panel">
         <span class="profile-avatar" [style.background]="currentUser.color" aria-hidden="true">
           {{ currentUser.avatar }}
@@ -22,7 +22,7 @@
         <div class="identity-copy">
           <div class="identity-title-row">
             <h2 id="account-title">{{ currentUser.name }}</h2>
-            <span class="role-badge">{{ currentUser.role }}</span>
+            <span class="role-badge ui-chip">{{ currentUser.role }}</span>
           </div>
           <p>{{ currentUser.email }}</p>
           <span class="member-status" [attr.data-status]="currentUser.status.toLowerCase()">
@@ -31,7 +31,7 @@
           </span>
         </div>
         @if (!isEditing()) {
-          <button type="button" class="btn ghost sm identity-edit" (click)="startEditing()">
+          <button type="button" class="ui-btn ghost sm identity-edit" matRipple (click)="startEditing()">
             <span class="material-symbols-rounded sm" aria-hidden="true">edit</span>
             Edit profile
           </button>
@@ -85,8 +85,8 @@
           }
 
           <div class="profile-form-actions">
-            <button type="button" class="btn ghost" (click)="cancelEditing()">Cancel</button>
-            <button type="submit" class="btn primary">
+            <button type="button" class="ui-btn ghost sm" matRipple (click)="cancelEditing()">Cancel</button>
+            <button type="submit" class="ui-btn primary sm" matRipple>
               <span class="material-symbols-rounded sm" aria-hidden="true">save</span>
               Save changes
             </button>
@@ -122,11 +122,11 @@
         } @else {
           <span>Your profile details are shared across this workspace.</span>
         }
-        <a class="btn ghost sm" routerLink="/team">View team</a>
+        <a class="ui-btn ghost sm" routerLink="/team" matRipple>View team</a>
       </footer>
     </section>
 
-    <section class="settings-card appearance-card" aria-labelledby="appearance-title">
+    <section class="settings-card appearance-card ui-panel" aria-labelledby="appearance-title">
       <div class="settings-card-body">
         <div class="section-heading">
           <span class="section-icon" aria-hidden="true">
@@ -147,6 +147,7 @@
               [attr.aria-pressed]="themeMode() === option.value"
               [attr.aria-label]="'Use ' + option.label + ' theme. ' + option.description"
               (click)="handleThemeChange(option.value)"
+              matRipple
             >
               <span class="theme-preview" [attr.data-preview-theme]="option.value" aria-hidden="true">
                 <span class="preview-sidebar">

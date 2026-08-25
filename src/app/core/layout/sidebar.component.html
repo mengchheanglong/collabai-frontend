@@ -1,8 +1,37 @@
-<aside class="sidebar">
+<aside class="sidebar" [class.is-collapsed]="navState.isCollapsed()">
   <div class="sidebar-top">
-    <a routerLink="/" class="brand" matRipple>
-      <img src="/Collab AI.svg" class="brand-logo" alt="Collab AI" />
-    </a>
+    <div class="sidebar-header-row">
+      @if (navState.isCollapsed()) {
+        <div
+          class="brand-collapsed-wrap"
+          (click)="toggleCollapse()"
+          matRipple
+          matTooltip="Click to expand sidebar"
+          role="button"
+          tabindex="0"
+          aria-label="Expand sidebar"
+        >
+          <img src="/collab small.png" class="brand-logo-small" alt="Collab AI" />
+          <span class="brand-hover-expand-btn" aria-hidden="true">
+            <span class="material-symbols-rounded">chevron_right</span>
+          </span>
+        </div>
+      } @else {
+        <a routerLink="/" class="brand" matRipple>
+          <img src="/Collab AI.svg" class="brand-logo" alt="Collab AI" />
+        </a>
+        <button
+          type="button"
+          class="sidebar-nav-toggle"
+          (click)="toggleCollapse()"
+          matRipple
+          matTooltip="Collapse sidebar"
+          aria-label="Collapse sidebar"
+        >
+          <span class="material-symbols-rounded">chevron_left</span>
+        </button>
+      }
+    </div>
     
     <nav class="nav">
       @for (page of pages; track page.key) {
@@ -11,9 +40,10 @@
           routerLinkActive="active" 
           class="nav-item" 
           matRipple
+          [matTooltip]="navState.isCollapsed() ? page.label : ''"
         >
           <span class="material-symbols-rounded">{{ page.icon }}</span>
-          <span>{{ page.label }}</span>
+          <span class="nav-label">{{ page.label }}</span>
         </a>
       }
     </nav>
@@ -23,15 +53,16 @@
       class="command-launch"
       (click)="commandCenter.open()"
       matRipple
+      [matTooltip]="navState.isCollapsed() ? 'Search & commands (⌘K)' : ''"
       aria-label="Open command center"
     >
       <span class="material-symbols-rounded" aria-hidden="true">search</span>
-      <span>Search &amp; commands</span>
+      <span class="command-label">Search &amp; commands</span>
       <kbd><span class="command-key">⌘</span>K</kbd>
     </button>
 
     <div class="section-label">
-      Projects
+      <span class="section-title">Projects</span>
       <button
         type="button"
         class="icon-btn"
@@ -52,6 +83,7 @@
           [class.active]="ws.id === workspace.selectedWorkspaceId()"
           (click)="selectWorkspace(ws.id)"
           matRipple
+          [matTooltip]="navState.isCollapsed() ? ws.name : ''"
           style="border: none; background: transparent; width: 100%; font-family: inherit;"
         >
           <div class="ws-dot" [style.background]="ws.accent"></div>
@@ -59,7 +91,7 @@
         </button>
       }
 
-      @if (workspace.isWorkspaceCreatorOpen()) {
+      @if (workspace.isWorkspaceCreatorOpen() && !navState.isCollapsed()) {
         <div class="ws-create">
           <input
             #wsInput
@@ -78,7 +110,14 @@
   </div>
   
   <div class="sidebar-bottom">
-    <a class="user-btn" routerLink="/profile" routerLinkActive="active" matRipple aria-label="Open your profile">
+    <a
+      class="user-btn"
+      routerLink="/profile"
+      routerLinkActive="active"
+      matRipple
+      [matTooltip]="navState.isCollapsed() ? (currentUser.name || 'Guest User') : ''"
+      aria-label="Open your profile"
+    >
       <div class="user-info">
         <strong>{{ currentUser.name || 'Guest User' }}</strong>
         <small>{{ currentUser.email || 'Not signed in' }}</small>
