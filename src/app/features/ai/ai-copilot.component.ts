@@ -75,6 +75,7 @@ export class AiCopilotComponent {
   readonly showSlashMenu = signal(false);
   readonly selectedCommandIndex = signal(0);
   readonly isInputFocused = signal(false);
+  readonly lastReferencedTask = signal<Task | null>(null);
   
   readonly messages = signal<ChatMessage[]>([
     {
@@ -435,6 +436,7 @@ export class AiCopilotComponent {
       this.createProject(pendingId, text);
       return;
     }
+    if (this.tryHandleCompoundAction(pendingId, targetProjectId, text)) return;
     if (this.runTaskAction(pendingId, targetProjectId, text)) return;
     if (this.runCommentAction(pendingId, targetProjectId, text)) return;
     if (this.isCapabilityRequest(text)) {
@@ -455,6 +457,47 @@ export class AiCopilotComponent {
       return;
     }
 
+    if (this.isTaskSearchRequest(text)) {
+      this.performTaskSearch(pendingId, targetProjectId, text);
+      return;
+    }
+
+    // Conversational Chat with CollabAI!
+    const history = this.messages()
+      .filter((m) => !m.pending && (m.role === 'user' || m.role === 'assistant'))
+      .slice(-6)
+      .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }));
+
+    this.ai
+      .chat({
+        message: text,
+        projectId: targetProjectId,
+        history,
+      })
+      .subscribe({
+        next: ({ reply }) => {
+          this.finishMessage(pendingId, reply);
+        },
+        error: () => {
+          // If chat API fails, fall back to smart search
+          this.performTaskSearch(pendingId, targetProjectId, text);
+        },
+      });
+  }
+
+  private isTaskSearchRequest(text: string): boolean {
+    const lower = text.toLowerCase();
+    return (
+      /\b(find|search|filter|show\s+me|list\s+all|lookup)\s+(?:all\s+)?(?:tasks?|issues?|items?|to-?dos?)\b/i.test(lower) ||
+      lower.startsWith('find ') ||
+      lower.startsWith('search ') ||
+      lower.startsWith('filter ') ||
+      lower.startsWith('show overdue') ||
+      lower.startsWith('show tasks')
+    );
+  }
+
+  private performTaskSearch(pendingId: string, targetProjectId: string, text: string): void {
     this.ai.searchTasks({ projectId: targetProjectId, query: text }).subscribe({
       next: (data) => {
         const chips = chipsFromFilters(data.interpretedQuery);
@@ -495,12 +538,13 @@ export class AiCopilotComponent {
           ),
         );
         this.sending.set(false);
-        this.toast.show('AI chat failed', 'info');
+        this.toast.show('AI search failed', 'info');
       },
     });
   }
 
   openTask(task: Task): void {
+    this.lastReferencedTask.set(task);
     this.tasks.selectTask(task);
     this.tasks.setBoardView('kanban');
     void this.router.navigate(['/board']);
@@ -610,6 +654,7 @@ export class AiCopilotComponent {
                 const fallbackTitle = this.taskTitleFromRequest(request);
                 this.tasks.createTaskFromAi(fallbackTitle, request, projectId, boardId).subscribe({
                   next: (singleTask) => {
+                    this.lastReferencedTask.set(singleTask);
                     this.messages.update((msgs) =>
                       msgs.map((msg) =>
                         msg.id === pendingId
@@ -643,6 +688,9 @@ export class AiCopilotComponent {
 
               forkJoin(observables).subscribe({
                 next: (createdTasks) => {
+                  if (createdTasks.length > 0) {
+                    this.lastReferencedTask.set(createdTasks[0]);
+                  }
                   const label = createdTasks.length === 1
                     ? `Created “${createdTasks[0].title}” on the active board with description and ${createdTasks[0].subtasks.length} subtasks.`
                     : `Created ${createdTasks.length} complete tasks on the active board with descriptions, subtasks, and priorities.`;
@@ -766,6 +814,105 @@ export class AiCopilotComponent {
     });
   }
 
+  private tryHandleCompoundAction(pendingId: string, projectId: string, text: string): boolean {
+    const lower = text.toLowerCase();
+
+    // Check if the user is asking to update priority / urgency
+    const priorityMatch =
+      lower.match(/\b(?:set|make|change)?\s*(?:the\s+)?(?:priority|urgency|ugency)?\s*(?:to|as|is)?\s*\b(low|medium|high|urgent)\b/i) ||
+      lower.match(/\b(low|medium|high|urgent)\s*(?:priority|urgency|ugency)?\b/i);
+
+    // Check if the user is asking to assign
+    const assignMatch = text.match(
+      /(?:assign(?:ed)?(?:\s+it)?\s+to|give(?:\s+it)?\s+to)\s+([A-Za-z0-9_.\s]+?)(?:,|$|\band\b|\bwith\b|\bdue\b|\bset\b)/i,
+    );
+
+    // Check if due date is requested
+    const dueMatch = text.match(
+      /(?:due\s*date\s+(?:to|is|on)?|due\s+(?:on|by)?)\s+([A-Za-z0-9\s-]+?)(?:,|$|\band\b|\bset\b|\bassign\b)/i,
+    );
+
+    // If multiple intents exist or pronoun-targeted update is detected:
+    const hasMultiple =
+      (priorityMatch && assignMatch) ||
+      (priorityMatch && dueMatch) ||
+      (assignMatch && dueMatch) ||
+      (priorityMatch && (lower.includes(' it') || lower.includes(' this') || lower.startsWith('set ')));
+
+    if (hasMultiple) {
+      let targetTask = this.lastReferencedTask() || this.tasks.selectedTask();
+      if (!targetTask && this.tasks.tasks().length > 0) {
+        targetTask = this.tasks.tasks()[0];
+      }
+
+      if (targetTask) {
+        const updates: Partial<{
+          priority: Priority;
+          assigneeId: string | null;
+          dueDate: string | null;
+        }> = {};
+        const successMessages: string[] = [];
+
+        if (
+          priorityMatch &&
+          ['low', 'medium', 'high', 'urgent'].includes(priorityMatch[1].toLowerCase())
+        ) {
+          const pVal = priorityMatch[1].toLowerCase() as Priority;
+          updates.priority = pVal;
+          successMessages.push(`priority to **${pVal}**`);
+        }
+
+        if (assignMatch) {
+          const rawMemberName = assignMatch[1].trim().toLowerCase();
+          const foundMember = this.members.members().find(
+            (m) =>
+              m.name.toLowerCase().includes(rawMemberName) ||
+              rawMemberName.includes(m.name.toLowerCase()) ||
+              m.email.toLowerCase().includes(rawMemberName),
+          );
+          if (foundMember) {
+            updates.assigneeId = foundMember.id;
+            successMessages.push(`assigned to **${foundMember.name}**`);
+          }
+        }
+
+        if (dueMatch) {
+          const parsed = parseDueDate(dueMatch[1].trim());
+          if (parsed) {
+            updates.dueDate = parsed.toISOString();
+            const dateStr = parsed.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            });
+            successMessages.push(`due date to **${dateStr}**`);
+          }
+        }
+
+        if (Object.keys(updates).length > 0) {
+          this.taskApi.updateTask(targetTask.id, updates).subscribe({
+            next: () => {
+              this.reloadActiveBoard();
+              this.lastReferencedTask.set({ ...targetTask!, ...(updates as any) });
+              this.finishMessage(
+                pendingId,
+                `Updated “**${targetTask!.title}**”: set ${successMessages.join(' and ')}.`,
+              );
+              this.toast.show(`Updated ${targetTask!.title}`, 'success');
+            },
+            error: () =>
+              this.finishMessage(
+                pendingId,
+                `I could not update “${targetTask!.title}”. Please try again.`,
+              ),
+          });
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   private runTaskAction(pendingId: string, projectId: string, text: string): boolean {
     // 1. Bulk mark all tasks: "mark all done", "move all tasks to in progress"
     const bulkMove = text.match(/(?:mark|set|move)\s+all\s+(?:tasks?\s+)?(?:to|as\s+)?(to\s*do|todo|in\s*progress|done|complete(?:d)?)/i);
@@ -826,8 +973,8 @@ export class AiCopilotComponent {
       return true;
     }
 
-    // 4. Change priority: "set priority of X to high", "change X to urgent priority"
-    const priority = text.match(/(?:set|change|make)\s+(?:the\s+)?(?:priority\s+(?:of\s+)?)?(?:task\s+)?(.+?)\s+(?:(?:to|as)\s+)?(low|medium|high|urgent)(?:\s+priority)?/i);
+    // 4. Change priority: "set priority of X to high", "change X to urgent priority", "set urgency to high"
+    const priority = text.match(/(?:set|change|make)\s+(?:the\s+)?(?:priority\s+(?:of\s+)?|urgency\s+(?:of\s+)?|ugency\s+(?:of\s+)?)?(?:task\s+)?(.+?)\s+(?:(?:to|as|is)\s+)?(low|medium|high|urgent)(?:\s+priority)?/i);
     if (priority) {
       const value = priority[2].toLowerCase() as Priority;
       this.resolveTask(projectId, priority[1], pendingId, (task) => {
@@ -1001,8 +1148,32 @@ export class AiCopilotComponent {
 
   private resolveTask(projectId: string, query: string, pendingId: string, onFound: (task: Task) => void): void {
     const cleanQuery = query.replace(/^(?:the\s+)?(?:task\s+)?/i, '').replace(/[.?!]+$/g, '').trim().toLowerCase();
+
+    // Check contextual/pronoun target ("it", "this", "that", "the task", "this task", "ugency", "urgency", "priority")
+    const isContextual =
+      !cleanQuery ||
+      cleanQuery === 'it' ||
+      cleanQuery === 'this' ||
+      cleanQuery === 'that' ||
+      cleanQuery === 'the task' ||
+      cleanQuery === 'this task' ||
+      cleanQuery === 'current task' ||
+      cleanQuery === 'ugency' ||
+      cleanQuery === 'urgency' ||
+      cleanQuery === 'priority';
+
+    if (isContextual) {
+      const candidate = this.lastReferencedTask() || this.tasks.selectedTask() || this.tasks.tasks()[0];
+      if (candidate) {
+        this.lastReferencedTask.set(candidate);
+        onFound(candidate);
+        return;
+      }
+    }
+
     const exactMatches = this.tasks.tasks().filter((task) => task.title.toLowerCase() === cleanQuery);
     if (exactMatches.length === 1) {
+      this.lastReferencedTask.set(exactMatches[0]);
       onFound(exactMatches[0]);
       return;
     }
@@ -1012,6 +1183,7 @@ export class AiCopilotComponent {
       return t.includes(cleanQuery) || cleanQuery.includes(t) || cleanQuery.split(' ').some((word) => word.length >= 4 && t.includes(word));
     });
     if (partialMatches.length === 1) {
+      this.lastReferencedTask.set(partialMatches[0]);
       onFound(partialMatches[0]);
       return;
     }
@@ -1019,9 +1191,17 @@ export class AiCopilotComponent {
     this.ai.searchTasks({ projectId, query: cleanQuery }).subscribe({
       next: ({ tasks }) => {
         if (tasks.length >= 1) {
+          this.lastReferencedTask.set(tasks[0]);
           onFound(tasks[0]);
         } else {
-          this.finishMessage(pendingId, `I couldn’t find a task matching “${query.trim()}”.`);
+          // If no search matches and lastReferencedTask exists, fall back to lastReferencedTask
+          const candidate = this.lastReferencedTask() || this.tasks.selectedTask();
+          if (candidate) {
+            this.lastReferencedTask.set(candidate);
+            onFound(candidate);
+          } else {
+            this.finishMessage(pendingId, `I couldn’t find a task matching “${query.trim()}”.`);
+          }
         }
       },
       error: () => this.finishMessage(pendingId, 'I could not look up that task. Please try again.'),
