@@ -10,6 +10,7 @@ import { TaskStoreService } from '../state/task-store.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import { NotificationStoreService } from '../state/notification-store.service';
 
+import { AuthStoreService } from '../state/auth-store.service';
 import { SidebarNavStateService } from './sidebar-nav.service';
 
 @Component({
@@ -20,6 +21,7 @@ import { SidebarNavStateService } from './sidebar-nav.service';
 })
 export class SidebarComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly authStore = inject(AuthStoreService);
   readonly workspace = inject(WorkspaceContextService);
   readonly members = inject(MemberDirectoryService);
   readonly tasks = inject(TaskStoreService);
@@ -29,6 +31,10 @@ export class SidebarComponent implements OnInit {
 
   readonly pages = MAIN_NAV_ITEMS;
   readonly currentUser = this.members.currentUser;
+
+  logout(): void {
+    this.authStore.logout();
+  }
 
   toggleCollapse(): void {
     this.navState.toggle();

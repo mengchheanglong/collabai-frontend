@@ -110,18 +110,37 @@
   </div>
   
   <div class="sidebar-bottom">
-    <a
-      class="user-btn"
-      routerLink="/profile"
-      routerLinkActive="active"
-      matRipple
-      [matTooltip]="navState.isCollapsed() ? (currentUser.name || 'Guest User') : ''"
-      aria-label="Open your profile"
-    >
-      <div class="user-info">
-        <strong>{{ currentUser.name || 'Guest User' }}</strong>
-        <small>{{ currentUser.email || 'Not signed in' }}</small>
-      </div>
-    </a>
+    <div class="sidebar-user-card" [class.is-collapsed]="navState.isCollapsed()">
+      <a
+        class="user-profile-link"
+        routerLink="/profile"
+        routerLinkActive="active"
+        matRipple
+        [matTooltip]="navState.isCollapsed() ? (currentUser.name || 'Guest User') : ''"
+        aria-label="Open your profile"
+      >
+        <span class="user-avatar" [style.background]="currentUser.color || 'var(--brand)'" aria-hidden="true">
+          {{ currentUser.avatar || 'U' }}
+        </span>
+        @if (!navState.isCollapsed()) {
+          <div class="user-info">
+            <strong>{{ currentUser.name || 'Guest User' }}</strong>
+            <small>{{ currentUser.email || 'Not signed in' }}</small>
+          </div>
+        }
+      </a>
+      @if (!navState.isCollapsed()) {
+        <button
+          type="button"
+          class="sidebar-logout-btn"
+          (click)="logout()"
+          matRipple
+          matTooltip="Log out"
+          aria-label="Log out"
+        >
+          <span class="material-symbols-rounded">logout</span>
+        </button>
+      }
+    </div>
   </div>
 </aside>

@@ -6,7 +6,11 @@
       <p class="ui-sub">Your CollabAI account and workspace access.</p>
     </div>
     <div class="ui-hero-actions">
-      <a class="ui-btn ghost" routerLink="/dashboard" matRipple>
+      <button type="button" class="ui-btn danger sm" matRipple (click)="logout()">
+        <span class="material-symbols-rounded sm" aria-hidden="true">logout</span>
+        Log out
+      </button>
+      <a class="ui-btn ghost sm" routerLink="/dashboard" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">arrow_back</span>
         Back to dashboard
       </a>

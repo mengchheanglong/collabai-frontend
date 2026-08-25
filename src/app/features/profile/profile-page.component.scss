@@ -2,14 +2,15 @@
 
 :host {
   --ui-page-gap: 26px;
-  --ui-page-max: 1540px;
+  --ui-page-max: 100%;
 
   display: block;
+  width: 100%;
 }
 
 .profile-page {
   width: 100%;
-  max-width: var(--ui-page-max, 1540px);
+  max-width: 100% !important;
   margin-inline: 0 !important;
 }
 
@@ -307,5 +308,22 @@
     align-items: flex-start;
     flex-direction: column;
     padding: 14px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .account-details {
+    grid-template-columns: 1fr;
+    margin: 0 14px 16px;
+  }
+
+  .identity-panel {
+    padding: 16px;
+    gap: 14px;
+  }
+
+  .profile-form {
+    margin: 0 14px 16px;
+    padding: 14px;
   }
 }

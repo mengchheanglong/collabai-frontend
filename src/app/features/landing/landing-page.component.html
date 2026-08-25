@@ -13,20 +13,36 @@
       <img [src]="theme.logoSrc()" alt="Collab AI" class="logo-wordmark" />
     </a>
 
-    <nav class="nav-links" aria-label="Primary">
-      <a href="#features" (click)="scrollToLandingSection('features', $event)" aria-label="Jump to Features section">Features</a>
-      <a href="#ai" (click)="scrollToLandingSection('ai', $event)" aria-label="Jump to AI Copilot section">AI Copilot</a>
-      <a href="#workflow" (click)="scrollToLandingSection('workflow', $event)" aria-label="Jump to Workflow section">Workflow</a>
-      <a href="#docs" (click)="scrollToLandingSection('docs', $event)" aria-label="Jump to Resources section">Resources</a>
+    <nav class="nav-links" [class.is-open]="mobileMenuOpen" aria-label="Primary">
+      <a href="#features" (click)="scrollToLandingSection('features', $event); mobileMenuOpen = false" aria-label="Jump to Features section">Features</a>
+      <a href="#ai" (click)="scrollToLandingSection('ai', $event); mobileMenuOpen = false" aria-label="Jump to AI Copilot section">AI Copilot</a>
+      <a href="#workflow" (click)="scrollToLandingSection('workflow', $event); mobileMenuOpen = false" aria-label="Jump to Workflow section">Workflow</a>
+      <a href="#docs" (click)="scrollToLandingSection('docs', $event); mobileMenuOpen = false" aria-label="Jump to Resources section">Resources</a>
+      <div class="mobile-nav-actions">
+        <a class="nav-link-login" routerLink="/login" (click)="mobileMenuOpen = false">Log in</a>
+        <a class="btn btn-primary btn-sm" routerLink="/signup" (click)="mobileMenuOpen = false">
+          Get Started
+          <span class="material-symbols-rounded" style="font-size:16px">arrow_forward</span>
+        </a>
+      </div>
     </nav>
 
     <div class="nav-actions">
       <app-theme-toggle />
-      <a class="nav-link-login" routerLink="/login">Log in</a>
-      <a class="btn btn-primary btn-sm" routerLink="/signup">
+      <a class="nav-link-login nav-desktop-only" routerLink="/login">Log in</a>
+      <a class="btn btn-primary btn-sm nav-desktop-only" routerLink="/signup">
         Get Started
         <span class="material-symbols-rounded" style="font-size:16px">arrow_forward</span>
       </a>
+      <button
+        type="button"
+        class="nav-mobile-toggle"
+        (click)="mobileMenuOpen = !mobileMenuOpen"
+        [attr.aria-expanded]="mobileMenuOpen"
+        aria-label="Toggle navigation menu"
+      >
+        <span class="material-symbols-rounded">{{ mobileMenuOpen ? 'close' : 'menu' }}</span>
+      </button>
     </div>
   </header>
 
