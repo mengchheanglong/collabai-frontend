@@ -1,6 +1,7 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { MatRippleModule } from '@angular/material/core';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ThemeMode, ThemeService } from '../../core/theme/theme.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
@@ -16,7 +17,7 @@ interface ThemeOption {
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, MatRippleModule],
   templateUrl: './profile-page.component.html',
   styleUrl: './profile-page.component.scss',
 })

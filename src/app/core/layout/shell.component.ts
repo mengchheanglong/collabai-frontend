@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AiCopilotComponent } from '../../features/ai/ai-copilot.component';
 import { CommandCenterComponent } from '../command-center/command-center.component';
 import { ToastComponent } from '../toast/toast.component';
 import { MobileNavComponent } from './mobile-nav.component';
 import { SidebarComponent } from './sidebar.component';
+import { SidebarNavStateService } from './sidebar-nav.service';
 
 @Component({
   selector: 'app-shell',
@@ -19,4 +20,7 @@ import { SidebarComponent } from './sidebar.component';
   ],
   templateUrl: './shell.component.html',
 })
-export class ShellComponent {}
+export class ShellComponent {
+  readonly navState = inject(SidebarNavStateService);
+}
+

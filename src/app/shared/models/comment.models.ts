@@ -5,3 +5,6 @@ export interface Comment {
   body: string;
   createdAt: string;
 }
+
+export type CommentPreview = Comment;
+

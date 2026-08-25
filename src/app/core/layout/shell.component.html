@@ -1,4 +1,4 @@
-<div class="app-shell">
+<div class="app-shell" [class.sidebar-collapsed]="navState.isCollapsed()">
   <app-sidebar />
   <main class="main" id="main-content">
     <router-outlet />

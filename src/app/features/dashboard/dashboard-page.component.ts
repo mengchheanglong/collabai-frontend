@@ -29,6 +29,8 @@ const METER_SEGMENTS = 20;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
+import { CollabSidebarComponent } from './collab-sidebar.component';
+
 interface StatusSegment {
   key: 'done' | 'in_progress' | 'todo';
   label: string;
@@ -60,7 +62,7 @@ interface Sparkline {
 @Component({
   selector: 'app-dashboard-page',
   standalone: true,
-  imports: [RouterLink, MatRippleModule, MatTooltipModule, ThemeToggleComponent, DatePipe],
+  imports: [RouterLink, MatRippleModule, MatTooltipModule, ThemeToggleComponent, DatePipe, CollabSidebarComponent],
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss',
 })
@@ -74,6 +76,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   readonly analytics = inject(AnalyticsStoreService);
 
   readonly today = signal(new Date());
+  readonly isCollabSidebarOpen = signal(true);
+
+  toggleCollabSidebar(): void {
+    this.isCollabSidebarOpen.update(open => !open);
+  }
 
   // ----- insights overlay -----
 

@@ -1,0 +1,132 @@
+<aside class="collab-sidebar" [class.is-collapsed]="!isOpen">
+  <!-- ── Header ─────────────────────────────────────────── -->
+  <header class="collab-head">
+    <div class="collab-title-group">
+      <div class="collab-icon-wrap" aria-hidden="true">
+        <span class="material-symbols-rounded">group_work</span>
+      </div>
+      <div>
+        <h2 class="collab-title">Team Collaboration</h2>
+        <p class="collab-subtitle">
+          <strong>{{ onlineCount() }}</strong> Active online now
+        </p>
+      </div>
+    </div>
+
+    <button type="button" class="collab-close-btn" matRipple (click)="toggleSidebar.emit()"
+      [matTooltip]="isOpen ? 'Collapse sidebar' : 'Expand sidebar'"
+      [attr.aria-label]="isOpen ? 'Collapse sidebar' : 'Expand sidebar'">
+      <span class="material-symbols-rounded">{{ isOpen ? 'chevron_right' : 'chevron_left' }}</span>
+    </button>
+  </header>
+
+  <!-- ── Navigation Tabs ────────────────────────────────── -->
+  <nav class="collab-tabs" role="tablist" aria-label="Collaboration sections">
+    <button type="button" class="collab-tab" [class.is-active]="activeTab() === 'team'" (click)="setTab('team')"
+      matRipple role="tab" [attr.aria-selected]="activeTab() === 'team'">
+      <span class="material-symbols-rounded sm" aria-hidden="true">group</span>
+      <span>Team</span>
+      <span class="collab-tab-badge">{{ memberPresence().length }}</span>
+    </button>
+
+    <button type="button" class="collab-tab" [class.is-active]="activeTab() === 'activity'" (click)="setTab('activity')"
+      matRipple role="tab" [attr.aria-selected]="activeTab() === 'activity'">
+      <span class="material-symbols-rounded sm" aria-hidden="true">history</span>
+      <span>Feed</span>
+    </button>
+  </nav>
+
+  <!-- ── Tab Body ───────────────────────────────────────── -->
+  <div class="collab-body">
+    <!-- ── TAB: TEAM ────────────────────────────────────── -->
+    @if (activeTab() === 'team') {
+    <div class="collab-pane">
+      <div class="collab-search">
+        <span class="material-symbols-rounded sm search-icon" aria-hidden="true">search</span>
+        <input type="text" [value]="searchQuery()" (input)="searchQuery.set($any($event.target).value)"
+          placeholder="Search collaborators…" aria-label="Search collaborators" />
+      </div>
+
+      <ul class="collab-member-list">
+        @for (m of memberPresence(); track m.id) {
+        <li class="collab-member-card">
+          <div class="collab-avatar-wrap">
+            <span class="ui-avatar" [style.background]="m.color">
+              {{ m.avatar }}
+            </span>
+            <span class="presence-badge" [class]="'is-' + m.presence" [matTooltip]="m.statusLabel"></span>
+          </div>
+
+          <div class="collab-member-info">
+            <div class="collab-member-top">
+              <strong class="collab-member-name">{{ m.name }}</strong>
+              <span class="collab-role-chip">{{ m.role }}</span>
+            </div>
+            <p class="collab-member-status">
+              <span class="material-symbols-rounded sm" aria-hidden="true">work_outline</span>
+              {{ m.currentActivity }}
+            </p>
+          </div>
+
+          <button type="button" class="collab-action-btn" matRipple [matTooltip]="'Nudge ' + m.name"
+            (click)="nudgeMember(m)">
+            <span class="material-symbols-rounded sm">notifications_active</span>
+          </button>
+        </li>
+        } @empty {
+        <li class="collab-empty">
+          <span class="material-symbols-rounded">group_off</span>
+          <p>No team members match your search.</p>
+        </li>
+        }
+      </ul>
+    </div>
+    }
+
+    <!-- ── TAB: ACTIVITY FEED ───────────────────────────── -->
+    @if (activeTab() === 'activity') {
+    <div class="collab-pane">
+      <div class="collab-filter-chips">
+        <button type="button" class="chip-btn" [class.is-active]="activityFilter() === 'all'"
+          (click)="activityFilter.set('all')">All</button>
+        <button type="button" class="chip-btn" [class.is-active]="activityFilter() === 'task'"
+          (click)="activityFilter.set('task')">Tasks</button>
+        <button type="button" class="chip-btn" [class.is-active]="activityFilter() === 'comment'"
+          (click)="activityFilter.set('comment')">Comments</button>
+        <button type="button" class="chip-btn" [class.is-active]="activityFilter() === 'ai'"
+          (click)="activityFilter.set('ai')">AI</button>
+      </div>
+
+      <ol class="collab-activity-list">
+        @for (item of filteredActivities(); track $index) {
+        <li class="collab-activity-item" [class.is-ai]="item.type === 'ai'">
+          <span class="ui-avatar sm" [class.is-ai]="item.type === 'ai'"
+            [style.background]="item.type === 'ai' ? null : members.memberColor(item.actor)">
+            @if (item.type === 'ai') {
+            <span class="material-symbols-rounded sm filled">auto_awesome</span>
+            } @else {
+            {{ members.initials(item.actor) }}
+            }
+          </span>
+
+          <div class="collab-activity-content">
+            <p><strong>{{ item.actor }}</strong> {{ item.text }}</p>
+            <small>
+              <span class="material-symbols-rounded sm" aria-hidden="true">
+                {{ activityIcon(item.type) }}
+              </span>
+              {{ item.time | date: 'MMM d, h:mm a' }}
+            </small>
+          </div>
+        </li>
+        } @empty {
+        <li class="collab-empty">
+          <span class="material-symbols-rounded">history</span>
+          <p>No recent activity recorded.</p>
+        </li>
+        }
+      </ol>
+    </div>
+    }
+  </div>
+</aside>
