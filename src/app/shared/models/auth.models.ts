@@ -41,6 +41,11 @@ export interface MeResponse {
 
 export interface VerifyEmailRequest {
   code: string;
+  email?: string;
+}
+
+export interface ResendVerificationRequest {
+  email?: string;
 }
 
 export interface VerifyEmailResponse {

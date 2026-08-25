@@ -38,27 +38,36 @@ export class VerifyEmailComponent implements OnInit {
   submitCode(): void {
     if (this.code().length !== 6) return;
     this.state.set('verifying');
-    this.auth.verifyEmail({ code: this.code() }).subscribe({
-      next: () => {
-        this.toast.show('Email verified — you can now log in', 'success');
-        void this.router.navigate(['/login']);
-      },
-      error: (err: unknown) => {
-        // Stay on the form so the user can retry with a fresh code.
-        this.state.set('entering');
-        this.code.set('');
-        this.errorMessage.set(
-          (err as { error?: { error?: { message?: string } } })?.error?.error?.message ??
-            'Could not verify email',
-        );
-      },
-    });
+    this.auth
+      .verifyEmail({ code: this.code(), email: this.email() || undefined })
+      .subscribe({
+        next: () => {
+          this.toast.show('Email verified — you can now log in', 'success');
+          void this.router.navigate(['/login']);
+        },
+        error: (err: unknown) => {
+          // Stay on the form so the user can retry with a fresh code.
+          this.state.set('entering');
+          this.code.set('');
+          this.errorMessage.set(
+            (err as { error?: { error?: { message?: string } } })?.error?.error
+              ?.message ?? 'Could not verify email',
+          );
+        },
+      });
   }
 
   resendCode(): void {
-    this.auth.resendVerification().subscribe({
-      next: () => this.toast.show('A new verification code has been sent', 'success'),
-      error: () => this.toast.show('Could not resend the code — please sign up again', 'info'),
-    });
+    this.auth
+      .resendVerification({ email: this.email() || undefined })
+      .subscribe({
+        next: () =>
+          this.toast.show('A new verification code has been sent', 'success'),
+        error: () =>
+          this.toast.show(
+            'Could not resend the code — please sign up again',
+            'info',
+          ),
+      });
   }
 }
