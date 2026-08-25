@@ -51,9 +51,9 @@ export class AuthService {
     return this.api.post<VerifyEmailResponse>('/auth/verify-email', body);
   }
 
-  /** No body — email read from the `registration_verification` cookie. */
-  resendVerification(): Observable<ResendVerificationResponse> {
-    return this.api.post<ResendVerificationResponse>('/auth/resend-email-verification');
+  /** Reads email from cookie or optional body parameter. */
+  resendVerification(body?: { email?: string }): Observable<ResendVerificationResponse> {
+    return this.api.post<ResendVerificationResponse>('/auth/resend-email-verification', body ?? {});
   }
 
   forgotPassword(body: ForgotPasswordRequest): Observable<ForgotPasswordResponse> {

@@ -38,6 +38,7 @@ export class AuthStoreService {
         this.auth.me().subscribe({
           next: ({ user }) => {
             this.currentUser.set(user);
+            this.workspace.reloadProjects();
             this.isLoading.set(false);
             this.toast.show(`Welcome back, ${user.name}`, 'success');
             void this.router.navigate(['/dashboard']);
