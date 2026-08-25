@@ -26,7 +26,7 @@
         type="button"
         class="ui-btn primary"
         matRipple
-        (click)="addQuickTask()"
+        (click)="openCreateModal()"
         [disabled]="!workspace.activeProjectId()"
       >
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
@@ -148,5 +148,126 @@
 
   @if (tasks.selectedTask()) {
     <app-task-detail-drawer />
+  }
+
+  <!-- ── Create Task Dialog ────────────────────────────────────── -->
+  @if (showCreateModal()) {
+    <div class="tm-scrim" role="presentation" (click)="closeCreateModal()">
+      <div
+        class="tm-dialog bd-create-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="bd-create-title"
+        (click)="$event.stopPropagation()"
+      >
+        <header class="tm-dialog-head">
+          <h2 id="bd-create-title">Create new task</h2>
+          <button
+            type="button"
+            class="tm-more"
+            (click)="closeCreateModal()"
+            aria-label="Close create task dialog"
+            title="Close"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="tm-dialog-body">
+          <label class="tm-field">
+            <span>Task Title <strong class="req">*</strong></span>
+            <input
+              type="text"
+              [value]="newTitle()"
+              (input)="newTitle.set($any($event.target).value)"
+              (keydown.enter)="submitCreateTask()"
+              placeholder="e.g. Real Madrid vs Barcelona match coverage"
+              aria-required="true"
+              autofocus
+            />
+          </label>
+
+          <label class="tm-field">
+            <span>Description</span>
+            <textarea
+              rows="3"
+              class="tm-textarea"
+              [value]="newDescription()"
+              (input)="newDescription.set($any($event.target).value)"
+              placeholder="Add relevant context or sub-goals…"
+            ></textarea>
+          </label>
+
+          <div class="tm-grid-2">
+            <label class="tm-field">
+              <span>Priority</span>
+              <select
+                [value]="newPriority()"
+                (change)="newPriority.set($any($event.target).value)"
+                aria-label="Select priority"
+              >
+                @for (p of priorities; track p) {
+                  <option [value]="p">{{ p | titlecase }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="tm-field">
+              <span>Status</span>
+              <select
+                [value]="newStatus()"
+                (change)="newStatus.set($any($event.target).value)"
+                aria-label="Select status"
+              >
+                @for (s of statuses; track s) {
+                  <option [value]="s">{{ tasks.statusLabel(s) }}</option>
+                }
+              </select>
+            </label>
+          </div>
+
+          <div class="tm-grid-2">
+            <label class="tm-field">
+              <span>Assignee</span>
+              <select
+                [value]="newAssigneeId()"
+                (change)="newAssigneeId.set($any($event.target).value)"
+                aria-label="Select assignee"
+              >
+                <option value="">Unassigned</option>
+                @for (m of members.members(); track m.id) {
+                  <option [value]="m.id">{{ m.name }}</option>
+                }
+              </select>
+            </label>
+
+            <label class="tm-field">
+              <span>Due date</span>
+              <input
+                type="date"
+                [value]="newDueDate()"
+                (input)="newDueDate.set($any($event.target).value)"
+                aria-label="Select due date"
+              />
+            </label>
+          </div>
+        </div>
+
+        <footer class="tm-dialog-foot">
+          <button type="button" class="ui-btn ghost sm" matRipple (click)="closeCreateModal()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="ui-btn primary sm"
+            matRipple
+            [disabled]="!newTitle().trim() || isCreatingTask()"
+            (click)="submitCreateTask()"
+          >
+            {{ isCreatingTask() ? 'Creating…' : 'Create task' }}
+          </button>
+        </footer>
+      </div>
+    </div>
   }
 </section>

@@ -16,6 +16,7 @@ import { CommentApiService } from '../../core/api/comment-api.service';
 import { ProjectApiService } from '../../core/api/project-api.service';
 import { TaskApiService } from '../../core/api/task-api.service';
 import { BoardApiService } from '../../core/api/board-api.service';
+import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -62,6 +63,7 @@ export class AiCopilotComponent {
   private readonly boardApi = inject(BoardApiService);
   private readonly tasks = inject(TaskStoreService);
   private readonly members = inject(MemberDirectoryService);
+  private readonly auth = inject(AuthStoreService);
   readonly workspace = inject(WorkspaceContextService);
   private readonly toast = inject(ToastService);
   private readonly router = inject(Router);
@@ -436,16 +438,6 @@ export class AiCopilotComponent {
       this.createProject(pendingId, text);
       return;
     }
-    if (this.tryHandleCompoundAction(pendingId, targetProjectId, text)) return;
-    if (this.runTaskAction(pendingId, targetProjectId, text)) return;
-    if (this.runCommentAction(pendingId, targetProjectId, text)) return;
-    if (this.isCapabilityRequest(text)) {
-      this.finishMessage(
-        pendingId,
-        'I can search and filter tasks across this project; create projects and tasks; move a task to To do, In progress, or Done; set priority; add comments; and open Dashboard, Board, My work, Team, or Profile. Type / for slash command shortcuts!',
-      );
-      return;
-    }
 
     if (this.isTaskCreationRequest(text)) {
       this.createTask(pendingId, targetProjectId, text);
@@ -454,6 +446,17 @@ export class AiCopilotComponent {
 
     if (this.isTaskIdeaRequest(text)) {
       this.suggestTasks(pendingId, projectId, text);
+      return;
+    }
+
+    if (this.tryHandleCompoundAction(pendingId, targetProjectId, text)) return;
+    if (this.runTaskAction(pendingId, targetProjectId, text)) return;
+    if (this.runCommentAction(pendingId, targetProjectId, text)) return;
+    if (this.isCapabilityRequest(text)) {
+      this.finishMessage(
+        pendingId,
+        'I can search and filter tasks across this project; create projects and tasks; move a task to To do, In progress, or Done; set priority; add comments; and open Dashboard, Board, My work, Team, or Profile. Type / for slash command shortcuts!',
+      );
       return;
     }
 
@@ -704,6 +707,65 @@ export class AiCopilotComponent {
 
   private createTask(pendingId: string, projectId: string, request: string): void {
     const count = this.extractTaskCount(request);
+
+    // Extract inline priority / urgency if specified
+    const priorityMatch =
+      request.match(/\b(?:urgency|ugency|priority)\s*(?:set\s+to|to|is)?\s*\b(low|medium|high|urgent)\b/i) ||
+      request.match(/\b(?:set\s+)?(?:priority|urgency|ugency)?\s*(?:to|is)?\s*\b(low|medium|high|urgent)\s*(?:priority|urgency)?\b/i);
+    const inlinePriority: Priority | undefined =
+      priorityMatch && ['low', 'medium', 'high', 'urgent'].includes(priorityMatch[1].toLowerCase())
+        ? (priorityMatch[1].toLowerCase() as Priority)
+        : undefined;
+
+    // Extract inline assignee if specified
+    const assignMatch = request.match(
+      /(?:assign(?:ed)?(?:\s+it)?\s+to|give(?:\s+it)?\s+to)\s+([A-Za-z0-9_.\s]+?)(?:,|$|\band\b|\bwith\b|\bdue\b|\bset\b|\burgency\b|\bpriority\b)/i,
+    );
+    let inlineAssigneeId: string | undefined = undefined;
+    let inlineAssigneeName: string | undefined = undefined;
+    if (assignMatch) {
+      const rawMemberName = assignMatch[1].trim().toLowerCase();
+      const allMembers = this.members.members();
+      const foundMember = allMembers.find(
+        (m) =>
+          m.name.toLowerCase().includes(rawMemberName) ||
+          rawMemberName.includes(m.name.toLowerCase()) ||
+          m.email.toLowerCase().includes(rawMemberName),
+      );
+      if (foundMember) {
+        inlineAssigneeId = foundMember.id;
+        inlineAssigneeName = foundMember.name;
+      } else if (this.auth.currentUser()) {
+        const cur = this.auth.currentUser()!;
+        const cName = (cur.name || '').toLowerCase();
+        const cEmail = (cur.email || '').toLowerCase();
+        if (
+          cName.includes(rawMemberName) ||
+          rawMemberName.includes(cName) ||
+          cEmail.includes(rawMemberName)
+        ) {
+          inlineAssigneeId = cur._id || (cur as any).id;
+          inlineAssigneeName = cur.name;
+        }
+      }
+    }
+
+    // Extract inline due date if specified
+    const dueMatch =
+      request.match(
+        /(?:due\s*date\s+(?:to|is|on)?|due\s+(?:on|by)?)\s+([A-Za-z0-9\s-]+?)(?:,|$|\band\b|\bset\b|\bassign\b|\burgency\b|\bpriority\b)/i,
+      ) ||
+      request.match(
+        /\bon\s+(sunday|monday|tuesday|wednesday|thursday|friday|saturday|tomorrow|today|next\s+week)\b/i,
+      );
+    let inlineDueDate: string | undefined = undefined;
+    if (dueMatch) {
+      const parsed = parseDueDate(dueMatch[1].trim());
+      if (parsed) {
+        inlineDueDate = parsed.toISOString();
+      }
+    }
+
     this.boardApi.listBoards(projectId).subscribe({
       next: (boards) => {
         const boardId = boards[0]?._id || (boards[0] as any)?.id;
@@ -712,38 +774,57 @@ export class AiCopilotComponent {
           return;
         }
 
+        const cleanTitle = this.taskTitleFromRequest(request);
+
         this.ai
           .generateTasks({
             projectId,
-            prompt: request,
+            prompt: cleanTitle,
             count,
           })
           .subscribe({
             next: ({ tasks: structuredTasks }) => {
               const list = (structuredTasks || []).filter((t) => Boolean(t.title));
               if (list.length === 0) {
-                // Fallback to title extraction
-                const fallbackTitle = this.taskTitleFromRequest(request);
-                this.tasks.createTaskFromAi(fallbackTitle, request, projectId, boardId).subscribe({
-                  next: (singleTask) => {
-                    this.lastReferencedTask.set(singleTask);
-                    this.messages.update((msgs) =>
-                      msgs.map((msg) =>
-                        msg.id === pendingId
-                          ? {
-                              ...msg,
-                              text: `Created “${singleTask.title}” on the active board.`,
-                              tasks: [singleTask],
-                              pending: false,
-                            }
-                          : msg,
-                      ),
-                    );
-                    this.sending.set(false);
-                    this.toast.show(`Created task: ${singleTask.title}`, 'success');
-                  },
-                  error: () => this.finishCreateError(pendingId),
-                });
+                // Fallback to direct title creation
+                this.tasks
+                  .createTaskFromAi(cleanTitle, request, projectId, boardId, {
+                    priority: inlinePriority ?? 'medium',
+                    assigneeId: inlineAssigneeId,
+                    dueDate: inlineDueDate,
+                  })
+                  .subscribe({
+                    next: (singleTask) => {
+                      this.lastReferencedTask.set(singleTask);
+                      const extraDetails: string[] = [];
+                      if (inlinePriority) extraDetails.push(`**${inlinePriority}** priority`);
+                      if (inlineAssigneeName) extraDetails.push(`assigned to **${inlineAssigneeName}**`);
+                      if (inlineDueDate) {
+                        const dateStr = new Date(inlineDueDate).toLocaleDateString(undefined, {
+                          month: 'short',
+                          day: 'numeric',
+                        });
+                        extraDetails.push(`due **${dateStr}**`);
+                      }
+                      const detailsSuffix = extraDetails.length ? ` (${extraDetails.join(', ')})` : '';
+
+                      this.messages.update((msgs) =>
+                        msgs.map((msg) =>
+                          msg.id === pendingId
+                            ? {
+                                ...msg,
+                                text: `Created “**${singleTask.title}**” on the active board${detailsSuffix}.`,
+                                tasks: [singleTask],
+                                pending: false,
+                              }
+                            : msg,
+                        ),
+                      );
+                      this.sending.set(false);
+                      this.toast.show(`Created task: ${singleTask.title}`, 'success');
+                    },
+                    error: () => this.finishCreateError(pendingId),
+                  });
                 return;
               }
 
@@ -751,9 +832,10 @@ export class AiCopilotComponent {
                 this.tasks.createTaskFromAi(item.title, item.description, projectId, boardId, {
                   status: item.status,
                   subtasks: item.subtasks,
-                  priority: item.priority,
+                  priority: inlinePriority ?? item.priority,
+                  assigneeId: inlineAssigneeId,
                   labels: item.labels,
-                  dueDate: item.dueDate,
+                  dueDate: inlineDueDate ?? item.dueDate,
                   select: list.length === 1 || idx === 0,
                 }),
               );
@@ -763,9 +845,22 @@ export class AiCopilotComponent {
                   if (createdTasks.length > 0) {
                     this.lastReferencedTask.set(createdTasks[0]);
                   }
-                  const label = createdTasks.length === 1
-                    ? `Created “${createdTasks[0].title}” on the active board with description and ${createdTasks[0].subtasks.length} subtasks.`
-                    : `Created ${createdTasks.length} complete tasks on the active board with descriptions, subtasks, and priorities.`;
+                  const extraDetails: string[] = [];
+                  if (inlinePriority) extraDetails.push(`**${inlinePriority}** priority`);
+                  if (inlineAssigneeName) extraDetails.push(`assigned to **${inlineAssigneeName}**`);
+                  if (inlineDueDate) {
+                    const dateStr = new Date(inlineDueDate).toLocaleDateString(undefined, {
+                      month: 'short',
+                      day: 'numeric',
+                    });
+                    extraDetails.push(`due **${dateStr}**`);
+                  }
+                  const detailsSuffix = extraDetails.length ? ` (${extraDetails.join(', ')})` : '';
+
+                  const label =
+                    createdTasks.length === 1
+                      ? `Created “**${createdTasks[0].title}**” on the active board${detailsSuffix} with description and ${createdTasks[0].subtasks.length} subtasks.`
+                      : `Created ${createdTasks.length} complete tasks on the active board with descriptions, subtasks, and priorities.`;
 
                   this.messages.update((msgs) =>
                     msgs.map((msg) =>
@@ -790,26 +885,44 @@ export class AiCopilotComponent {
             },
             error: () => {
               // Fallback to single task creation
-              const title = this.taskTitleFromRequest(request);
-              this.tasks.createTaskFromAi(title, request, projectId, boardId).subscribe({
-                next: (task) => {
-                  this.messages.update((msgs) =>
-                    msgs.map((msg) =>
-                      msg.id === pendingId
-                        ? {
-                            ...msg,
-                            text: `Created “${task.title}” on the active board.`,
-                            tasks: [task],
-                            pending: false,
-                          }
-                        : msg,
-                    ),
-                  );
-                  this.sending.set(false);
-                  this.toast.show(`Created task: ${task.title}`, 'success');
-                },
-                error: () => this.finishCreateError(pendingId),
-              });
+              this.tasks
+                .createTaskFromAi(cleanTitle, request, projectId, boardId, {
+                  priority: inlinePriority ?? 'medium',
+                  assigneeId: inlineAssigneeId,
+                  dueDate: inlineDueDate,
+                })
+                .subscribe({
+                  next: (task) => {
+                    this.lastReferencedTask.set(task);
+                    const extraDetails: string[] = [];
+                    if (inlinePriority) extraDetails.push(`**${inlinePriority}** priority`);
+                    if (inlineAssigneeName) extraDetails.push(`assigned to **${inlineAssigneeName}**`);
+                    if (inlineDueDate) {
+                      const dateStr = new Date(inlineDueDate).toLocaleDateString(undefined, {
+                        month: 'short',
+                        day: 'numeric',
+                      });
+                      extraDetails.push(`due **${dateStr}**`);
+                    }
+                    const detailsSuffix = extraDetails.length ? ` (${extraDetails.join(', ')})` : '';
+
+                    this.messages.update((msgs) =>
+                      msgs.map((msg) =>
+                        msg.id === pendingId
+                          ? {
+                              ...msg,
+                              text: `Created “**${task.title}**” on the active board${detailsSuffix}.`,
+                              tasks: [task],
+                              pending: false,
+                            }
+                          : msg,
+                      ),
+                    );
+                    this.sending.set(false);
+                    this.toast.show(`Created task: ${task.title}`, 'success');
+                  },
+                  error: () => this.finishCreateError(pendingId),
+                });
             },
           });
       },
@@ -844,8 +957,15 @@ export class AiCopilotComponent {
       .replace(/[.?!]+$/g, '')
       .trim();
 
+    // Strip trailing/inline attribute clauses
     clean = clean
+      .replace(/,?\s*(?:assign(?:ed)?(?:\s+it)?\s+to|give(?:\s+it)?\s+to)\s+[^,]+/gi, '')
+      .replace(/,?\s*(?:urgency|ugency|priority)\s*(?:set\s+to|to|is)?\s*(?:low|medium|high|urgent)/gi, '')
+      .replace(/,?\s*(?:set\s+)?(?:priority|urgency|ugency)?\s*(?:to|is)?\s*(?:low|medium|high|urgent)\s*(?:priority|urgency)?/gi, '')
+      .replace(/,?\s*(?:due\s*date\s+(?:to|is|on)?|due\s+(?:on|by)?)\s+[^,]+/gi, '')
       .replace(/\s+\b(?:in|for)\s+(?:the\s+)?(?:project|workspace)\s+[“"]?[^”".?!]+[”"]?\s*$/i, '')
+      .replace(/^[“"']+|[“"']+$/g, '')
+      .replace(/[,;]+$/g, '')
       .trim() || 'New task';
 
     const normalized = clean.charAt(0).toUpperCase() + clean.slice(1);
@@ -887,6 +1007,10 @@ export class AiCopilotComponent {
   }
 
   private tryHandleCompoundAction(pendingId: string, projectId: string, text: string): boolean {
+    if (this.isTaskCreationRequest(text)) {
+      return false;
+    }
+
     const lower = text.toLowerCase();
 
     // Check if the user is asking to update priority / urgency
@@ -986,6 +1110,48 @@ export class AiCopilotComponent {
   }
 
   private runTaskAction(pendingId: string, projectId: string, text: string): boolean {
+    // 0. Bulk delete / clear tasks: "delete all tasks", "delete all the task we have", "clear all tasks", "remove all tasks", "clear board", "delete all tasks - remove everything..."
+    const bulkDelete =
+      text.match(
+        /\b(?:delete|remove|clear|purge|wipe)\s+(?:all\s+)?(?:the\s+)?(?:tasks?|board|items?|to-?dos?)(?:\s+we\s+have)?(?:\s*-\s*.+)?\b/i,
+      ) ||
+      text.match(/^\s*(?:please\s+)?(?:delete|remove|clear)\s+all(?:\s+tasks?)?\s*$/i) ||
+      text.match(/^\s*(?:please\s+)?clear\s+(?:the\s+)?board\s*$/i);
+
+    if (bulkDelete) {
+      const lower = text.toLowerCase();
+      let targetTasks = this.tasks.tasks();
+      let filterLabel = 'all';
+      if (lower.includes('done') || lower.includes('complete')) {
+        targetTasks = targetTasks.filter((t) => t.status === 'done');
+        filterLabel = 'completed';
+      } else if (lower.includes('todo') || lower.includes('to do') || lower.includes('incomplete')) {
+        targetTasks = targetTasks.filter((t) => t.status === 'todo');
+        filterLabel = 'to-do';
+      }
+
+      if (targetTasks.length === 0) {
+        this.finishMessage(pendingId, 'There are no matching tasks on the active board to delete.');
+        return true;
+      }
+
+      const count = targetTasks.length;
+      const observables = targetTasks.map((t) => this.taskApi.deleteTask(t.id));
+      forkJoin(observables).subscribe({
+        next: () => {
+          this.reloadActiveBoard();
+          this.lastReferencedTask.set(null);
+          this.finishMessage(
+            pendingId,
+            `Deleted ${count} ${filterLabel} task${count === 1 ? '' : 's'} from the board.`,
+          );
+          this.toast.show(`Deleted ${count} tasks`, 'success');
+        },
+        error: () => this.finishMessage(pendingId, 'I could not delete all tasks. Please try again.'),
+      });
+      return true;
+    }
+
     // 1. Bulk mark all tasks: "mark all done", "move all tasks to in progress"
     const bulkMove = text.match(/(?:mark|set|move)\s+all\s+(?:tasks?\s+)?(?:to|as\s+)?(to\s*do|todo|in\s*progress|done|complete(?:d)?)/i);
     if (bulkMove) {
@@ -1195,6 +1361,25 @@ export class AiCopilotComponent {
       }
     }
 
+    // 10. Delete / Remove single task: "delete task X", "remove X"
+    const deleteTask = text.match(/^(?:please\s+)?(?:delete|remove)\s+(?:the\s+)?(?:task\s+)?(.+?)$/i);
+    if (deleteTask) {
+      this.resolveTask(projectId, deleteTask[1], pendingId, (task) => {
+        this.taskApi.deleteTask(task.id).subscribe({
+          next: () => {
+            this.reloadActiveBoard();
+            if (this.lastReferencedTask()?.id === task.id) {
+              this.lastReferencedTask.set(null);
+            }
+            this.finishMessage(pendingId, `Deleted “**${task.title}**”.`);
+            this.toast.show(`Deleted ${task.title}`, 'success');
+          },
+          error: () => this.finishMessage(pendingId, `I could not delete “${task.title}”. Please try again.`),
+        });
+      });
+      return true;
+    }
+
     return false;
   }
 
@@ -1221,12 +1406,15 @@ export class AiCopilotComponent {
   private resolveTask(projectId: string, query: string, pendingId: string, onFound: (task: Task) => void): void {
     const cleanQuery = query.replace(/^(?:the\s+)?(?:task\s+)?/i, '').replace(/[.?!]+$/g, '').trim().toLowerCase();
 
-    // Check contextual/pronoun target ("it", "this", "that", "the task", "this task", "ugency", "urgency", "priority")
+    // Check contextual/pronoun target ("it", "this", "that", "the task", "this task", "ugency", "urgency", "priority", "to", "set")
     const isContextual =
       !cleanQuery ||
       cleanQuery === 'it' ||
       cleanQuery === 'this' ||
       cleanQuery === 'that' ||
+      cleanQuery === 'to' ||
+      cleanQuery === 'the' ||
+      cleanQuery === 'set' ||
       cleanQuery === 'the task' ||
       cleanQuery === 'this task' ||
       cleanQuery === 'current task' ||

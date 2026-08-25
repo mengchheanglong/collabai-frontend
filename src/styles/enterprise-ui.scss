@@ -1096,6 +1096,167 @@ app-task-card.task-card h3 {
   line-height: 1.65;
 }
 
+.desc-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.desc-mode-toggle .btn-text-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.desc-mode-toggle .btn-text-sm:hover {
+  color: var(--text);
+  background: var(--hover);
+  border-color: var(--brand-border);
+}
+
+.desc-mode-toggle .btn-text-sm .material-symbols-rounded {
+  font-size: 14px;
+}
+
+.task-desc-rendered {
+  padding: 14px 16px;
+  border-radius: 9px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  min-height: 80px;
+}
+
+.task-desc-rendered:hover {
+  border-color: color-mix(in srgb, var(--brand) 40%, var(--line));
+}
+
+.task-desc-rendered .desc-placeholder {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+  font-style: italic;
+}
+
+.task-desc-rendered .desc-placeholder .material-symbols-rounded {
+  font-size: 16px;
+}
+
+.md-rendered-body {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.md-rendered-body .md-p {
+  margin: 0 0 10px 0;
+  line-height: 1.65;
+  color: var(--text);
+}
+
+.md-rendered-body .md-p:last-child {
+  margin-bottom: 0;
+}
+
+.md-rendered-body .md-hr {
+  border: none;
+  border-top: 1px solid var(--line);
+  margin: 14px 0;
+}
+
+.md-rendered-body .md-h2,
+.md-rendered-body .md-h3,
+.md-rendered-body .md-h4 {
+  margin: 14px 0 8px 0;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.015em;
+}
+
+.md-rendered-body .md-h2:first-child,
+.md-rendered-body .md-h3:first-child,
+.md-rendered-body .md-h4:first-child {
+  margin-top: 0;
+}
+
+.md-rendered-body .md-h2 {
+  font-size: 16px;
+}
+
+.md-rendered-body .md-h3 {
+  font-size: 14.5px;
+}
+
+.md-rendered-body .md-h4 {
+  font-size: 13.5px;
+  color: #93c5fd;
+}
+
+.md-rendered-body strong {
+  font-weight: 650;
+  color: #f8fafc;
+}
+
+.md-rendered-body em {
+  font-style: italic;
+  color: var(--text-2);
+}
+
+.md-rendered-body .md-list,
+.md-rendered-body .md-num-list {
+  margin: 6px 0 10px 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.md-rendered-body .md-list:last-child,
+.md-rendered-body .md-num-list:last-child {
+  margin-bottom: 0;
+}
+
+.md-rendered-body .md-list {
+  list-style-type: disc;
+}
+
+.md-rendered-body .md-num-list {
+  list-style-type: decimal;
+}
+
+.md-rendered-body li {
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.md-rendered-body li strong {
+  color: #f8fafc;
+}
+
+.md-rendered-body .md-code {
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+  font-size: 11.5px;
+  padding: 2px 6px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--line);
+  color: #c7d2fe;
+}
+
 .task-modal-props {
   padding: 22px 20px;
   background: var(--panel-2);

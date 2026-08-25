@@ -513,6 +513,7 @@ export class TaskStoreService {
       subtasks?: string[];
       labels?: string[];
       dueDate?: string;
+      assigneeId?: string | null;
       select?: boolean;
     },
   ): Observable<Task> {
@@ -531,6 +532,7 @@ export class TaskStoreService {
         labels: options?.labels ?? [],
         subtasks: options?.subtasks ?? [],
         dueDate: options?.dueDate ?? undefined,
+        assigneeId: options?.assigneeId ?? undefined,
       })
       .pipe(
         map((dto) => {

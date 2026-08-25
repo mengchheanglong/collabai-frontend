@@ -73,16 +73,52 @@
       <div class="task-modal-main">
         <div class="task-modal-content">
           <section class="task-section">
-            <h3>Description</h3>
-            <textarea
-              class="task-desc-textarea"
-              #descInput
-              [value]="task.description"
-              (blur)="saveDescription(task, descInput.value)"
-              placeholder="Add a detailed description… (Click to edit, auto-saves on blur)"
-              rows="4"
-              aria-label="Task description"
-            ></textarea>
+            <div class="block-head">
+              <h3>Description</h3>
+              <div class="desc-mode-toggle">
+                @if (isEditingDesc()) {
+                  <button type="button" class="btn-text-sm" (click)="isEditingDesc.set(false)">
+                    <span class="material-symbols-rounded sm">visibility</span>
+                    Preview
+                  </button>
+                } @else {
+                  <button type="button" class="btn-text-sm" (click)="isEditingDesc.set(true)">
+                    <span class="material-symbols-rounded sm">edit</span>
+                    Edit
+                  </button>
+                }
+              </div>
+            </div>
+
+            @if (isEditingDesc()) {
+              <textarea
+                class="task-desc-textarea"
+                #descInput
+                [value]="task.description"
+                (blur)="saveDescription(task, descInput.value); isEditingDesc.set(false)"
+                placeholder="Add a detailed description… (Supports Markdown: **bold**, - lists, ### headers)"
+                rows="6"
+                aria-label="Task description"
+              ></textarea>
+            } @else {
+              <div
+                class="task-desc-rendered"
+                (click)="isEditingDesc.set(true)"
+                role="button"
+                tabindex="0"
+                (keydown.enter)="isEditingDesc.set(true)"
+                [attr.aria-label]="task.description ? 'Click to edit description' : 'Add a description'"
+              >
+                @if (task.description && task.description.trim()) {
+                  <div class="md-rendered-body" [innerHTML]="formatMarkdown(task.description)"></div>
+                } @else {
+                  <p class="desc-placeholder">
+                    <span class="material-symbols-rounded sm">edit_note</span>
+                    Add a detailed description… (Click to edit)
+                  </p>
+                }
+              </div>
+            }
           </section>
 
           <section class="task-section">
@@ -187,7 +223,7 @@
               aria-label="Status"
             >
               @for (s of statuses; track s) {
-                <option [value]="s">{{ tasks.statusLabel(s) }}</option>
+                <option [value]="s" [selected]="task.status === s">{{ tasks.statusLabel(s) }}</option>
               }
             </select>
           </div>
@@ -200,7 +236,7 @@
               aria-label="Priority"
             >
               @for (p of priorities; track p) {
-                <option [value]="p">{{ p | titlecase }}</option>
+                <option [value]="p" [selected]="task.priority === p">{{ p | titlecase }}</option>
               }
             </select>
           </div>
@@ -212,9 +248,12 @@
               (change)="updateAssignee(task, $any($event.target).value)"
               aria-label="Assignee"
             >
-              <option value="">Unassigned</option>
+              <option value="" [selected]="!task.assigneeId">Unassigned</option>
               @for (m of members.members(); track m.id) {
-                <option [value]="m.id">{{ m.name }}</option>
+                <option [value]="m.id" [selected]="task.assigneeId === m.id">{{ m.name }}</option>
+              }
+              @if (task.assigneeId && !hasMember(task.assigneeId)) {
+                <option [value]="task.assigneeId" selected>{{ members.memberName(task.assigneeId) }}</option>
               }
             </select>
           </div>
