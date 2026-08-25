@@ -52,7 +52,11 @@
             }
             <div class="ai-msg-content">
               <div class="ai-msg-bubble">
-                <p [class.pending]="msg.pending">{{ msg.text }}</p>
+                @if (msg.role === 'assistant') {
+                  <div class="ai-msg-body" [class.pending]="msg.pending" [innerHTML]="formatMarkdown(msg.text)"></div>
+                } @else {
+                  <p class="ai-user-text">{{ msg.text }}</p>
+                }
 
                 @if (msg.chips?.length) {
                   <div class="ai-msg-chips" aria-label="Interpreted filters">

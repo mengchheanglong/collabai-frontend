@@ -543,6 +543,78 @@ export class AiCopilotComponent {
     });
   }
 
+  formatMarkdown(raw: string): string {
+    if (!raw) return '';
+    let text = raw;
+
+    // Escape raw HTML entities
+    text = text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    // Headers: ### Title -> <h4 class="md-h4">Title</h4>
+    text = text.replace(/^###\s+(.+)$/gm, '<h4 class="md-h4">$1</h4>');
+    text = text.replace(/^##\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>');
+    text = text.replace(/^#\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>');
+
+    // Bold + Italic: ***text*** -> <strong><em>text</em></strong>
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+
+    // Bold: **text** -> <strong>$1</strong>
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Italic: *text* -> <em>$1</em>
+    text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+    // Inline code: `code` -> <code class="md-code">$1</code>
+    text = text.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
+
+    // Bullet lists: Convert consecutive lines starting with - or *
+    text = text.replace(/(?:^[ \t]*[-*]\s+(.+)(?:\r?\n|$))+/gm, (match) => {
+      const items = match
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[ \t]*[-*]\s+/, '').trim())
+        .filter(Boolean)
+        .map((item) => `<li>${item}</li>`)
+        .join('');
+      return `<ul class="md-list">${items}</ul>`;
+    });
+
+    // Numbered lists: Convert consecutive lines starting with 1. 2.
+    text = text.replace(/(?:^[ \t]*\d+\.\s+(.+)(?:\r?\n|$))+/gm, (match) => {
+      const items = match
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[ \t]*\d+\.\s+/, '').trim())
+        .filter(Boolean)
+        .map((item) => `<li>${item}</li>`)
+        .join('');
+      return `<ol class="md-num-list">${items}</ol>`;
+    });
+
+    // Paragraph spacing: Double newlines -> separate paragraphs
+    const paragraphs = text
+      .split(/\n\n+/)
+      .map((p) => p.trim())
+      .filter(Boolean)
+      .map((p) => {
+        if (
+          p.startsWith('<h2') ||
+          p.startsWith('<h3') ||
+          p.startsWith('<h4') ||
+          p.startsWith('<ul') ||
+          p.startsWith('<ol')
+        ) {
+          return p;
+        }
+        return `<p class="md-p">${p.replace(/\n/g, '<br/>')}</p>`;
+      });
+
+    return paragraphs.join('');
+  }
+
   openTask(task: Task): void {
     this.lastReferencedTask.set(task);
     this.tasks.selectTask(task);
