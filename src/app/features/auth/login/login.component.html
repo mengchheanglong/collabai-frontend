@@ -7,9 +7,12 @@
         <p>Plan projects, track tasks, and let AI handle the busywork — all in one place.</p>
       </div>
       <ul class="auth-side-features">
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Real-time boards &amp; tasks</li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> AI subtask &amp; summary helpers</li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Team directory &amp; roles</li>
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Real-time boards &amp; tasks
+        </li>
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> AI subtask &amp; summary
+          helpers</li>
+        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Team directory &amp; roles
+        </li>
       </ul>
       <div class="auth-side-dots"><span class="active"></span><span></span></div>
     </section>
@@ -28,7 +31,7 @@
             <input id="email" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email" />
           </div>
           @if (form.controls.email.touched && form.controls.email.invalid) {
-            <span class="field-error">Enter a valid email address</span>
+          <span class="field-error">Enter a valid email address</span>
           }
         </div>
 
@@ -36,24 +39,16 @@
           <label for="password">Password</label>
           <div class="field-control">
             <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
-            <input
-              id="password"
-              [type]="showPassword() ? 'text' : 'password'"
-              formControlName="password"
-              placeholder="Enter your password"
-              autocomplete="current-password"
-            />
-            <button
-              type="button"
-              class="field-toggle"
-              (click)="togglePasswordVisibility()"
-              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
-            >
-              <span class="material-symbols-rounded" aria-hidden="true">{{ showPassword() ? 'visibility_off' : 'visibility' }}</span>
+            <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
+              placeholder="Enter your password" autocomplete="current-password" />
+            <button type="button" class="field-toggle" (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+              <span class="material-symbols-rounded" aria-hidden="true">{{ showPassword() ? 'visibility_off' :
+                'visibility' }}</span>
             </button>
           </div>
           @if (form.controls.password.touched && form.controls.password.invalid) {
-            <span class="field-error">Password must be at least 8 characters</span>
+          <span class="field-error">Password must be at least 8 characters</span>
           }
         </div>
 
@@ -62,7 +57,7 @@
         </div>
 
         @if (authStore.authError()) {
-          <p class="form-error" role="alert">{{ authStore.authError() }}</p>
+        <p class="form-error" role="alert">{{ authStore.authError() }}</p>
         }
 
         <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
@@ -72,7 +67,6 @@
       </form>
 
       <p class="auth-note">
-        <span class="auth-note-dot" aria-hidden="true"></span>
         Secure workspace for your team
       </p>
     </section>

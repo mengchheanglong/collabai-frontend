@@ -25,6 +25,7 @@ export class LandingPageComponent implements OnDestroy {
   demoSecondsLeft = 10;
   demoMoveNotice = false;
   navScrolled = false;
+  mobileMenuOpen = false;
   heroPointerX = 0;
   heroPointerY = 0;
   heroPointerXPct = 50;

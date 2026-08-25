@@ -221,18 +221,20 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
-  padding: 14px 20px;
-  border-bottom: 1px solid var(--line);
-  background: var(--panel-2);
+  gap: 12px;
+  padding: 12px 18px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--ui-radius, 12px);
+  box-shadow: var(--ui-elev, 0 1px 2px rgba(15, 23, 42, 0.05));
 }
 .ui-search {
   display: flex;
   align-items: center;
   gap: 9px;
-  flex: 1 1 240px;
+  flex: 1 1 280px;
   min-width: 0;
-  max-width: 380px;
+  max-width: 540px;
   min-height: 40px;
   padding: 0 13px;
   background: var(--panel);
@@ -824,9 +826,11 @@
 
   .ui-hero-actions {
     width: 100%;
+    flex-wrap: wrap;
 
     .ui-btn {
-      flex: 1;
+      flex: 1 1 auto;
+      min-width: 120px;
     }
   }
 
@@ -867,10 +871,57 @@
     font-size: 12.5px;
   }
 
+  .ui-task {
+    padding: 12px;
+    gap: 10px;
+  }
+
   .ui-task-end {
     flex-direction: column;
     align-items: flex-end;
     gap: 6px;
+  }
+
+  .ui-toolbar {
+    padding: 12px 14px;
+    gap: 8px;
+  }
+
+  .ui-search {
+    max-width: 100%;
+    flex: 1 1 100%;
+  }
+
+  .ui-tabs {
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 580px) {
+  .ui-task {
+    flex-wrap: wrap;
+
+    .ui-task-main {
+      width: 100%;
+    }
+
+    .ui-task-end {
+      flex-direction: row;
+      justify-content: space-between;
+      width: 100%;
+      padding-top: 8px;
+      border-top: 1px dashed var(--line);
+    }
+  }
+
+  .ui-hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+
+    .ui-btn {
+      width: 100%;
+    }
   }
 }
 

@@ -75,6 +75,19 @@
   top: 20px;
   height: calc(100vh - 120px);
   min-height: 600px;
+
+  @media (max-width: 1099px) {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 80;
+    width: min(380px, 100vw);
+    height: 100vh;
+    padding: 12px;
+    background: rgba(2, 8, 23, 0.45);
+    backdrop-filter: blur(6px);
+  }
 }
 
 /* ── Grid + panels ──────────────────────────────────────────── */
@@ -860,7 +873,7 @@
 
 .db-scrim {
   position: fixed;
-  z-index: 90;
+  z-index: 1000;
   inset: 0;
   display: grid;
   place-items: center;
@@ -942,11 +955,26 @@
 .db-modal-body {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  align-items: stretch;
+  align-items: start;
   gap: 16px;
   padding: 18px;
   overflow-y: auto;
   min-height: 0;
+
+  .ui-panel {
+    min-height: auto;
+    overflow: visible;
+  }
+
+  .ui-panel-body {
+    min-height: auto;
+    flex: initial;
+    overflow: visible;
+  }
+
+  .ui-panel-body > * {
+    flex: initial;
+  }
 }
 
 @keyframes db-scrim-in {
@@ -1006,6 +1034,15 @@
       grid-template-columns: minmax(0, 1fr);
       padding: 12px;
       gap: 12px;
+
+      .ui-empty {
+        padding: 24px 16px;
+      }
+    }
+
+    .db-suggestion-actions {
+      flex-wrap: wrap;
+      gap: 8px;
     }
 }
 

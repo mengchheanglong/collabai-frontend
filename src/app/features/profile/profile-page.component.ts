@@ -2,6 +2,7 @@ import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatRippleModule } from '@angular/material/core';
+import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ThemeMode, ThemeService } from '../../core/theme/theme.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
@@ -24,6 +25,7 @@ interface ThemeOption {
 export class ProfilePageComponent {
   private readonly themeService = inject(ThemeService);
   private readonly memberDirectory = inject(MemberDirectoryService);
+  private readonly authStore = inject(AuthStoreService);
   private readonly formBuilder = inject(FormBuilder);
 
   readonly currentUser = this.memberDirectory.currentUser;
@@ -113,5 +115,9 @@ export class ProfilePageComponent {
     this.profileMessageTone.set('success');
     this.profileMessage.set('Profile information updated.');
     this.isEditing.set(false);
+  }
+
+  logout(): void {
+    this.authStore.logout();
   }
 }
