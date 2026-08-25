@@ -79,3 +79,18 @@ export interface GenerateTasksRequest {
 export interface GenerateTasksResponse {
   tasks: StructuredTask[];
 }
+
+export interface ChatMessageDto {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface ChatRequest {
+  message: string;
+  projectId?: string;
+  history?: ChatMessageDto[];
+}
+
+export interface ChatResponse {
+  reply: string;
+}

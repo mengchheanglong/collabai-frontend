@@ -12,6 +12,8 @@ import type {
   AiSubtasksResponse,
   AiSummarizeCommentsRequest,
   AiSummarizeCommentsResponse,
+  ChatRequest,
+  ChatResponse,
   GenerateTasksRequest,
   GenerateTasksResponse,
 } from '../../shared/models/ai.models';
@@ -51,6 +53,10 @@ export class AiService {
           tasks: (tasks || []).map(toTask),
         })),
       );
+  }
+
+  chat(body: ChatRequest): Observable<ChatResponse> {
+    return this.apiClient.post<ChatResponse>('/ai/chat', body);
   }
 }
 
