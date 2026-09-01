@@ -7,6 +7,8 @@ import { MemberDirectoryService } from '../../core/state/member-directory.servic
 import { ThemeMode, ThemeService } from '../../core/theme/theme.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { PushNotificationService } from '../../core/pwa/push-notification.service';
+import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 
 interface ThemeOption {
   value: ThemeMode;
@@ -29,6 +31,8 @@ export class ProfilePageComponent {
   private readonly authStore = inject(AuthStoreService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly toast = inject(ToastService);
+  readonly push = inject(PushNotificationService);
+  readonly pwa = inject(PwaInstallService);
 
   @ViewChild('avatarInput') avatarInput?: ElementRef<HTMLInputElement>;
 

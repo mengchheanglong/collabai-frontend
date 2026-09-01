@@ -110,6 +110,44 @@
   </div>
   
   <div class="sidebar-bottom">
+    @if (!pwa.isOnline()) {
+      <div
+        class="sidebar-pwa-badge offline"
+        [matTooltip]="navState.isCollapsed() ? ('Offline Mode' + (sync.pendingCount() > 0 ? ' (' + sync.pendingCount() + ' pending)' : '')) : ''"
+      >
+        <span class="material-symbols-rounded sm" aria-hidden="true">cloud_off</span>
+        @if (!navState.isCollapsed()) {
+          <span>Offline @if (sync.pendingCount() > 0) { ({{ sync.pendingCount() }} queued) }</span>
+        }
+      </div>
+    } @else if (sync.isSyncing()) {
+      <div
+        class="sidebar-pwa-badge syncing"
+        [matTooltip]="navState.isCollapsed() ? 'Syncing changes…' : ''"
+      >
+        <span class="material-symbols-rounded sm spinning" aria-hidden="true">sync</span>
+        @if (!navState.isCollapsed()) {
+          <span>Syncing changes…</span>
+        }
+      </div>
+    }
+
+    @if (pwa.canInstall()) {
+      <button
+        type="button"
+        class="sidebar-pwa-btn"
+        (click)="pwa.promptInstall()"
+        matRipple
+        [matTooltip]="navState.isCollapsed() ? 'Install CollabAI App' : ''"
+        aria-label="Install CollabAI App"
+      >
+        <span class="material-symbols-rounded" aria-hidden="true">install_desktop</span>
+        @if (!navState.isCollapsed()) {
+          <span class="pwa-btn-label">Install App</span>
+        }
+      </button>
+    }
+
     <div class="sidebar-user-card" [class.is-collapsed]="navState.isCollapsed()">
       <a
         class="user-profile-link"

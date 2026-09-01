@@ -11,6 +11,8 @@ import { TaskApiService } from '../api/task-api.service';
 import { ToastService } from '../toast/toast.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import { MemberDirectoryService } from './member-directory.service';
+import { IndexedDbService } from '../pwa/indexed-db.service';
+import { OfflineSyncService } from '../pwa/offline-sync.service';
 
 @Injectable({ providedIn: 'root' })
 export class TaskStoreService {
@@ -20,6 +22,8 @@ export class TaskStoreService {
   private readonly ai = inject(AiService);
   private readonly boardApi = inject(BoardApiService);
   private readonly taskApi = inject(TaskApiService);
+  private readonly idb = inject(IndexedDbService);
+  private readonly offlineSync = inject(OfflineSyncService);
 
   readonly columns = BOARD_COLUMNS;
   readonly tasks = signal<Task[]>([]);
@@ -40,6 +44,61 @@ export class TaskStoreService {
   private boardLoadVersion = 0;
 
   constructor() {
+    // Listen for delta sync updates from offline sync engine
+    this.offlineSync.syncCompleted$.subscribe(({ projectId, delta }) => {
+      if (this.workspace.activeProjectId() !== projectId) return;
+      if (delta.tasks?.upserted?.length || delta.tasks?.deletedIds?.length) {
+        const deletedSet = new Set(delta.tasks.deletedIds || []);
+        const upsertedMap = new Map(
+          (delta.tasks.upserted || []).map((t) => [
+            t.id,
+            {
+              id: t.id,
+              boardId: t.boardId ?? null,
+              projectId: t.projectId,
+              title: t.title,
+              description: t.description ?? '',
+              status: t.status as TaskStatus,
+              priority: t.priority as Priority,
+              position: t.position,
+              assigneeId: t.assigneeId ?? null,
+              createdById: t.createdById,
+              dueDate: t.dueDate ?? null,
+              labels: t.labels || [],
+              comments: t.commentCount ?? 0,
+              subtasks: (t.subtasks || []).map((s: any) => ({
+                id: s.id || s._id,
+                title: s.title,
+                done: s.done ?? s.completed ?? false,
+              })),
+              createdAt: t.createdAt,
+              updatedAt: t.updatedAt,
+            } as Task,
+          ]),
+        );
+
+        this.tasks.update((items) => {
+          const retained = items.filter((item) => !deletedSet.has(item.id));
+          const updated = retained.map((item) => upsertedMap.get(item.id) ?? item);
+          for (const [id, task] of upsertedMap.entries()) {
+            if (!updated.some((item) => item.id === id)) {
+              updated.push(task);
+            }
+          }
+          return updated;
+        });
+
+        const curSel = this.selectedTask();
+        if (curSel) {
+          if (deletedSet.has(curSel.id)) {
+            this.selectedTask.set(null);
+          } else if (upsertedMap.has(curSel.id)) {
+            this.selectedTask.set(upsertedMap.get(curSel.id)!);
+          }
+        }
+      }
+    });
+
     effect(() => {
       const activeBoardId = this.workspace.activeBoardId();
       if (activeBoardId) {
@@ -60,11 +119,24 @@ export class TaskStoreService {
     const loadVersion = ++this.boardLoadVersion;
     this.isLoading.set(true);
     this.hasError.set(false);
+
+    // 1. Immediately hydrate from IndexedDB cache if available
+    const currentProjectId = this.workspace.activeProjectId();
+    if (currentProjectId) {
+      void this.idb.getAllByIndex<Task>('tasks', 'projectId', currentProjectId).then((cached) => {
+        if (loadVersion === this.boardLoadVersion && cached.length > 0 && this.tasks().length === 0) {
+          this.tasks.set(cached);
+          this.isLoading.set(false);
+        }
+      });
+    }
+
+    // 2. Fetch fresh board data from server
     this.boardApi.getBoardWithTasks(boardId).subscribe({
       next: (data) => {
         if (loadVersion !== this.boardLoadVersion) return;
         const mappedTasks: Task[] = (data.tasks || []).map((t) => ({
-          id: t._id,
+          id: t._id || (t as any).id,
           boardId: t.boardId ?? null,
           projectId: t.projectId,
           title: t.title,
@@ -77,11 +149,13 @@ export class TaskStoreService {
           dueDate: t.dueDate ?? null,
           labels: t.labels || [],
           comments: t.commentCount ?? 0,
-          subtasks: (t.subtasks || []).map((s) => ({ id: s._id, title: s.title, done: s.done })),
+          subtasks: (t.subtasks || []).map((s) => ({ id: s._id || (s as any).id, title: s.title, done: s.done })),
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
         }));
         this.tasks.set(mappedTasks);
+        void this.idb.putMany('tasks', mappedTasks);
+
         const currentSelected = this.selectedTask();
         if (currentSelected) {
           const updatedSelected = mappedTasks.find((item) => item.id === currentSelected.id);
@@ -92,8 +166,10 @@ export class TaskStoreService {
       error: () => {
         if (loadVersion !== this.boardLoadVersion) return;
         this.isLoading.set(false);
-        this.hasError.set(true);
-        this.toast.show('Failed to load board tasks', 'info');
+        if (this.tasks().length === 0) {
+          this.hasError.set(true);
+          this.toast.show('Failed to load board tasks', 'info');
+        }
       },
     });
   }
@@ -214,19 +290,46 @@ export class TaskStoreService {
       newPosition = 1024;
     }
 
+    const updated = { ...task, status, position: newPosition };
     this.tasks.update((items) =>
-      items.map((item) => (item.id === task.id ? { ...item, status, position: newPosition } : item)),
+      items.map((item) => (item.id === task.id ? updated : item)),
     );
     this.selectedTask.update((selected) =>
-      selected?.id === task.id ? { ...selected, status, position: newPosition } : selected,
+      selected?.id === task.id ? updated : selected,
     );
+    void this.idb.put('tasks', updated);
+
+    if (!navigator.onLine) {
+      void this.offlineSync.enqueue(
+        'MOVE_TASK',
+        `/tasks/${task.id}/status`,
+        'PATCH',
+        { status, position: newPosition },
+        task.projectId,
+      );
+      if (!isSameColumn) {
+        this.toast.show(`Moved to ${this.statusLabel(status)} (saved offline)`, 'info');
+      }
+      return;
+    }
 
     // Status and position are intentionally handled by the dedicated move endpoint.
     this.taskApi.moveTask(task.id, status, newPosition).subscribe({
-      error: () => {
-        this.toast.show('Failed to update task status', 'info');
-        const boardId = this.workspace.activeBoardId();
-        if (boardId) this.loadBoard(boardId);
+      error: (err) => {
+        if (err.status === 0 || !navigator.onLine) {
+          void this.offlineSync.enqueue(
+            'MOVE_TASK',
+            `/tasks/${task.id}/status`,
+            'PATCH',
+            { status, position: newPosition },
+            task.projectId,
+          );
+          this.toast.show('Saved offline (will sync when online)', 'info');
+        } else {
+          this.toast.show('Failed to update task status', 'info');
+          const boardId = this.workspace.activeBoardId();
+          if (boardId) this.loadBoard(boardId);
+        }
       },
     });
 
@@ -240,20 +343,43 @@ export class TaskStoreService {
       i === index ? { ...subtask, done: !subtask.done } : subtask,
     );
 
+    const updatedTask = { ...task, subtasks: updatedSubtasks };
     this.tasks.update((items) =>
       items.map((item) => {
         if (item.id !== task.id) return item;
-        return { ...item, subtasks: updatedSubtasks };
+        return updatedTask;
       }),
     );
     this.refreshSelectedTask(task.id);
+    void this.idb.put('tasks', updatedTask);
 
     const changedSubtask = updatedSubtasks[index];
+    if (!navigator.onLine) {
+      void this.offlineSync.enqueue(
+        'UPDATE_SUBTASK',
+        `/tasks/${task.id}/subtasks/${changedSubtask.id}`,
+        'PATCH',
+        { done: changedSubtask.done },
+        task.projectId,
+      );
+      return;
+    }
+
     this.taskApi.updateSubtask(task.id, changedSubtask.id, { done: changedSubtask.done }).subscribe({
-      error: () => {
-        this.toast.show('Failed to update subtask', 'info');
-        const boardId = this.workspace.activeBoardId();
-        if (boardId) this.loadBoard(boardId);
+      error: (err) => {
+        if (err.status === 0 || !navigator.onLine) {
+          void this.offlineSync.enqueue(
+            'UPDATE_SUBTASK',
+            `/tasks/${task.id}/subtasks/${changedSubtask.id}`,
+            'PATCH',
+            { done: changedSubtask.done },
+            task.projectId,
+          );
+        } else {
+          this.toast.show('Failed to update subtask', 'info');
+          const boardId = this.workspace.activeBoardId();
+          if (boardId) this.loadBoard(boardId);
+        }
       },
     });
   }
@@ -408,8 +534,36 @@ export class TaskStoreService {
     const optimisticTask = this.tasks().find((item) => item.id === taskId) ?? null;
     if (!optimisticTask || !previousTask) return optimisticTask;
 
+    if (updatedTask) {
+      void this.idb.put('tasks', updatedTask);
+    }
+
     const { status, ...editablePatch } = patch;
     const hasEditablePatch = Object.keys(editablePatch).length > 0;
+
+    if (!navigator.onLine) {
+      if (status !== undefined) {
+        void this.offlineSync.enqueue(
+          'MOVE_TASK',
+          `/tasks/${taskId}/status`,
+          'PATCH',
+          { status, position: optimisticTask.position },
+          optimisticTask.projectId,
+        );
+      }
+      if (hasEditablePatch) {
+        void this.offlineSync.enqueue(
+          'UPDATE_TASK',
+          `/tasks/${taskId}`,
+          'PATCH',
+          editablePatch,
+          optimisticTask.projectId,
+        );
+      }
+      this.toast.show('Saved offline (queued to sync)', 'info');
+      return optimisticTask;
+    }
+
     const save = status === undefined
       ? this.taskApi.updateTask(taskId, editablePatch)
       : this.taskApi.moveTask(taskId, status, optimisticTask.position).pipe(
@@ -420,14 +574,36 @@ export class TaskStoreService {
       next: () => {
         this.toast.show('Saved changes', 'success');
       },
-      error: () => {
-        this.tasks.update((items) =>
-          items.map((item) => (item.id === taskId ? previousTask : item)),
-        );
-        if (this.selectedTask()?.id === taskId) this.selectedTask.set(previousTask);
-        const boardId = this.workspace.activeBoardId();
-        if (boardId) this.loadBoard(boardId);
-        this.toast.show('Failed to save task changes', 'info');
+      error: (err) => {
+        if (err.status === 0 || !navigator.onLine) {
+          if (status !== undefined) {
+            void this.offlineSync.enqueue(
+              'MOVE_TASK',
+              `/tasks/${taskId}/status`,
+              'PATCH',
+              { status, position: optimisticTask.position },
+              optimisticTask.projectId,
+            );
+          }
+          if (hasEditablePatch) {
+            void this.offlineSync.enqueue(
+              'UPDATE_TASK',
+              `/tasks/${taskId}`,
+              'PATCH',
+              editablePatch,
+              optimisticTask.projectId,
+            );
+          }
+          this.toast.show('Saved offline (queued to sync)', 'info');
+        } else {
+          this.tasks.update((items) =>
+            items.map((item) => (item.id === taskId ? previousTask : item)),
+          );
+          if (this.selectedTask()?.id === taskId) this.selectedTask.set(previousTask);
+          const boardId = this.workspace.activeBoardId();
+          if (boardId) this.loadBoard(boardId);
+          this.toast.show('Failed to save task changes', 'info');
+        }
       },
     });
     return optimisticTask;
@@ -436,6 +612,19 @@ export class TaskStoreService {
   addManualSubtask(taskId: string, title: string): void {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
+    const task = this.tasks().find((t) => t.id === taskId);
+
+    if (!navigator.onLine && task) {
+      const newSubtask = { id: `offline-sub-${Date.now()}`, title: cleanTitle, done: false };
+      const updatedTask = { ...task, subtasks: [...task.subtasks, newSubtask] };
+      this.tasks.update((items) => items.map((t) => (t.id === taskId ? updatedTask : t)));
+      this.refreshSelectedTask(taskId);
+      void this.idb.put('tasks', updatedTask);
+      void this.offlineSync.enqueue('ADD_SUBTASK', `/tasks/${taskId}/subtasks`, 'POST', { title: cleanTitle }, task.projectId);
+      this.toast.show('Subtask added (offline)', 'info');
+      return;
+    }
+
     this.taskApi.addSubtask(taskId, cleanTitle).subscribe({
       next: (t) => {
         const subtasks = (t.subtasks || []).map((s) => ({
@@ -446,11 +635,23 @@ export class TaskStoreService {
         this.tasks.update((items) =>
           items.map((item) => (item.id === taskId ? { ...item, subtasks } : item)),
         );
+        const updated = this.tasks().find((item) => item.id === taskId);
+        if (updated) void this.idb.put('tasks', updated);
         this.refreshSelectedTask(taskId);
         this.toast.show('Subtask added', 'success');
       },
-      error: () => {
-        this.toast.show('Failed to add subtask', 'info');
+      error: (err) => {
+        if ((err.status === 0 || !navigator.onLine) && task) {
+          const newSubtask = { id: `offline-sub-${Date.now()}`, title: cleanTitle, done: false };
+          const updatedTask = { ...task, subtasks: [...task.subtasks, newSubtask] };
+          this.tasks.update((items) => items.map((t) => (t.id === taskId ? updatedTask : t)));
+          this.refreshSelectedTask(taskId);
+          void this.idb.put('tasks', updatedTask);
+          void this.offlineSync.enqueue('ADD_SUBTASK', `/tasks/${taskId}/subtasks`, 'POST', { title: cleanTitle }, task.projectId);
+          this.toast.show('Subtask added (saved offline)', 'info');
+        } else {
+          this.toast.show('Failed to add subtask', 'info');
+        }
       },
     });
   }
@@ -463,13 +664,44 @@ export class TaskStoreService {
       return;
     }
 
-    this.taskApi.createTask(projectId, boardId, {
+    const payload = {
       title: overrides?.title || 'Untitled task',
       description: 'Add a short description of the work.',
-      status: 'todo',
-      priority: 'medium',
+      status: 'todo' as TaskStatus,
+      priority: 'medium' as Priority,
       assigneeId: overrides?.assigneeId ?? undefined,
-    }).subscribe({
+    };
+
+    if (!navigator.onLine) {
+      const offlineId = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const task: Task = {
+        id: offlineId,
+        boardId,
+        projectId,
+        title: payload.title,
+        description: payload.description,
+        status: payload.status,
+        priority: payload.priority,
+        position: 1024,
+        assigneeId: payload.assigneeId ?? null,
+        createdById: this.members.currentUser.id,
+        dueDate: null,
+        labels: [],
+        comments: 0,
+        subtasks: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      this.tasks.update((items) => [task, ...items]);
+      this.selectTask(task);
+      this.setBoardView('kanban');
+      void this.idb.put('tasks', task);
+      void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
+      this.toast.show('Task created (saved offline)', 'info');
+      return;
+    }
+
+    this.taskApi.createTask(projectId, boardId, payload).subscribe({
       next: (t) => {
         const task: Task = {
           id: t._id || (t as any).id,
@@ -492,11 +724,40 @@ export class TaskStoreService {
         this.tasks.update((items) => [task, ...items]);
         this.selectTask(task);
         this.setBoardView('kanban');
+        void this.idb.put('tasks', task);
         this.loadBoard(boardId);
         this.toast.show('Task created', 'success');
       },
-      error: () => {
-        this.toast.show('Failed to create task', 'info');
+      error: (err) => {
+        if (err.status === 0 || !navigator.onLine) {
+          const offlineId = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const task: Task = {
+            id: offlineId,
+            boardId,
+            projectId,
+            title: payload.title,
+            description: payload.description,
+            status: payload.status,
+            priority: payload.priority,
+            position: 1024,
+            assigneeId: payload.assigneeId ?? null,
+            createdById: this.members.currentUser.id,
+            dueDate: null,
+            labels: [],
+            comments: 0,
+            subtasks: [],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+          };
+          this.tasks.update((items) => [task, ...items]);
+          this.selectTask(task);
+          this.setBoardView('kanban');
+          void this.idb.put('tasks', task);
+          void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
+          this.toast.show('Task created (saved offline)', 'info');
+        } else {
+          this.toast.show('Failed to create task', 'info');
+        }
       },
     });
   }
@@ -559,12 +820,11 @@ export class TaskStoreService {
             updatedAt: dto.updatedAt,
           };
           this.tasks.update((items) => [task, ...items]);
+          void this.idb.put('tasks', task);
           if (options?.select !== false) {
             this.selectTask(task);
           }
           this.setBoardView('kanban');
-          // Reconcile with the API after the committed create. This also supersedes any
-          // in-flight board request that started before the task existed.
           this.loadBoard(targetBoardId);
           return task;
         }),
@@ -572,21 +832,46 @@ export class TaskStoreService {
   }
 
   deleteTask(taskId: string): void {
+    const taskToDelete = this.tasks().find((item) => item.id === taskId);
     // Optimistic UI delete
     this.tasks.update((items) => items.filter((item) => item.id !== taskId));
     this.smartFilterIds.update((ids) => (ids ? ids.filter((id) => id !== taskId) : null));
     if (this.selectedTask()?.id === taskId) {
       this.closeTask();
     }
+    void this.idb.delete('tasks', taskId);
+
+    if (!navigator.onLine) {
+      void this.offlineSync.enqueue(
+        'DELETE_TASK',
+        `/tasks/${taskId}`,
+        'DELETE',
+        undefined,
+        taskToDelete?.projectId,
+      );
+      this.toast.show('Task deleted (offline)', 'info');
+      return;
+    }
 
     // API Call
     this.taskApi.deleteTask(taskId).subscribe({
       next: () => this.toast.show('Task deleted', 'success'),
-      error: () => {
-        this.toast.show('Failed to delete task', 'info');
-        // Re-load board on rollback
-        const boardId = this.workspace.activeBoardId();
-        if (boardId) this.loadBoard(boardId);
+      error: (err) => {
+        if (err.status === 0 || !navigator.onLine) {
+          void this.offlineSync.enqueue(
+            'DELETE_TASK',
+            `/tasks/${taskId}`,
+            'DELETE',
+            undefined,
+            taskToDelete?.projectId,
+          );
+          this.toast.show('Task deleted (offline)', 'info');
+        } else {
+          this.toast.show('Failed to delete task', 'info');
+          // Re-load board on rollback
+          const boardId = this.workspace.activeBoardId();
+          if (boardId) this.loadBoard(boardId);
+        }
       },
     });
   }

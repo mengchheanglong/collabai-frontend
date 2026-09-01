@@ -225,5 +225,100 @@
         <span>Changes apply instantly and are saved on this device.</span>
       </footer>
     </section>
+
+    <!-- PWA & Web Push Notification Section -->
+    <section class="profile-card pwa-card" aria-labelledby="pwa-heading">
+      <header class="profile-card-header">
+        <div>
+          <span class="eyebrow">Device &amp; App</span>
+          <h2 id="pwa-heading">Desktop &amp; Mobile App (PWA)</h2>
+        </div>
+        @if (pwa.isInstalled()) {
+          <span class="pwa-status-tag installed">
+            <span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span>
+            Installed
+          </span>
+        }
+      </header>
+
+      <div class="pwa-card-body">
+        <div class="pwa-row">
+          <div class="pwa-row-info">
+            <div class="pwa-row-title">
+              <span class="material-symbols-rounded" aria-hidden="true">notifications_active</span>
+              <strong>Web Push Notifications</strong>
+            </div>
+            <p>Receive real-time instant alerts when tasks are assigned to you or updated, even with the browser closed.</p>
+          </div>
+          <div class="pwa-row-actions">
+            @if (push.isSubscribed()) {
+              <button
+                type="button"
+                class="ui-btn secondary sm"
+                matRipple
+                [disabled]="push.isBusy()"
+                (click)="push.sendTestPush()"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">send</span>
+                Test Notification
+              </button>
+              <button
+                type="button"
+                class="ui-btn ghost sm danger"
+                matRipple
+                [disabled]="push.isBusy()"
+                (click)="push.unsubscribe()"
+              >
+                Disable
+              </button>
+            } @else {
+              <button
+                type="button"
+                class="ui-btn primary sm"
+                matRipple
+                [disabled]="push.isBusy()"
+                (click)="push.subscribe()"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">notifications</span>
+                {{ push.isBusy() ? 'Enabling…' : 'Enable Push Notifications' }}
+              </button>
+            }
+          </div>
+        </div>
+
+        <div class="pwa-row">
+          <div class="pwa-row-info">
+            <div class="pwa-row-title">
+              <span class="material-symbols-rounded" aria-hidden="true">devices</span>
+              <strong>Standalone App Installation</strong>
+            </div>
+            <p>Install CollabAI on your desktop or home screen for standalone window mode and faster offline startup.</p>
+          </div>
+          <div class="pwa-row-actions">
+            @if (pwa.isInstalled()) {
+              <span class="pwa-installed-pill">
+                <span class="material-symbols-rounded sm" aria-hidden="true">verified</span>
+                App Active
+              </span>
+            } @else if (pwa.canInstall()) {
+              <button
+                type="button"
+                class="ui-btn primary sm"
+                matRipple
+                (click)="pwa.promptInstall()"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">install_desktop</span>
+                Install CollabAI
+              </button>
+            } @else {
+              <span class="pwa-browser-pill">
+                <span class="material-symbols-rounded sm" aria-hidden="true">web</span>
+                Browser Mode
+              </span>
+            }
+          </div>
+        </div>
+      </div>
+    </section>
   </div>
 </section>

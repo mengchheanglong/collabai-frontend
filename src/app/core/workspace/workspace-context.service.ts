@@ -8,6 +8,8 @@ import { ProjectApiService } from '../api/project-api.service';
 import { BoardApiService } from '../api/board-api.service';
 import type { ProjectDto, BoardDto } from '../api/api.types';
 import { ToastService } from '../toast/toast.service';
+import { IndexedDbService } from '../pwa/indexed-db.service';
+import { OfflineSyncService } from '../pwa/offline-sync.service';
 
 const ACCENTS = ['#3b82f6', '#22c55e', '#06b6d4', '#f59e0b', '#0ea5e9', '#ef4444'];
 
@@ -25,6 +27,8 @@ export class WorkspaceContextService {
   private readonly toast = inject(ToastService);
   private readonly projectApi = inject(ProjectApiService);
   private readonly boardApi = inject(BoardApiService);
+  private readonly idb = inject(IndexedDbService);
+  private readonly offlineSync = inject(OfflineSyncService);
 
   /** Real projects loaded from the backend. */
   private readonly projectsState = signal<Project[]>([]);
@@ -69,13 +73,26 @@ export class WorkspaceContextService {
   readonly boards = computed(() => this.boardsState());
 
   constructor() {
+    // 1. Immediately hydrate from IndexedDB cache
+    void this.idb.getAll<Project>('projects').then((cached) => {
+      if (cached.length > 0 && this.projectsState().length === 0) {
+        this.projectsState.set(cached);
+        if (!this.activeProjectId()) {
+          this.selectProject(cached[0].id);
+        }
+      }
+    });
+
     this.reloadProjects();
   }
 
   reloadProjects(preferredProjectId?: string): void {
     this.projectApi.list({ limit: 50 }).subscribe({
       next: ({ projects }) => {
-        this.projectsState.set(projects.map(toProject));
+        const mapped = projects.map(toProject);
+        this.projectsState.set(mapped);
+        void this.idb.putMany('projects', mapped);
+
         if (projects.length > 0) {
           const currentId = preferredProjectId || this.activeProjectId();
           const exists = currentId && projects.some((p) => (p._id || (p as any).id) === currentId);
@@ -89,12 +106,13 @@ export class WorkspaceContextService {
         }
       },
       error: () => {
-        /* not signed in / backend down -> empty list */
-        this.projectsState.set([]);
-        this.activeProjectId.set(null);
-        this.selectedWorkspaceId.set(null);
-        this.boardsState.set([]);
-        this.activeBoardId.set(null);
+        if (this.projectsState().length === 0) {
+          this.projectsState.set([]);
+          this.activeProjectId.set(null);
+          this.selectedWorkspaceId.set(null);
+          this.boardsState.set([]);
+          this.activeBoardId.set(null);
+        }
       },
     });
   }
@@ -137,6 +155,28 @@ export class WorkspaceContextService {
   }
 
   createProject(name: string, description?: string, color?: string): void {
+    if (!navigator.onLine) {
+      const offlineId = `offline-proj-${Date.now()}`;
+      const optProject: Project = {
+        id: offlineId,
+        name,
+        team: '1 member',
+        progress: 0,
+        icon: '📁',
+        accent: color || ACCENTS[0],
+        members: ['You'],
+        description: description || undefined,
+      };
+      this.isWorkspaceCreatorOpen.set(false);
+      this.newWorkspaceName.set('');
+      this.projectsState.update((items) => [optProject, ...items]);
+      void this.idb.put('projects', optProject);
+      void this.offlineSync.enqueue('CREATE_PROJECT', '/projects', 'POST', { name, description, color });
+      this.selectProject(offlineId);
+      this.toast.show(`Created ${name} (saved offline)`, 'info');
+      return;
+    }
+
     this.projectApi.create({ name, description, color }).subscribe({
       next: (res) => {
         this.isWorkspaceCreatorOpen.set(false);
@@ -146,8 +186,29 @@ export class WorkspaceContextService {
         this.toast.show(`Created ${name}`, 'success');
       },
       error: (err) => {
-        const msg = err?.error?.error?.message || err?.error?.message || 'Could not create project';
-        this.toast.show(msg, 'error');
+        if (err.status === 0 || !navigator.onLine) {
+          const offlineId = `offline-proj-${Date.now()}`;
+          const optProject: Project = {
+            id: offlineId,
+            name,
+            team: '1 member',
+            progress: 0,
+            icon: '📁',
+            accent: color || ACCENTS[0],
+            members: ['You'],
+            description: description || undefined,
+          };
+          this.isWorkspaceCreatorOpen.set(false);
+          this.newWorkspaceName.set('');
+          this.projectsState.update((items) => [optProject, ...items]);
+          void this.idb.put('projects', optProject);
+          void this.offlineSync.enqueue('CREATE_PROJECT', '/projects', 'POST', { name, description, color });
+          this.selectProject(offlineId);
+          this.toast.show(`Created ${name} (saved offline)`, 'info');
+        } else {
+          const msg = err?.error?.error?.message || err?.error?.message || 'Could not create project';
+          this.toast.show(msg, 'error');
+        }
       },
     });
   }
