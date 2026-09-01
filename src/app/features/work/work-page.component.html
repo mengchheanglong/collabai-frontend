@@ -152,35 +152,86 @@
         />
       </label>
 
-      <label class="wk-select">
-        <span class="sr-only">Filter by project</span>
-        <select
-          [value]="projectFilter()"
-          (change)="projectFilter.set($any($event.target).value)"
-          aria-label="Filter by project"
-        >
-          <option value="all" [selected]="projectFilter() === 'all'">All projects</option>
-          @for (project of projects(); track project) {
-            <option [value]="project" [selected]="projectFilter() === project">{{ project }}</option>
-          }
-        </select>
-        <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
-      </label>
+      <!-- Project filter dropdown -->
+      <button
+        type="button"
+        class="wk-dropdown-btn"
+        [matMenuTriggerFor]="projectMenu"
+        aria-label="Filter by project"
+        matRipple
+      >
+        <span class="material-symbols-rounded sm" aria-hidden="true">folder</span>
+        <span class="wk-dropdown-label">{{ projectFilter() === 'all' ? 'All projects' : projectFilter() }}</span>
+        <span class="material-symbols-rounded sm wk-dropdown-chevron" aria-hidden="true">expand_more</span>
+      </button>
 
-      <label class="wk-select">
-        <span class="sr-only">Filter by priority</span>
-        <select
-          [value]="priorityFilter()"
-          (change)="priorityFilter.set($any($event.target).value)"
-          aria-label="Filter by priority"
+      <mat-menu #projectMenu="matMenu" class="ui-dropdown-panel" xPosition="after">
+        <button
+          mat-menu-item
+          class="ui-dropdown-item"
+          [class.is-selected]="projectFilter() === 'all'"
+          (click)="projectFilter.set('all')"
         >
-          <option value="all" [selected]="priorityFilter() === 'all'">Any priority</option>
-          @for (priority of priorities; track priority) {
-            <option [value]="priority" [selected]="priorityFilter() === priority">{{ priority }}</option>
+          <span class="material-symbols-rounded sm" aria-hidden="true">folder_copy</span>
+          <span>All projects</span>
+          @if (projectFilter() === 'all') {
+            <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
           }
-        </select>
-        <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
-      </label>
+        </button>
+        @for (project of projects(); track project) {
+          <button
+            mat-menu-item
+            class="ui-dropdown-item"
+            [class.is-selected]="projectFilter() === project"
+            (click)="projectFilter.set(project)"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">folder</span>
+            <span>{{ project }}</span>
+            @if (projectFilter() === project) {
+              <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+            }
+          </button>
+        }
+      </mat-menu>
+
+      <!-- Priority filter dropdown -->
+      <button
+        type="button"
+        class="wk-dropdown-btn"
+        [matMenuTriggerFor]="priorityMenu"
+        aria-label="Filter by priority"
+        matRipple
+      >
+        <span class="wk-dropdown-label">{{ priorityFilter() === 'all' ? 'Any priority' : (priorityFilter() | titlecase) }}</span>
+        <span class="material-symbols-rounded sm wk-dropdown-chevron" aria-hidden="true">expand_more</span>
+      </button>
+
+      <mat-menu #priorityMenu="matMenu" class="ui-dropdown-panel" xPosition="after">
+        <button
+          mat-menu-item
+          class="ui-dropdown-item"
+          [class.is-selected]="priorityFilter() === 'all'"
+          (click)="priorityFilter.set('all')"
+        >
+          <span>Any priority</span>
+          @if (priorityFilter() === 'all') {
+            <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+          }
+        </button>
+        @for (priority of priorities; track priority) {
+          <button
+            mat-menu-item
+            class="ui-dropdown-item"
+            [class.is-selected]="priorityFilter() === priority"
+            (click)="priorityFilter.set(priority)"
+          >
+            <span>{{ priority | titlecase }}</span>
+            @if (priorityFilter() === priority) {
+              <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+            }
+          </button>
+        }
+      </mat-menu>
 
       @if (hasFilters()) {
         <button type="button" class="ui-btn quiet sm" (click)="clearFilters()">
@@ -210,23 +261,23 @@
 
           <ul class="ui-tasks">
             @for (task of visibleGroupTasks(group); track task.id) {
-              <li class="ui-task" [class.is-editing]="editingTaskId() === task.id">
+              <li class="wk-task-item" [class.is-editing]="editingTaskId() === task.id">
                 <div class="wk-task-row">
                   <button
                     type="button"
-                    class="ui-task-main"
+                    class="ui-task"
                     matRipple
                     (click)="openTask(task)"
                     [attr.aria-label]="'Open ' + task.title"
                   >
                     <span
                       class="ui-prio"
-                      [attr.data-priority]="task.priority"
+                      [class]="'priority-' + task.priority"
                       [matTooltip]="task.priority + ' priority'"
                       aria-hidden="true"
                     ></span>
 
-                    <span class="wk-task-copy">
+                    <span class="ui-task-main">
                       <span class="ui-task-title">{{ task.title }}</span>
                       <span class="ui-task-sub">
                         <span class="ui-chip" [attr.data-status]="task.status">
@@ -241,63 +292,90 @@
                         }
                       </span>
                     </span>
+
+                    <div class="ui-task-end">
+                      <span class="ui-due" [attr.data-tone]="dueTone(task)">
+                        <span class="material-symbols-rounded sm" aria-hidden="true">
+                          {{ dueTone(task) === 'overdue' ? 'event_busy' : 'calendar_today' }}
+                        </span>
+                        {{ dueLabel(task) }}
+                      </span>
+                    </div>
                   </button>
 
-                  <div class="ui-task-end">
-                    <span class="ui-due" [attr.data-tone]="dueTone(task)">
-                      <span class="material-symbols-rounded sm" aria-hidden="true">
-                        {{ dueTone(task) === 'overdue' ? 'event_busy' : 'calendar_today' }}
-                      </span>
-                      {{ dueLabel(task) }}
+                  <button
+                    type="button"
+                    class="wk-task-edit"
+                    [class.active]="editingTaskId() === task.id"
+                    [attr.aria-expanded]="editingTaskId() === task.id"
+                    [attr.aria-label]="'Quick update for ' + task.title"
+                    (click)="toggleTaskEditor(task.id)"
+                  >
+                    <span class="material-symbols-rounded sm" aria-hidden="true">
+                      {{ editingTaskId() === task.id ? 'close' : 'tune' }}
                     </span>
-                    <button
-                      type="button"
-                      class="wk-task-edit"
-                      [class.active]="editingTaskId() === task.id"
-                      [attr.aria-expanded]="editingTaskId() === task.id"
-                      [attr.aria-label]="'Quick update for ' + task.title"
-                      (click)="toggleTaskEditor(task.id)"
-                    >
-                      <span class="material-symbols-rounded sm" aria-hidden="true">
-                        {{ editingTaskId() === task.id ? 'close' : 'tune' }}
-                      </span>
-                    </button>
-                  </div>
+                  </button>
                 </div>
 
                 @if (editingTaskId() === task.id) {
                   <div class="wk-editor">
                     <span class="wk-editor-label">Quick update</span>
-                    <label class="wk-select">
-                      <span class="sr-only">Status</span>
-                      <select
-                        [value]="task.status"
-                        (change)="updateStatus(task, $any($event.target).value)"
-                        [attr.aria-label]="'Status for ' + task.title"
-                      >
-                        @for (status of statuses; track status.key) {
-                          <option [value]="status.key" [selected]="status.key === task.status">
-                            {{ status.label }}
-                          </option>
-                        }
-                      </select>
-                      <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
-                    </label>
-                    <label class="wk-select">
-                      <span class="sr-only">Priority</span>
-                      <select
-                        [value]="task.priority"
-                        (change)="updatePriority(task, $any($event.target).value)"
-                        [attr.aria-label]="'Priority for ' + task.title"
-                      >
-                        @for (priority of priorities; track priority) {
-                          <option [value]="priority" [selected]="priority === task.priority">
-                            {{ priority }}
-                          </option>
-                        }
-                      </select>
-                      <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
-                    </label>
+                    
+                    <!-- Task Status Dropdown -->
+                    <button
+                      type="button"
+                      class="wk-dropdown-btn sm"
+                      [matMenuTriggerFor]="taskStatusMenu"
+                      [attr.aria-label]="'Status for ' + task.title"
+                      matRipple
+                    >
+                      <span class="wk-dropdown-label">{{ taskStore.statusLabel(task.status) }}</span>
+                      <span class="material-symbols-rounded sm wk-dropdown-chevron" aria-hidden="true">expand_more</span>
+                    </button>
+
+                    <mat-menu #taskStatusMenu="matMenu" class="ui-dropdown-panel">
+                      @for (status of statuses; track status.key) {
+                        <button
+                          mat-menu-item
+                          class="ui-dropdown-item"
+                          [class.is-selected]="status.key === task.status"
+                          (click)="updateStatus(task, status.key)"
+                        >
+                          <span>{{ status.label }}</span>
+                          @if (status.key === task.status) {
+                            <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                          }
+                        </button>
+                      }
+                    </mat-menu>
+
+                    <!-- Task Priority Dropdown -->
+                    <button
+                      type="button"
+                      class="wk-dropdown-btn sm"
+                      [matMenuTriggerFor]="taskPriorityMenu"
+                      [attr.aria-label]="'Priority for ' + task.title"
+                      matRipple
+                    >
+                      <span class="wk-dropdown-label">{{ task.priority | titlecase }}</span>
+                      <span class="material-symbols-rounded sm wk-dropdown-chevron" aria-hidden="true">expand_more</span>
+                    </button>
+
+                    <mat-menu #taskPriorityMenu="matMenu" class="ui-dropdown-panel">
+                      @for (priority of priorities; track priority) {
+                        <button
+                          mat-menu-item
+                          class="ui-dropdown-item"
+                          [class.is-selected]="priority === task.priority"
+                          (click)="updatePriority(task, priority)"
+                        >
+                          <span>{{ priority | titlecase }}</span>
+                          @if (priority === task.priority) {
+                            <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                          }
+                        </button>
+                      }
+                    </mat-menu>
                   </div>
                 }
               </li>

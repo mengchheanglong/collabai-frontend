@@ -162,50 +162,58 @@
           </div>
 
           <div class="tm-cell">
-            <label class="tm-role" [attr.data-role]="member.role">
-              <span class="sr-only">Role for {{ member.name }}</span>
-              <select
-                [value]="member.role"
-                [disabled]="isYou(member) && members.adminCount() <= 1 && member.role === 'Admin'"
-                (change)="onRoleChange(member, $any($event.target).value)"
-              >
-                @for (role of roles; track role) {
-                  <option [value]="role">{{ role }}</option>
-                }
-              </select>
-              <span class="material-symbols-rounded sm" aria-hidden="true">expand_more</span>
-            </label>
+            <button
+              type="button"
+              class="tm-role-btn"
+              [attr.data-role]="member.role"
+              [matMenuTriggerFor]="roleMenu"
+              [disabled]="isYou(member) && members.adminCount() <= 1 && member.role === 'Admin'"
+              [attr.aria-label]="'Role for ' + member.name"
+              matRipple
+            >
+              <span>{{ member.role }}</span>
+              <span class="material-symbols-rounded sm tm-role-chevron" aria-hidden="true">expand_more</span>
+            </button>
+
+            <mat-menu #roleMenu="matMenu" class="ui-dropdown-panel">
+              @for (role of roles; track role) {
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="role === member.role"
+                  (click)="onRoleChange(member, role)"
+                >
+                  <span>{{ role }}</span>
+                  @if (role === member.role) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
+              }
+            </mat-menu>
           </div>
 
           <div class="tm-cell tm-actions" (click)="$event.stopPropagation()">
             @if (!isYou(member)) {
-              <div class="tm-menu-wrap">
-                <button
-                  type="button"
-                  class="tm-more"
-                  [class.active]="menuOpenId() === member.id"
-                  [attr.aria-expanded]="menuOpenId() === member.id"
-                  aria-haspopup="menu"
-                  [attr.aria-label]="'More actions for ' + member.name"
-                  (click)="toggleMenu($event, member.id)"
-                >
-                  <span class="material-symbols-rounded sm" aria-hidden="true">more_horiz</span>
-                </button>
+              <button
+                type="button"
+                class="tm-more"
+                [matMenuTriggerFor]="actionsMenu"
+                [attr.aria-label]="'More actions for ' + member.name"
+                matRipple
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">more_horiz</span>
+              </button>
 
-                @if (menuOpenId() === member.id) {
-                  <div class="tm-menu" role="menu">
-                    <button
-                      type="button"
-                      class="tm-menu-item is-danger"
-                      role="menuitem"
-                      (click)="openRemoveDialog($event, member)"
-                    >
-                      <span class="material-symbols-rounded sm" aria-hidden="true">person_remove</span>
-                      Remove from workspace
-                    </button>
-                  </div>
-                }
-              </div>
+              <mat-menu #actionsMenu="matMenu" class="ui-dropdown-panel" xPosition="before">
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item is-danger"
+                  (click)="openRemoveDialog($event, member)"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">person_remove</span>
+                  <span>Remove from workspace</span>
+                </button>
+              </mat-menu>
             }
           </div>
         </article>
@@ -268,18 +276,35 @@
             aria-required="true"
           />
         </label>
-        <label class="tm-field">
+        <div class="tm-field">
           <span>Role</span>
-          <select
-            [value]="inviteRole()"
-            (change)="inviteRole.set($any($event.target).value)"
+          <button
+            type="button"
+            class="tm-role-btn is-modal-field"
+            [matMenuTriggerFor]="inviteRoleMenu"
             aria-label="Select role"
+            matRipple
           >
+            <span>{{ inviteRole() }}</span>
+            <span class="material-symbols-rounded sm tm-role-chevron" aria-hidden="true">expand_more</span>
+          </button>
+
+          <mat-menu #inviteRoleMenu="matMenu" class="ui-dropdown-panel">
             @for (role of roles; track role) {
-              <option [value]="role">{{ role }}</option>
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                [class.is-selected]="role === inviteRole()"
+                (click)="inviteRole.set(role)"
+              >
+                <span>{{ role }}</span>
+                @if (role === inviteRole()) {
+                  <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                }
+              </button>
             }
-          </select>
-        </label>
+          </mat-menu>
+        </div>
       </div>
 
       <footer class="tm-dialog-foot">

@@ -1,5 +1,6 @@
 import { Component, HostListener, computed, inject, signal } from '@angular/core';
 import { MatRippleModule } from '@angular/material/core';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ToastService } from '../../core/toast/toast.service';
@@ -12,7 +13,7 @@ type RoleFilter = 'all' | Member['role'];
 @Component({
   selector: 'app-team-page',
   standalone: true,
-  imports: [MatRippleModule, MatTooltipModule, ThemeToggleComponent],
+  imports: [MatRippleModule, MatMenuModule, MatTooltipModule, ThemeToggleComponent],
   templateUrl: './team-page.component.html',
   styleUrl: './team-page.component.scss',
 })
@@ -95,28 +96,28 @@ export class TeamPageComponent {
   sendInvite(): void {
     const email = this.inviteEmail().trim();
     if (!email) {
-      this.toast.show('Enter an email', 'info');
+      this.toast.error('Please enter a valid email address before sending an invite.', 'Missing Email');
       return;
     }
 
     const added = this.members.inviteMember(email, this.inviteRole());
     if (!added) {
-      this.toast.show('Invalid email or already on the team', 'info');
+      this.toast.error('That email is already on the team or cannot be added.', 'Invite Failed');
       return;
     }
 
     this.closeInvite();
-    this.toast.show(`Invited ${added.name}`, 'success');
+    this.toast.success(`Successfully invited ${added.name} as ${this.inviteRole()}`, 'Invitation Sent');
   }
 
   onRoleChange(member: Member, role: Member['role']): void {
     if (member.role === role) return;
     const result = this.members.updateRole(member.id, role);
     if (!result.ok) {
-      this.toast.show(result.reason, 'info');
+      this.toast.error(result.reason, 'Role Update Failed');
       return;
     }
-    this.toast.show(`${member.name} is now ${role}`, 'success');
+    this.toast.success(`${member.name}'s role was updated to ${role}`, 'Role Updated');
   }
 
   toggleMenu(event: Event, memberId: string): void {
@@ -129,7 +130,7 @@ export class TeamPageComponent {
     this.menuOpenId.set(null);
 
     if (member.id === this.members.currentUser.id) {
-      this.toast.show("You can't remove yourself from here", 'info');
+      this.toast.error("You cannot remove your own active account from the workspace.", 'Action Restricted');
       return;
     }
 
@@ -147,10 +148,10 @@ export class TeamPageComponent {
     const result = this.members.removeMember(member.id);
     this.removeTarget.set(null);
     if (!result.ok) {
-      this.toast.show(result.reason, 'info');
+      this.toast.error(result.reason, 'Removal Failed');
       return;
     }
-    this.toast.show(`${member.name} removed from workspace`, 'success');
+    this.toast.success(`${member.name} has been removed from this workspace`, 'Member Removed');
   }
 
   isYou(member: Member): boolean {

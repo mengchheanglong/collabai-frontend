@@ -1,6 +1,7 @@
 import { Component, inject, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
+import { MatMenuModule } from '@angular/material/menu';
 import { RouterLink } from '@angular/router';
 import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
@@ -21,6 +22,7 @@ import { TaskListViewComponent } from './task-list-view.component';
     DatePipe,
     TitleCasePipe,
     MatRippleModule,
+    MatMenuModule,
     KanbanBoardComponent,
     TaskListViewComponent,
     TaskDetailDrawerComponent,
@@ -54,6 +56,69 @@ export class BoardPageComponent {
 
   readonly priorities: Priority[] = ['low', 'medium', 'high', 'urgent'];
   readonly statuses: TaskStatus[] = ['todo', 'in_progress', 'done'];
+
+  assigneeLabel(id: string): string {
+    if (!id) return 'Unassigned';
+    return this.members.members().find((m) => m.id === id)?.name || 'Unassigned';
+  }
+
+  formatDueDateLabel(dueDate?: string | null): string {
+    if (!dueDate) return 'No due date';
+    const date = new Date(dueDate);
+    if (isNaN(date.getTime())) return 'No due date';
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
+  }
+
+  isDateToday(dueDate?: string | null): boolean {
+    if (!dueDate) return false;
+    const date = new Date(dueDate);
+    const now = new Date();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+    );
+  }
+
+  isDateTomorrow(dueDate?: string | null): boolean {
+    if (!dueDate) return false;
+    const date = new Date(dueDate);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return (
+      date.getFullYear() === tomorrow.getFullYear() &&
+      date.getMonth() === tomorrow.getMonth() &&
+      date.getDate() === tomorrow.getDate()
+    );
+  }
+
+  setDatePreset(preset: 'today' | 'tomorrow' | 'next_week'): void {
+    const d = new Date();
+    if (preset === 'tomorrow') {
+      d.setDate(d.getDate() + 1);
+    } else if (preset === 'next_week') {
+      d.setDate(d.getDate() + 7);
+    }
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    this.newDueDate.set(dateStr);
+  }
 
   setBoardView(view: BoardView): void {
     this.tasks.setBoardView(view);

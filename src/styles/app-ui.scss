@@ -2286,24 +2286,65 @@ tbody tr {
 }
 
 .prop-select,
-.prop-date-input {
+.prop-date-input,
+.prop-dropdown-btn {
   width: 100%;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  padding: 6px 10px;
+  padding: 8px 12px;
   font-size: 13px;
+  font-weight: 550;
   color: var(--text);
   outline: none;
   font-family: inherit;
-  transition: border-color 0.15s;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    background 0.15s,
+    box-shadow 0.15s;
 
   &:hover {
     border-color: var(--line-2);
+    background: var(--hover);
   }
-  &:focus {
+  &:focus,
+  &[aria-expanded='true'] {
     border-color: var(--brand);
     box-shadow: 0 0 0 2px var(--brand-soft);
+  }
+}
+
+.prop-dropdown-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  min-height: 38px;
+  user-select: none;
+
+  .prop-dropdown-val {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &.is-empty {
+      color: var(--muted-2);
+      font-weight: 500;
+    }
+  }
+
+  .prop-dropdown-chevron {
+    color: var(--muted-2);
+    font-size: 18px;
+    margin-left: 4px;
+    flex-shrink: 0;
+    transition: transform 0.2s var(--ease), color 0.15s;
+  }
+
+  &[aria-expanded='true'] .prop-dropdown-chevron {
+    transform: rotate(180deg);
+    color: var(--brand);
   }
 }
 

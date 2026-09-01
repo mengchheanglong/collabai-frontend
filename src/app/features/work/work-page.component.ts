@@ -1,7 +1,8 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
-import { DatePipe } from '@angular/common';
+import { DatePipe, TitleCasePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
+import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
@@ -27,7 +28,15 @@ const PRIORITIES: Priority[] = ['urgent', 'high', 'medium', 'low'];
 @Component({
   selector: 'app-work-page',
   standalone: true,
-  imports: [RouterLink, MatRippleModule, MatTooltipModule, ThemeToggleComponent, DatePipe],
+  imports: [
+    RouterLink,
+    MatRippleModule,
+    MatMenuModule,
+    MatTooltipModule,
+    ThemeToggleComponent,
+    DatePipe,
+    TitleCasePipe,
+  ],
   templateUrl: './work-page.component.html',
   styleUrl: './work-page.component.scss',
 })
@@ -226,13 +235,13 @@ export class WorkPageComponent {
   updateStatus(task: Task, status: TaskStatus): void {
     if (task.status === status) return;
     this.taskStore.updateTask(task.id, { status });
-    this.toast.show(`Moved ${task.id} to ${this.taskStore.statusLabel(status)}`, 'success');
+    this.toast.success(`Moved "${task.title}" to ${this.taskStore.statusLabel(status)}`, 'Status Updated');
   }
 
   updatePriority(task: Task, priority: Priority): void {
     if (task.priority === priority) return;
     this.taskStore.updateTask(task.id, { priority });
-    this.toast.show(`Updated ${task.id} priority`, 'success');
+    this.toast.success(`Updated priority to ${priority} for "${task.title}"`, 'Priority Updated');
   }
 
   dueLabel(task: Task): string {

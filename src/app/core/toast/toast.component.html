@@ -1,3 +1,35 @@
-@if (toastService.toast(); as t) {
-  <div class="toast" [attr.data-tone]="t.tone" [attr.aria-live]="t.tone === 'success' ? 'polite' : 'polite'" role="status">{{ t.message }}</div>
+@if (toastService.currentToast(); as t) {
+  <aside
+    class="toast-card"
+    [attr.data-tone]="t.tone"
+    [attr.aria-live]="t.tone === 'error' ? 'assertive' : 'polite'"
+    role="status"
+  >
+    <div class="toast-indicator" aria-hidden="true">
+      <span class="material-symbols-rounded toast-icon filled">{{ toneIcon(t.tone) }}</span>
+    </div>
+
+    <div class="toast-content">
+      @if (t.title) {
+        <strong class="toast-title">{{ t.title }}</strong>
+      }
+      <p class="toast-message">{{ t.message }}</p>
+    </div>
+
+    <button
+      type="button"
+      class="toast-close"
+      (click)="dismiss()"
+      aria-label="Dismiss notification"
+      title="Dismiss"
+    >
+      <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+    </button>
+
+    <div
+      class="toast-progress"
+      [style.animationDuration.ms]="t.duration"
+      aria-hidden="true"
+    ></div>
+  </aside>
 }

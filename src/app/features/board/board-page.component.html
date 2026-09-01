@@ -199,57 +199,185 @@
           </label>
 
           <div class="tm-grid-2">
-            <label class="tm-field">
+            <div class="tm-field">
               <span>Priority</span>
-              <select
-                [value]="newPriority()"
-                (change)="newPriority.set($any($event.target).value)"
+              <button
+                type="button"
+                class="prop-dropdown-btn"
+                [matMenuTriggerFor]="createPriorityMenu"
                 aria-label="Select priority"
+                matRipple
               >
-                @for (p of priorities; track p) {
-                  <option [value]="p">{{ p | titlecase }}</option>
-                }
-              </select>
-            </label>
+                <span class="prop-dropdown-val">{{ newPriority() | titlecase }}</span>
+                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+              </button>
 
-            <label class="tm-field">
-              <span>Status</span>
-              <select
-                [value]="newStatus()"
-                (change)="newStatus.set($any($event.target).value)"
-                aria-label="Select status"
-              >
-                @for (s of statuses; track s) {
-                  <option [value]="s">{{ tasks.statusLabel(s) }}</option>
+              <mat-menu #createPriorityMenu="matMenu" class="ui-dropdown-panel">
+                @for (p of priorities; track p) {
+                  <button
+                    mat-menu-item
+                    class="ui-dropdown-item"
+                    [class.is-selected]="newPriority() === p"
+                    (click)="newPriority.set(p)"
+                  >
+                    <span>{{ p | titlecase }}</span>
+                    @if (newPriority() === p) {
+                      <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                    }
+                  </button>
                 }
-              </select>
-            </label>
+              </mat-menu>
+            </div>
+
+            <div class="tm-field">
+              <span>Status</span>
+              <button
+                type="button"
+                class="prop-dropdown-btn"
+                [matMenuTriggerFor]="createStatusMenu"
+                aria-label="Select status"
+                matRipple
+              >
+                <span class="prop-dropdown-val">{{ tasks.statusLabel(newStatus()) }}</span>
+                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+              </button>
+
+              <mat-menu #createStatusMenu="matMenu" class="ui-dropdown-panel">
+                @for (s of statuses; track s) {
+                  <button
+                    mat-menu-item
+                    class="ui-dropdown-item"
+                    [class.is-selected]="newStatus() === s"
+                    (click)="newStatus.set(s)"
+                  >
+                    <span>{{ tasks.statusLabel(s) }}</span>
+                    @if (newStatus() === s) {
+                      <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                    }
+                  </button>
+                }
+              </mat-menu>
+            </div>
           </div>
 
           <div class="tm-grid-2">
-            <label class="tm-field">
+            <div class="tm-field">
               <span>Assignee</span>
-              <select
-                [value]="newAssigneeId()"
-                (change)="newAssigneeId.set($any($event.target).value)"
+              <button
+                type="button"
+                class="prop-dropdown-btn"
+                [matMenuTriggerFor]="createAssigneeMenu"
                 aria-label="Select assignee"
+                matRipple
               >
-                <option value="">Unassigned</option>
-                @for (m of members.members(); track m.id) {
-                  <option [value]="m.id">{{ m.name }}</option>
-                }
-              </select>
-            </label>
+                <span class="prop-dropdown-val">{{ assigneeLabel(newAssigneeId()) }}</span>
+                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+              </button>
 
-            <label class="tm-field">
+              <mat-menu #createAssigneeMenu="matMenu" class="ui-dropdown-panel">
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="!newAssigneeId()"
+                  (click)="newAssigneeId.set('')"
+                >
+                  <span>Unassigned</span>
+                  @if (!newAssigneeId()) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
+                @for (m of members.members(); track m.id) {
+                  <button
+                    mat-menu-item
+                    class="ui-dropdown-item"
+                    [class.is-selected]="newAssigneeId() === m.id"
+                    (click)="newAssigneeId.set(m.id)"
+                  >
+                    <span>{{ m.name }}</span>
+                    @if (newAssigneeId() === m.id) {
+                      <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                    }
+                  </button>
+                }
+              </mat-menu>
+            </div>
+
+            <div class="tm-field">
               <span>Due date</span>
-              <input
-                type="date"
-                [value]="newDueDate()"
-                (input)="newDueDate.set($any($event.target).value)"
+              <button
+                type="button"
+                class="prop-dropdown-btn"
+                [matMenuTriggerFor]="createDueDateMenu"
                 aria-label="Select due date"
-              />
-            </label>
+                matRipple
+              >
+                <span class="prop-dropdown-val" [class.is-empty]="!newDueDate()">
+                  {{ formatDueDateLabel(newDueDate()) }}
+                </span>
+                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">calendar_today</span>
+              </button>
+
+              <mat-menu #createDueDateMenu="matMenu" class="ui-dropdown-panel ui-date-dropdown-panel">
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="!newDueDate()"
+                  (click)="newDueDate.set('')"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">event_busy</span>
+                  <span>No due date</span>
+                  @if (!newDueDate()) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="isDateToday(newDueDate())"
+                  (click)="setDatePreset('today')"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">today</span>
+                  <span>Today</span>
+                  @if (isDateToday(newDueDate())) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="isDateTomorrow(newDueDate())"
+                  (click)="setDatePreset('tomorrow')"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">event_upcoming</span>
+                  <span>Tomorrow</span>
+                  @if (isDateTomorrow(newDueDate())) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  (click)="setDatePreset('next_week')"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">date_range</span>
+                  <span>Next week</span>
+                </button>
+
+                <div class="ui-dropdown-divider"></div>
+
+                <div class="ui-dropdown-custom-date" (click)="$event.stopPropagation()">
+                  <label class="custom-date-label">
+                    <span class="custom-date-title">Custom date</span>
+                    <input
+                      type="date"
+                      class="custom-date-input"
+                      [value]="newDueDate()"
+                      (change)="newDueDate.set($any($event.target).value)"
+                    />
+                  </label>
+                </div>
+              </mat-menu>
+            </div>
           </div>
         </div>
 

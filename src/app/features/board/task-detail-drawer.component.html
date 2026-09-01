@@ -214,58 +214,186 @@
         </div>
 
         <aside class="task-modal-props" aria-label="Task properties">
+          <!-- Status -->
           <div class="prop-row">
             <span class="prop-label">Status</span>
-            <select
-              class="prop-select"
-              [value]="task.status"
-              (change)="updateStatus(task, $any($event.target).value)"
+            <button
+              type="button"
+              class="prop-dropdown-btn"
+              [matMenuTriggerFor]="modalStatusMenu"
               aria-label="Status"
+              matRipple
             >
+              <span class="prop-dropdown-val">{{ tasks.statusLabel(task.status) }}</span>
+              <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+            </button>
+
+            <mat-menu #modalStatusMenu="matMenu" class="ui-dropdown-panel">
               @for (s of statuses; track s) {
-                <option [value]="s" [selected]="task.status === s">{{ tasks.statusLabel(s) }}</option>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="task.status === s"
+                  (click)="updateStatus(task, s)"
+                >
+                  <span>{{ tasks.statusLabel(s) }}</span>
+                  @if (task.status === s) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
               }
-            </select>
+            </mat-menu>
           </div>
+
+          <!-- Priority -->
           <div class="prop-row">
             <span class="prop-label">Priority</span>
-            <select
-              class="prop-select"
-              [value]="task.priority"
-              (change)="updatePriority(task, $any($event.target).value)"
+            <button
+              type="button"
+              class="prop-dropdown-btn"
+              [matMenuTriggerFor]="modalPriorityMenu"
               aria-label="Priority"
+              matRipple
             >
+              <span class="prop-dropdown-val">{{ task.priority | titlecase }}</span>
+              <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+            </button>
+
+            <mat-menu #modalPriorityMenu="matMenu" class="ui-dropdown-panel">
               @for (p of priorities; track p) {
-                <option [value]="p" [selected]="task.priority === p">{{ p | titlecase }}</option>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="task.priority === p"
+                  (click)="updatePriority(task, p)"
+                >
+                  <span>{{ p | titlecase }}</span>
+                  @if (task.priority === p) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
               }
-            </select>
+            </mat-menu>
           </div>
+
+          <!-- Assignee -->
           <div class="prop-row">
             <span class="prop-label">Assignee</span>
-            <select
-              class="prop-select"
-              [value]="task.assigneeId || ''"
-              (change)="updateAssignee(task, $any($event.target).value)"
+            <button
+              type="button"
+              class="prop-dropdown-btn"
+              [matMenuTriggerFor]="modalAssigneeMenu"
               aria-label="Assignee"
+              matRipple
             >
-              <option value="" [selected]="!task.assigneeId">Unassigned</option>
+              <span class="prop-dropdown-val">{{ assigneeLabel(task) }}</span>
+              <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+            </button>
+
+            <mat-menu #modalAssigneeMenu="matMenu" class="ui-dropdown-panel">
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                [class.is-selected]="!task.assigneeId"
+                (click)="updateAssignee(task, '')"
+              >
+                <span>Unassigned</span>
+                @if (!task.assigneeId) {
+                  <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                }
+              </button>
               @for (m of members.members(); track m.id) {
-                <option [value]="m.id" [selected]="task.assigneeId === m.id">{{ m.name }}</option>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  [class.is-selected]="task.assigneeId === m.id"
+                  (click)="updateAssignee(task, m.id)"
+                >
+                  <span>{{ m.name }}</span>
+                  @if (task.assigneeId === m.id) {
+                    <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                  }
+                </button>
               }
-              @if (task.assigneeId && !hasMember(task.assigneeId)) {
-                <option [value]="task.assigneeId" selected>{{ members.memberName(task.assigneeId) }}</option>
-              }
-            </select>
+            </mat-menu>
           </div>
+
+          <!-- Due date -->
           <div class="prop-row">
             <span class="prop-label">Due date</span>
-            <input
-              type="date"
-              class="prop-date-input"
-              [value]="task.dueDate ? (task.dueDate | date:'yyyy-MM-dd') : ''"
-              (change)="updateDueDate(task, $any($event.target).value)"
+            <button
+              type="button"
+              class="prop-dropdown-btn"
+              [matMenuTriggerFor]="modalDueDateMenu"
               aria-label="Due date"
-            />
+              matRipple
+            >
+              <span class="prop-dropdown-val" [class.is-empty]="!task.dueDate">
+                {{ formatDueDateLabel(task.dueDate) }}
+              </span>
+              <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">calendar_today</span>
+            </button>
+
+            <mat-menu #modalDueDateMenu="matMenu" class="ui-dropdown-panel ui-date-dropdown-panel">
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                [class.is-selected]="!task.dueDate"
+                (click)="updateDueDate(task, '')"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">event_busy</span>
+                <span>No due date</span>
+                @if (!task.dueDate) {
+                  <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                }
+              </button>
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                [class.is-selected]="isDateToday(task.dueDate)"
+                (click)="setDatePreset(task, 'today')"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">today</span>
+                <span>Today</span>
+                @if (isDateToday(task.dueDate)) {
+                  <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                }
+              </button>
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                [class.is-selected]="isDateTomorrow(task.dueDate)"
+                (click)="setDatePreset(task, 'tomorrow')"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">event_upcoming</span>
+                <span>Tomorrow</span>
+                @if (isDateTomorrow(task.dueDate)) {
+                  <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
+                }
+              </button>
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                (click)="setDatePreset(task, 'next_week')"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">date_range</span>
+                <span>Next week</span>
+              </button>
+
+              <div class="ui-dropdown-divider"></div>
+
+              <div class="ui-dropdown-custom-date" (click)="$event.stopPropagation()">
+                <label class="custom-date-label">
+                  <span class="custom-date-title">Custom date</span>
+                  <input
+                    type="date"
+                    class="custom-date-input"
+                    [value]="task.dueDate ? (task.dueDate | date:'yyyy-MM-dd') : ''"
+                    (change)="updateDueDate(task, $any($event.target).value)"
+                  />
+                </label>
+              </div>
+            </mat-menu>
           </div>
           <div class="prop-row">
             <span class="prop-label">Project</span>

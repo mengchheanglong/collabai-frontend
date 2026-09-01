@@ -1,16 +1,19 @@
 import { Component, HostListener, inject, signal } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatRippleModule } from '@angular/material/core';
 import { TitleCasePipe, DatePipe } from '@angular/common';
 import { CommentStoreService } from '../../core/state/comment-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
+import { ToastService } from '../../core/toast/toast.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
 
 @Component({
   selector: 'app-task-detail-drawer',
   standalone: true,
-  imports: [MatProgressBarModule, DatePipe, TitleCasePipe],
+  imports: [MatProgressBarModule, MatMenuModule, MatRippleModule, DatePipe, TitleCasePipe],
   templateUrl: './task-detail-drawer.component.html',
 })
 export class TaskDetailDrawerComponent {
@@ -18,6 +21,7 @@ export class TaskDetailDrawerComponent {
   readonly comments = inject(CommentStoreService);
   readonly members = inject(MemberDirectoryService);
   readonly workspace = inject(WorkspaceContextService);
+  private readonly toast = inject(ToastService);
 
   readonly priorities: Priority[] = ['low', 'medium', 'high', 'urgent'];
   readonly statuses: TaskStatus[] = ['todo', 'in_progress', 'done'];
@@ -28,6 +32,12 @@ export class TaskDetailDrawerComponent {
       this.workspace.activeProjectName() ||
       task.projectId
     );
+  }
+
+  assigneeLabel(task: Task): string {
+    if (!task.assigneeId) return 'Unassigned';
+    const member = this.members.members().find((m) => m.id === task.assigneeId);
+    return member?.name || this.members.memberName(task.assigneeId) || 'Unassigned';
   }
 
   hasMember(id?: string | null): boolean {
@@ -51,6 +61,7 @@ export class TaskDetailDrawerComponent {
     if (trimmed !== task.title) {
       inputEl.value = trimmed;
       this.tasks.updateTask(task.id, { title: trimmed });
+      this.toast.success(`Renamed task to "${trimmed}"`, 'Title Updated');
     }
   }
 
@@ -58,18 +69,21 @@ export class TaskDetailDrawerComponent {
     const trimmed = newDesc.trim();
     if (trimmed !== (task.description ?? '')) {
       this.tasks.updateTask(task.id, { description: trimmed });
+      this.toast.success('Task description saved', 'Description Updated');
     }
   }
 
   updateStatus(task: Task, status: TaskStatus): void {
     if (task.status !== status) {
       this.tasks.updateTask(task.id, { status });
+      this.toast.success(`Moved to ${this.tasks.statusLabel(status)}`, 'Status Updated');
     }
   }
 
   updatePriority(task: Task, priority: Priority): void {
     if (task.priority !== priority) {
       this.tasks.updateTask(task.id, { priority });
+      this.toast.success(`Priority changed to ${priority}`, 'Priority Updated');
     }
   }
 
@@ -77,12 +91,73 @@ export class TaskDetailDrawerComponent {
     const val = assigneeId ? assigneeId : null;
     if (task.assigneeId !== val) {
       this.tasks.updateTask(task.id, { assigneeId: val });
+      const name = val ? this.members.memberName(val) : 'Unassigned';
+      this.toast.success(`Assigned to ${name}`, 'Assignee Updated');
     }
+  }
+
+  formatDueDateLabel(dueDate?: string | null): string {
+    if (!dueDate) return 'No due date';
+    const date = new Date(dueDate);
+    if (isNaN(date.getTime())) return 'No due date';
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const diffDays = Math.round((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays === -1) return 'Yesterday';
+
+    return date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
+    });
+  }
+
+  isDateToday(dueDate?: string | null): boolean {
+    if (!dueDate) return false;
+    const date = new Date(dueDate);
+    const now = new Date();
+    return (
+      date.getFullYear() === now.getFullYear() &&
+      date.getMonth() === now.getMonth() &&
+      date.getDate() === now.getDate()
+    );
+  }
+
+  isDateTomorrow(dueDate?: string | null): boolean {
+    if (!dueDate) return false;
+    const date = new Date(dueDate);
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return (
+      date.getFullYear() === tomorrow.getFullYear() &&
+      date.getMonth() === tomorrow.getMonth() &&
+      date.getDate() === tomorrow.getDate()
+    );
+  }
+
+  setDatePreset(task: Task, preset: 'today' | 'tomorrow' | 'next_week'): void {
+    const d = new Date();
+    if (preset === 'tomorrow') {
+      d.setDate(d.getDate() + 1);
+    } else if (preset === 'next_week') {
+      d.setDate(d.getDate() + 7);
+    }
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    this.updateDueDate(task, dateStr);
   }
 
   updateDueDate(task: Task, dateStr: string): void {
     const val = dateStr ? new Date(dateStr).toISOString() : null;
     this.tasks.updateTask(task.id, { dueDate: val });
+    this.toast.success(val ? `Due date set to ${this.formatDueDateLabel(val)}` : 'Due date cleared', 'Due Date Updated');
   }
 
   handleAddSubtask(task: Task, inputEl: HTMLInputElement): void {
