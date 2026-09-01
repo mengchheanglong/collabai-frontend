@@ -6,6 +6,8 @@ import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ThemeMode, ThemeService } from '../../core/theme/theme.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
+import { PushNotificationService } from '../../core/pwa/push-notification.service';
+import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 
 interface ThemeOption {
   value: ThemeMode;
@@ -27,6 +29,8 @@ export class ProfilePageComponent {
   private readonly memberDirectory = inject(MemberDirectoryService);
   private readonly authStore = inject(AuthStoreService);
   private readonly formBuilder = inject(FormBuilder);
+  readonly push = inject(PushNotificationService);
+  readonly pwa = inject(PwaInstallService);
 
   readonly currentUser = this.memberDirectory.currentUser;
   readonly workspace = inject(WorkspaceContextService);

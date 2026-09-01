@@ -12,6 +12,9 @@ import { NotificationStoreService } from '../state/notification-store.service';
 
 import { AuthStoreService } from '../state/auth-store.service';
 import { SidebarNavStateService } from './sidebar-nav.service';
+import { PwaInstallService } from '../pwa/pwa-install.service';
+import { PushNotificationService } from '../pwa/push-notification.service';
+import { OfflineSyncService } from '../pwa/offline-sync.service';
 
 @Component({
   selector: 'app-sidebar',
@@ -28,6 +31,9 @@ export class SidebarComponent implements OnInit {
   readonly commandCenter = inject(CommandCenterService);
   readonly notifications = inject(NotificationStoreService);
   readonly navState = inject(SidebarNavStateService);
+  readonly pwa = inject(PwaInstallService);
+  readonly push = inject(PushNotificationService);
+  readonly sync = inject(OfflineSyncService);
 
   readonly pages = MAIN_NAV_ITEMS;
   readonly currentUser = this.members.currentUser;
