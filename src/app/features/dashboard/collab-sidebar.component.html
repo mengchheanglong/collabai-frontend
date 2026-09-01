@@ -51,9 +51,13 @@
         @for (m of memberPresence(); track m.id) {
         <li class="collab-member-card">
           <div class="collab-avatar-wrap">
-            <span class="ui-avatar" [style.background]="m.color">
-              {{ m.avatar }}
-            </span>
+            @if (m.avatarUrl) {
+              <img class="ui-avatar" [src]="m.avatarUrl" [alt]="m.name" />
+            } @else {
+              <span class="ui-avatar" [style.background]="m.color">
+                {{ m.avatar }}
+              </span>
+            }
             <span class="presence-badge" [class]="'is-' + m.presence" [matTooltip]="m.statusLabel"></span>
           </div>
 

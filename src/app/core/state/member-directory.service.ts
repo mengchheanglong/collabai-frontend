@@ -78,6 +78,7 @@ export class MemberDirectoryService {
           name: user.name,
           email: user.email,
           avatar: initials(user.name),
+          avatarUrl: user.avatarUrl ?? null,
           role: 'Member',
         });
       }
@@ -87,7 +88,18 @@ export class MemberDirectoryService {
   /** Load members for the given project from the backend. */
   private loadMembersForProject(projectId: string): void {
     this.projectApi.listMembers(projectId).subscribe({
-      next: (dtos) => this.membersState.set(dtos.map(toMember)),
+      next: (dtos) => {
+        const list = dtos.map(toMember);
+        // Merge the current user's avatarUrl into the member list
+        const myId = this.currentUser.id;
+        if (myId) {
+          const avatarUrl = this.currentUser.avatarUrl;
+          for (const m of list) {
+            if (m.id === myId) m.avatarUrl = avatarUrl;
+          }
+        }
+        this.membersState.set(list);
+      },
       error: () => {
         this.membersState.set([]);
       },
@@ -113,6 +125,12 @@ export class MemberDirectoryService {
     return (
       this.membersState().find((m) => m.id === idOrName || m.name === idOrName)?.name ?? idOrName
     );
+  }
+
+  memberAvatarUrl(idOrName: string): string | null {
+    if (!idOrName) return null;
+    const m = this.membersState().find((m) => m.id === idOrName || m.name === idOrName);
+    return m?.avatarUrl ?? null;
   }
 
   updateCurrentUserProfile(

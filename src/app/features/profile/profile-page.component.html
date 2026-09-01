@@ -20,9 +20,32 @@
   <div class="profile-stack">
     <section class="account-card ui-panel" aria-labelledby="account-title">
       <div class="identity-panel">
-        <span class="profile-avatar" [style.background]="currentUser.color" aria-hidden="true">
-          {{ currentUser.avatar }}
-        </span>
+        <div class="profile-avatar-wrap">
+          @if (displayAvatarUrl) {
+            <img [src]="displayAvatarUrl" class="profile-avatar-img" alt="Profile picture" />
+          } @else {
+            <span class="profile-avatar" [style.background]="currentUser.color" aria-hidden="true">
+              {{ currentUser.avatar }}
+            </span>
+          }
+          <button
+            type="button"
+            class="avatar-upload-btn"
+            (click)="triggerAvatarUpload()"
+            matRipple
+            [attr.aria-label]="'Upload profile picture'"
+            title="Upload profile picture"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">photo_camera</span>
+          </button>
+          <input
+            #avatarInput
+            type="file"
+            accept="image/jpeg,image/png,image/gif,image/webp"
+            (change)="onAvatarSelected($event)"
+            hidden
+          />
+        </div>
         <div class="identity-copy">
           <div class="identity-title-row">
             <h2 id="account-title">{{ currentUser.name }}</h2>
@@ -126,7 +149,13 @@
         } @else {
           <span>Your profile details are shared across this workspace.</span>
         }
-        <a class="ui-btn ghost sm" routerLink="/team" matRipple>View team</a>
+        <div class="footer-actions">
+          <button type="button" class="ui-btn primary sm" matRipple (click)="saveAvatar()" [disabled]="isUploadingAvatar() || !avatarPreview()">
+            <span class="material-symbols-rounded sm" aria-hidden="true">save</span>
+            {{ isUploadingAvatar() ? 'Saving…' : 'Save changes' }}
+          </button>
+          <a class="ui-btn ghost sm" routerLink="/team" matRipple>View team</a>
+        </div>
       </footer>
     </section>
 

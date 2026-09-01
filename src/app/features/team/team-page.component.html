@@ -133,9 +133,13 @@
         <article class="tm-row" role="listitem">
           <div class="tm-person">
             <span class="tm-avatar-wrap">
-              <span class="ui-avatar" [style.background]="member.color" aria-hidden="true">
-                {{ member.avatar }}
-              </span>
+              @if (member.avatarUrl) {
+                <img class="ui-avatar-img" [src]="member.avatarUrl" [alt]="member.name" />
+              } @else {
+                <span class="ui-avatar" [style.background]="member.color" aria-hidden="true">
+                  {{ member.avatar }}
+                </span>
+              }
               <span
                 class="tm-presence"
                 [attr.data-state]="member.status"
@@ -352,9 +356,13 @@
           boards. This can’t be undone from here.
         </p>
         <div class="tm-preview">
-          <span class="ui-avatar" [style.background]="target.color" aria-hidden="true">
-            {{ target.avatar }}
-          </span>
+          @if (target.avatarUrl) {
+            <img class="ui-avatar-img" [src]="target.avatarUrl" [alt]="target.name" />
+          } @else {
+            <span class="ui-avatar" [style.background]="target.color" aria-hidden="true">
+              {{ target.avatar }}
+            </span>
+          }
           <div class="tm-person-main">
             <strong>{{ target.name }}</strong>
             <small>{{ target.email }}</small>
