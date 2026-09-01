@@ -2,7 +2,6 @@ import { Component, inject, signal } from '@angular/core';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { MatRippleModule } from '@angular/material/core';
 import { MatMenuModule } from '@angular/material/menu';
-import { RouterLink } from '@angular/router';
 import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';

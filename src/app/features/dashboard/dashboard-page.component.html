@@ -192,9 +192,13 @@
             <ul class="db-workload">
               @for (row of workload(); track row.userId) {
               <li>
-                <span class="ui-avatar sm" [style.background]="members.memberColor(row.name)">
-                  {{ members.initials(row.name) }}
-                </span>
+                @if (members.memberAvatarUrl(row.name)) {
+                  <img class="ui-avatar sm" [src]="members.memberAvatarUrl(row.name)" [alt]="row.name" />
+                } @else {
+                  <span class="ui-avatar sm" [style.background]="members.memberColor(row.name)">
+                    {{ members.initials(row.name) }}
+                  </span>
+                }
                 <span class="db-workload-name">{{ row.name }}</span>
                 <span class="db-workload-bar" [attr.aria-label]="row.total + ' tasks assigned'">
                   <span class="db-workload-fill" [style.width.%]="row.share"></span>
@@ -261,8 +265,12 @@
                       {{ dueLabel(task) }}
                     </span>
                     @if (assigneeName(task); as name) {
-                    <span class="ui-avatar sm" [style.background]="members.memberColor(name)" [matTooltip]="name">{{
-                      members.initials(name) }}</span>
+                    @if (members.memberAvatarUrl(name)) {
+                      <img class="ui-avatar sm" [src]="members.memberAvatarUrl(name)" [alt]="name" [matTooltip]="name" />
+                    } @else {
+                      <span class="ui-avatar sm" [style.background]="members.memberColor(name)" [matTooltip]="name">{{
+                        members.initials(name) }}</span>
+                    }
                     } @else {
                     <span class="ui-avatar sm is-empty" matTooltip="Unassigned" aria-hidden="true">
                       <span class="material-symbols-rounded sm">person</span>
@@ -387,15 +395,19 @@
             <ol class="db-feed">
               @for (activity of recentActivities(); track $index) {
               <li class="db-feed-item" [class.is-ai]="activity.type === 'ai'">
-                <span class="ui-avatar" [class.is-ai]="activity.type === 'ai'" [style.background]="
-                          activity.type === 'ai' ? null : members.memberColor(activity.actor)
-                        " aria-hidden="true">
-                  @if (activity.type === 'ai') {
-                  <span class="material-symbols-rounded sm filled">auto_awesome</span>
-                  } @else {
-                  {{ members.initials(activity.actor) }}
-                  }
-                </span>
+                @if (activity.type !== 'ai' && members.memberAvatarUrl(activity.actor)) {
+                  <img class="ui-avatar" [src]="members.memberAvatarUrl(activity.actor)" [alt]="activity.actor" aria-hidden="true" />
+                } @else {
+                  <span class="ui-avatar" [class.is-ai]="activity.type === 'ai'" [style.background]="
+                            activity.type === 'ai' ? null : members.memberColor(activity.actor)
+                          " aria-hidden="true">
+                    @if (activity.type === 'ai') {
+                    <span class="material-symbols-rounded sm filled">auto_awesome</span>
+                    } @else {
+                    {{ members.initials(activity.actor) }}
+                    }
+                  </span>
+                }
                 <div class="db-feed-body">
                   <p><strong>{{ activity.actor }}</strong> {{ activity.text }}</p>
                   <small>

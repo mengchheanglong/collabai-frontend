@@ -104,10 +104,10 @@
       <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
       <strong id="bd-no-project">No project selected</strong>
       <p>Create your first project to unlock a board, tasks, and team collaboration.</p>
-      <a class="ui-btn primary sm" routerLink="/dashboard" matRipple>
+      <button type="button" class="ui-btn primary sm" (click)="openProjectCreator()" matRipple>
         <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
         Create project
-      </a>
+      </button>
     </section>
   } @else if (workspace.boards().length === 0) {
     <section class="ui-empty" role="status">

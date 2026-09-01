@@ -16,9 +16,13 @@
 
   <footer class="tc-foot">
     @if (assignee(); as person) {
-      <span class="ui-avatar" [style.background]="person.color" [matTooltip]="person.name" aria-hidden="true">
-        {{ person.avatar }}
-      </span>
+      @if (person.avatarUrl) {
+        <img class="ui-avatar" [src]="person.avatarUrl" [alt]="person.name" [matTooltip]="person.name" />
+      } @else {
+        <span class="ui-avatar" [style.background]="person.color" [matTooltip]="person.name" aria-hidden="true">
+          {{ person.avatar }}
+        </span>
+      }
     } @else {
       <span class="ui-avatar is-empty" matTooltip="Unassigned" aria-hidden="true">
         <span class="material-symbols-rounded sm">person</span>

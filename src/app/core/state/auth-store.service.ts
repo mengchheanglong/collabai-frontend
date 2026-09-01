@@ -114,6 +114,17 @@ export class AuthStoreService {
     return this.restoreSessionRequest;
   }
 
+  updateProfile(fields: { name?: string; avatarUrl?: string | null }): void {
+    this.auth.updateProfile(fields).subscribe({
+      next: ({ user }) => {
+        this.currentUser.set(user);
+      },
+      error: () => {
+        this.toast.show('Failed to update profile', 'info');
+      },
+    });
+  }
+
   clearAuthError(): void {
     this.authError.set(null);
   }

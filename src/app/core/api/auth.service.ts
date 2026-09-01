@@ -46,6 +46,10 @@ export class AuthService {
     return this.api.post<{ accessToken: string }>('/auth/refresh-token');
   }
 
+  updateProfile(body: { name?: string; avatarUrl?: string | null }): Observable<MeResponse> {
+    return this.api.patch<MeResponse>('/auth/me', body);
+  }
+
   /** No body — the backend reads the email from the `registration_verification` cookie. */
   verifyEmail(body: VerifyEmailRequest): Observable<VerifyEmailResponse> {
     return this.api.post<VerifyEmailResponse>('/auth/verify-email', body);

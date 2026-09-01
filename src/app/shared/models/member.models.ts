@@ -4,6 +4,7 @@ export interface Member {
   email: string;
   role: 'Admin' | 'Member' | 'Viewer';
   avatar: string;
+  avatarUrl?: string | null;
   status: 'Active' | 'Away' | 'Offline';
   projects: number;
   joined: string;

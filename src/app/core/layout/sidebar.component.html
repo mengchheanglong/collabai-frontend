@@ -157,9 +157,13 @@
         [matTooltip]="navState.isCollapsed() ? (currentUser.name || 'Guest User') : ''"
         aria-label="Open your profile"
       >
-        <span class="user-avatar" [style.background]="currentUser.color || 'var(--brand)'" aria-hidden="true">
-          {{ currentUser.avatar || 'U' }}
-        </span>
+        @if (currentUser.avatarUrl) {
+          <img class="user-avatar-img" [src]="currentUser.avatarUrl" [alt]="currentUser.name || 'User'" />
+        } @else {
+          <span class="user-avatar" [style.background]="currentUser.color || 'var(--brand)'" aria-hidden="true">
+            {{ currentUser.avatar || 'U' }}
+          </span>
+        }
         @if (!navState.isCollapsed()) {
           <div class="user-info">
             <strong>{{ currentUser.name || 'Guest User' }}</strong>
