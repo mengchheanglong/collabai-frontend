@@ -155,7 +155,13 @@ export class TaskDetailDrawerComponent {
   }
 
   updateDueDate(task: Task, dateStr: string): void {
-    const val = dateStr ? new Date(dateStr).toISOString() : null;
+    let val: string | null = null;
+    if (dateStr) {
+      const d = new Date(dateStr);
+      if (!isNaN(d.getTime())) {
+        val = d.toISOString();
+      }
+    }
     this.tasks.updateTask(task.id, { dueDate: val });
     this.toast.success(val ? `Due date set to ${this.formatDueDateLabel(val)}` : 'Due date cleared', 'Due Date Updated');
   }

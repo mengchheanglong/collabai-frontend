@@ -1,93 +1,194 @@
 <div class="auth-shell">
-  <main class="auth-card auth-card-split">
-    <section class="auth-side">
-      <img src="/Collab%20AI.svg" class="auth-side-logo" alt="CollabAI" />
-      <div class="auth-side-copy">
-        <h2>Start building, together with AI.</h2>
-        <p>Create your account to organize projects, boards, and teammates in one workspace.</p>
+  <main class="auth-card auth-card-wide">
+    <header class="auth-card-header">
+      <a routerLink="/" class="auth-brand" aria-label="CollabAI Home">
+        <img src="/collab-logo-clean.svg" class="auth-logo" alt="CollabAI" />
+      </a>
+      <div class="auth-heading">
+        <h1>Create your account</h1>
+        <p>Get started with your collaborative, AI-powered workspace</p>
       </div>
-      <ul class="auth-side-features">
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Real-time boards &amp; tasks
-        </li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> AI subtask &amp; summary
-          helpers</li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Team directory &amp; roles
-        </li>
-      </ul>
-      <div class="auth-side-dots"><span class="active"></span><span></span></div>
-    </section>
+    </header>
 
-    <section class="auth-main">
-      <div class="auth-head">
-        <h1>Create an account</h1>
-        <p>Already have an account? <a routerLink="/login" class="auth-link">Log in</a></p>
-      </div>
-
-      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Name Row (2 columns on desktop, 1 on mobile) -->
+      <div class="form-row-2">
         <div class="field">
           <label for="firstName">First name</label>
-          <div class="field-control">
+          <div class="field-control" [class.is-valid]="isValid('firstName')" [class.is-invalid]="isInvalid('firstName')">
             <span class="material-symbols-rounded field-icon" aria-hidden="true">person</span>
-            <input id="firstName" type="text" formControlName="firstName" placeholder="Dara"
-              autocomplete="given-name" />
+            <input
+              id="firstName"
+              type="text"
+              formControlName="firstName"
+              placeholder="e.g. Alex"
+              autocomplete="given-name"
+            />
+            @if (isValid('firstName')) {
+              <span class="material-symbols-rounded field-status-icon success" aria-hidden="true">check_circle</span>
+            }
           </div>
-          @if (form.controls.firstName.touched && form.controls.firstName.invalid) {
-          <span class="field-error">First name must be 2-60 characters</span>
+          @if (isInvalid('firstName')) {
+            <div class="field-error-msg" role="alert">
+              <span class="material-symbols-rounded">error</span>
+              <span>2–60 characters</span>
+            </div>
           }
         </div>
 
         <div class="field">
           <label for="lastName">Last name</label>
-          <div class="field-control">
+          <div class="field-control" [class.is-valid]="isValid('lastName')" [class.is-invalid]="isInvalid('lastName')">
             <span class="material-symbols-rounded field-icon" aria-hidden="true">person</span>
-            <input id="lastName" type="text" formControlName="lastName" placeholder="Sok" autocomplete="family-name" />
+            <input
+              id="lastName"
+              type="text"
+              formControlName="lastName"
+              placeholder="e.g. Morgan"
+              autocomplete="family-name"
+            />
+            @if (isValid('lastName')) {
+              <span class="material-symbols-rounded field-status-icon success" aria-hidden="true">check_circle</span>
+            }
           </div>
-          @if (form.controls.lastName.touched && form.controls.lastName.invalid) {
-          <span class="field-error">Last name must be 2-60 characters</span>
+          @if (isInvalid('lastName')) {
+            <div class="field-error-msg" role="alert">
+              <span class="material-symbols-rounded">error</span>
+              <span>2–60 characters</span>
+            </div>
           }
         </div>
+      </div>
 
-        <div class="field">
-          <label for="email">Email</label>
-          <div class="field-control">
-            <span class="material-symbols-rounded field-icon" aria-hidden="true">mail</span>
-            <input id="email" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email" />
-          </div>
-          @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="field-error">Enter a valid email address</span>
+      <!-- Email Field -->
+      <div class="field">
+        <label for="email">Work Email</label>
+        <div class="field-control" [class.is-valid]="isValid('email')" [class.is-invalid]="isInvalid('email')">
+          <span class="material-symbols-rounded field-icon" aria-hidden="true">mail</span>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="you@company.com"
+            autocomplete="email"
+          />
+          @if (isValid('email')) {
+            <span class="material-symbols-rounded field-status-icon success" aria-hidden="true">check_circle</span>
           }
         </div>
+        @if (isInvalid('email')) {
+          <div class="field-error-msg" role="alert">
+            <span class="material-symbols-rounded">error</span>
+            <span>Please enter a valid work email</span>
+          </div>
+        }
+      </div>
 
-        <div class="field">
+      <!-- Password Field with Live Strength Indicator -->
+      <div class="field">
+        <div class="field-label-row">
           <label for="password">Password</label>
-          <div class="field-control">
-            <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
-            <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
-              placeholder="At least 8 characters" autocomplete="new-password" />
-            <button type="button" class="field-toggle" (click)="togglePasswordVisibility()"
-              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
-              <span class="material-symbols-rounded" aria-hidden="true">{{ showPassword() ? 'visibility_off' :
-                'visibility' }}</span>
-            </button>
-          </div>
-          @if (form.controls.password.touched && form.controls.password.invalid) {
-          <span class="field-error">Password must be at least 8 characters</span>
+          @if (password().length > 0) {
+            <span class="pw-strength-pill" [class]="passwordStrength().color">
+              {{ passwordStrength().label }}
+            </span>
           }
         </div>
+        <div class="field-control" [class.is-valid]="isValid('password')" [class.is-invalid]="isInvalid('password')">
+          <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="At least 8 characters"
+            autocomplete="new-password"
+          />
+          <button
+            type="button"
+            class="field-toggle-btn"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
 
-        @if (authStore.authError()) {
-        <p class="form-error" role="alert">{{ authStore.authError() }}</p>
+        <!-- 4-Segment Strength Bar -->
+        @if (password().length > 0) {
+          <div class="pw-meter-bar">
+            <div class="pw-segment" [class.active]="passwordStrength().score >= 1" [class]="passwordStrength().color"></div>
+            <div class="pw-segment" [class.active]="passwordStrength().score >= 2" [class]="passwordStrength().color"></div>
+            <div class="pw-segment" [class.active]="passwordStrength().score >= 3" [class]="passwordStrength().color"></div>
+            <div class="pw-segment" [class.active]="passwordStrength().score >= 4" [class]="passwordStrength().color"></div>
+          </div>
+
+          <!-- Live Password Requirements Checklist -->
+          <div class="pw-requirements">
+            <span class="req-item" [class.met]="passwordStrength().hasLen">
+              <span class="material-symbols-rounded">{{ passwordStrength().hasLen ? 'check' : 'circle' }}</span>
+              8+ characters
+            </span>
+            <span class="req-item" [class.met]="passwordStrength().hasCase">
+              <span class="material-symbols-rounded">{{ passwordStrength().hasCase ? 'check' : 'circle' }}</span>
+              Upper &amp; lowercase
+            </span>
+            <span class="req-item" [class.met]="passwordStrength().hasNum || passwordStrength().hasSpecial">
+              <span class="material-symbols-rounded">{{ (passwordStrength().hasNum || passwordStrength().hasSpecial) ? 'check' : 'circle' }}</span>
+              Number or symbol
+            </span>
+          </div>
         }
 
-        <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
-          <span>{{ authStore.isLoading() ? 'Creating account…' : 'Create account' }}</span>
-          <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
-        </button>
-      </form>
+        @if (isInvalid('password')) {
+          <div class="field-error-msg" role="alert">
+            <span class="material-symbols-rounded">error</span>
+            <span>Password must be at least 8 characters</span>
+          </div>
+        }
+      </div>
 
-      <p class="auth-note">
-        Secure workspace for your team
+      <!-- Global Auth Error Banner -->
+      @if (authStore.authError()) {
+        <div class="auth-error-banner" role="alert">
+          <span class="material-symbols-rounded">warning</span>
+          <span>{{ authStore.authError() }}</span>
+        </div>
+      }
+
+      <!-- Submit CTA -->
+      <button
+        type="submit"
+        class="auth-submit-btn"
+        [disabled]="authStore.isLoading()"
+      >
+        @if (authStore.isLoading()) {
+          <span class="auth-btn-spinner" aria-hidden="true"></span>
+          <span>Creating account…</span>
+        } @else {
+          <span>Create account</span>
+          <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
+        }
+      </button>
+
+      <!-- Terms Disclaimer -->
+      <p class="auth-legal-note">
+        By signing up, you agree to our
+        <a routerLink="/terms" class="auth-text-link">Terms of Service</a> and
+        <a routerLink="/privacy" class="auth-text-link">Privacy Policy</a>.
       </p>
-    </section>
+    </form>
+
+    <footer class="auth-card-footer">
+      <p>
+        Already have an account?
+        <a routerLink="/login" class="auth-text-link bold">Log in</a>
+      </p>
+      <div class="auth-secure-badge">
+        <span class="material-symbols-rounded">shield</span>
+        <span>Enterprise-grade data protection</span>
+      </div>
+    </footer>
   </main>
 </div>

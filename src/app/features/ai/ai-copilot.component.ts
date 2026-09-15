@@ -83,26 +83,22 @@ export class AiCopilotComponent {
     {
       id: 'welcome',
       role: 'assistant',
-      text: 'CollabAI ready. Type / for commands or ask anything about your project.',
+      text: 'CollabAI ready. Ask anything about your project or type / for commands.',
+      suggestions: [
+        '✨ Generate 5 tasks',
+        '🔍 High priority tasks',
+        '📊 Tasks due this week',
+      ],
     },
   ]);
 
   readonly baseCommands: SlashCommand[] = [
-    { name: '/project', description: 'Switch active project context', icon: 'folder', category: 'Project', syntax: '/project <name>', insertText: '/project ' },
-    { name: '/create', description: 'Generate N tasks with AI', icon: 'auto_awesome', category: 'Tasks', syntax: '/create 5 <topic>', insertText: '/create 5 ' },
-    { name: '/task', description: 'Create a single task', icon: 'add_circle', category: 'Tasks', syntax: '/task <title>', insertText: '/task ' },
-    { name: '/done', description: 'Mark task as done', icon: 'check_circle', category: 'Tasks', syntax: '/done <task>', insertText: '/done ' },
-    { name: '/start', description: 'Move task to in progress', icon: 'play_arrow', category: 'Tasks', syntax: '/start <task>', insertText: '/start ' },
-    { name: '/todo', description: 'Move task to to do', icon: 'pending', category: 'Tasks', syntax: '/todo <task>', insertText: '/todo ' },
-    { name: '/priority', description: 'Set task priority', icon: 'flag', category: 'Tasks', syntax: '/priority <task> urgent', insertText: '/priority ' },
-    { name: '/assign', description: 'Assign task to member', icon: 'person_add', category: 'Tasks', syntax: '/assign <task> to <name>', insertText: '/assign ' },
-    { name: '/due', description: 'Set task due date', icon: 'event', category: 'Tasks', syntax: '/due <task> tomorrow', insertText: '/due ' },
-    { name: '/tag', description: 'Add label or tag', icon: 'label', category: 'Tasks', syntax: '/tag <task> with <tag>', insertText: '/tag ' },
-    { name: '/subtask', description: 'Add subtask to task', icon: 'account_tree', category: 'Tasks', syntax: '/subtask <title> for <task>', insertText: '/subtask ' },
-    { name: '/comment', description: 'Post comment on task', icon: 'chat_bubble', category: 'Tasks', syntax: '/comment on <task> saying <text>', insertText: '/comment on ' },
-    { name: '/filter', description: 'Filter board by query', icon: 'filter_list', category: 'System', syntax: '/filter <query>', insertText: '/filter ' },
-    { name: '/clear', description: 'Clear conversation history', icon: 'cleaning_services', category: 'System', syntax: '/clear', insertText: '/clear' },
-    { name: '/help', description: 'List all commands', icon: 'help_outline', category: 'System', syntax: '/help', insertText: '/help' },
+    { name: '/create', description: 'Generate tasks with AI', icon: 'auto_awesome', category: 'Tasks', insertText: '/create ' },
+    { name: '/task', description: 'Create a new task', icon: 'add_circle', category: 'Tasks', insertText: '/task ' },
+    { name: '/filter', description: 'Filter tasks on board', icon: 'filter_list', category: 'System', insertText: '/filter ' },
+    { name: '/project', description: 'Switch active project', icon: 'folder', category: 'Project', insertText: '/project ' },
+    { name: '/clear', description: 'Clear conversation', icon: 'cleaning_services', category: 'System', insertText: '/clear' },
+    { name: '/help', description: 'CollabAI commands & tips', icon: 'help_outline', category: 'System', insertText: '/help' },
   ];
 
   readonly filteredCommands = computed<SlashCommand[]>(() => {
@@ -118,33 +114,11 @@ export class AiCopilotComponent {
       const filtered = query
         ? allProjects.filter((p) => p.name.toLowerCase().includes(query))
         : allProjects;
-      return filtered.map((p) => ({
+      return filtered.slice(0, 6).map((p) => ({
         name: `/project ${p.name}`,
-        description: `Set active project context to "${p.name}"`,
+        description: `Switch context to "${p.name}"`,
         icon: 'folder',
         insertText: `/project ${p.name}`,
-      }));
-    }
-
-    // Dynamic priority autocomplete
-    if (lower.startsWith('/priority ')) {
-      const priorities = ['urgent', 'high', 'medium', 'low'];
-      return priorities.map((prio) => ({
-        name: `/priority <task> ${prio}`,
-        description: `Set priority to ${prio}`,
-        icon: 'flag',
-        insertText: `/priority `,
-      }));
-    }
-
-    // Dynamic status autocomplete
-    if (lower.startsWith('/status ')) {
-      const statuses = ['todo', 'in_progress', 'done'];
-      return statuses.map((st) => ({
-        name: `/status <task> ${st}`,
-        description: `Set status to ${st.replace('_', ' ')}`,
-        icon: 'sync',
-        insertText: `/status `,
       }));
     }
 
@@ -153,7 +127,7 @@ export class AiCopilotComponent {
       ? this.baseCommands.filter((cmd) => cmd.name.slice(1).toLowerCase().startsWith(query))
       : this.baseCommands;
 
-    return matches.slice(0, 10);
+    return matches.slice(0, 6);
   });
 
   readonly prompts = SMART_SEARCH_PROMPTS;
@@ -248,6 +222,13 @@ export class AiCopilotComponent {
     const text = raw.trim();
     if (!text || this.sending()) return;
 
+    // Neutralize prompt injection tokens & strip control characters
+    const cleanText = text
+      .replace(/<\|(?:im_start|im_end|system|user|assistant)\|>/gi, '')
+      .replace(/\[\/?INST\]/gi, '')
+      .replace(/<<\/?SYS>>/gi, '')
+      .trim();
+
     const userMsg: ChatMessage = {
       id: `u-${Date.now()}`,
       role: 'user',
@@ -261,78 +242,38 @@ export class AiCopilotComponent {
       pending: true,
     };
 
+    if (!cleanText) {
+      this.messages.update((m) => [
+        ...m,
+        userMsg,
+        {
+          id: pendingId,
+          role: 'assistant',
+          text: 'Your input contained unsupported formatting tokens. Please enter a valid prompt.',
+          pending: false,
+        },
+      ]);
+      this.draft.set('');
+      this.showSlashMenu.set(false);
+      return;
+    }
+
     this.messages.update((m) => [...m, userMsg, pending]);
     this.draft.set('');
     this.showSlashMenu.set(false);
     this.sending.set(true);
 
-    // Slash command dispatcher
-    if (text.startsWith('/')) {
-      const lower = text.toLowerCase();
-      if (lower === '/clear') {
-        this.clearChat();
-        return;
-      }
-      if (lower === '/help') {
-        this.finishMessage(
-          pendingId,
-          `### 🛠️ CollabAI Slash Commands\n\n` +
-          `* \`/project <name>\` — Switch active project context (e.g. \`/project Soccer\`)\n` +
-          `* \`/create <count> <topic>\` — Generate N structured tasks (e.g. \`/create 11 football roles\`)\n` +
-          `* \`/task <title>\` — Create a single task\n` +
-          `* \`/done <task>\` — Mark task as Done\n` +
-          `* \`/start <task>\` — Move task to In Progress\n` +
-          `* \`/todo <task>\` — Move task to To Do\n` +
-          `* \`/priority <task> <level>\` — Set priority (\`low\`, \`medium\`, \`high\`, \`urgent\`)\n` +
-          `* \`/assign <task> to <name>\` — Assign member\n` +
-          `* \`/due <task> <date>\` — Set due date (\`tomorrow\`, \`Friday\`, etc.)\n` +
-          `* \`/tag <task> with <tags>\` — Add labels/tags\n` +
-          `* \`/subtask <title> for <task>\` — Add subtask\n` +
-          `* \`/comment on <task> saying <text>\` — Post a comment\n` +
-          `* \`/filter <query>\` — Filter board\n` +
-          `* \`/clear\` — Clear conversation history`
-        );
-        return;
-      }
-
-      if (lower.startsWith('/project ') || lower.startsWith('/p ')) {
-        const projName = text.replace(/^\/(?:project|p)\s+/i, '').trim().toLowerCase();
-        const found = this.workspace.filteredProjects().find((p) =>
-          p.name.toLowerCase() === projName || p.name.toLowerCase().includes(projName)
-        );
-        if (found) {
-          this.workspace.selectProject(found.id);
-          this.finishMessage(pendingId, `Switched active project context to **${found.name}**.`);
-          this.toast.show(`Project: ${found.name}`, 'success');
-        } else {
-          this.finishMessage(pendingId, `Could not find project matching "${projName}". Available projects: ${this.workspace.filteredProjects().map((p) => p.name).join(', ')}.`);
-        }
-        return;
-      }
-    }
-
     const projectId = this.workspace.activeProjectId() ?? '';
-    if (!projectId) {
-      if (this.isProjectCreationRequest(text)) {
-        this.createProject(pendingId, text);
+    if (!projectId && !cleanText.startsWith('/clear') && !cleanText.startsWith('/help')) {
+      if (this.isProjectCreationRequest(cleanText)) {
+        this.createProject(pendingId, cleanText);
         return;
       }
-      this.messages.update((list) =>
-        list.map((msg) =>
-          msg.id === pendingId
-            ? {
-                ...msg,
-                text: 'Select or create a project first, then I can run commands on it.',
-                pending: false,
-              }
-            : msg,
-        ),
-      );
-      this.sending.set(false);
+      this.finishMessage(pendingId, 'Select or create a project first, then I can run commands on it.');
       return;
     }
 
-    const targetProject = this.resolveProject(text);
+    const targetProject = this.resolveProject(cleanText);
     if (targetProject === null) {
       this.finishMessage(pendingId, 'I could not find that project. Use its exact name, or select it from the sidebar first.');
       return;
@@ -342,98 +283,13 @@ export class AiCopilotComponent {
       this.workspace.selectProject(targetProject.id);
     }
 
-    // Extended slash command handlers with active project target
-    if (text.startsWith('/')) {
-      const lower = text.toLowerCase();
-      if (lower.startsWith('/create ') || lower.startsWith('/task ')) {
-        const prompt = text.replace(/^\/(?:create|task)\s+/i, '').trim();
-        this.createTask(pendingId, targetProjectId, prompt);
-        return;
-      }
-
-      if (lower.startsWith('/done ')) {
-        const target = text.replace(/^\/done\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'mark ' + target + ' done');
-        return;
-      }
-
-      if (lower.startsWith('/start ')) {
-        const target = text.replace(/^\/start\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'start ' + target);
-        return;
-      }
-
-      if (lower.startsWith('/todo ')) {
-        const target = text.replace(/^\/todo\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'reopen ' + target);
-        return;
-      }
-
-      if (lower.startsWith('/priority ')) {
-        const rest = text.replace(/^\/priority\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'set priority of ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/assign ')) {
-        const rest = text.replace(/^\/assign\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'assign ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/due ')) {
-        const rest = text.replace(/^\/due\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'set due date of ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/tag ')) {
-        const rest = text.replace(/^\/tag\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'tag ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/subtask ')) {
-        const rest = text.replace(/^\/subtask\s+/i, '').trim();
-        this.runTaskAction(pendingId, targetProjectId, 'add subtask ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/comment ')) {
-        const rest = text.replace(/^\/comment\s+/i, '').trim();
-        this.runCommentAction(pendingId, targetProjectId, 'add comment on ' + rest);
-        return;
-      }
-
-      if (lower.startsWith('/filter ')) {
-        const query = text.replace(/^\/filter\s+/i, '').trim();
-        this.ai.searchTasks({ projectId: targetProjectId, query }).subscribe({
-          next: (data) => {
-            const chips = chipsFromFilters(data.interpretedQuery);
-            const count = data.tasks.length;
-            this.messages.update((list) =>
-              list.map((msg) =>
-                msg.id === pendingId
-                  ? {
-                      ...msg,
-                      text: count ? `Found ${count} tasks matching "${query}".` : `No tasks found for "${query}".`,
-                      queryLabel: query,
-                      chips,
-                      tasks: data.tasks.slice(0, 8),
-                      pending: false,
-                    }
-                  : msg,
-              ),
-            );
-            this.sending.set(false);
-          },
-          error: () => this.finishMessage(pendingId, 'Failed to filter tasks.'),
-        });
-        return;
-      }
+    // Slash command dispatcher
+    if (cleanText.startsWith('/')) {
+      this.handleSlashCommand(pendingId, targetProjectId, cleanText);
+      return;
     }
 
-    if (this.navigateFromRequest(pendingId, text)) return;
+    if (this.navigateFromRequest(pendingId, cleanText)) return;
     if (this.isProjectCreationRequest(text)) {
       this.createProject(pendingId, text);
       return;
@@ -546,46 +402,337 @@ export class AiCopilotComponent {
     });
   }
 
+  private handleSlashCommand(pendingId: string, targetProjectId: string, text: string): void {
+    const trimmed = text.trim();
+    const parts = trimmed.split(/\s+/);
+    const cmd = parts[0].toLowerCase();
+    const rest = trimmed.slice(parts[0].length).trim();
+
+    if (cmd === '/clear') {
+      this.clearChat();
+      return;
+    }
+
+    if (cmd === '/help') {
+      this.finishMessage(
+        pendingId,
+        `### 🛠️ CollabAI Slash Commands\n\n` +
+        `* \`/project <name>\` — Switch active project context (e.g. \`/project Mobile App\`)\n` +
+        `* \`/create [count] <topic>\` — Generate 1 to 15 structured tasks (e.g. \`/create 5 authentication tasks\`)\n` +
+        `* \`/task <title>\` — Create a single task\n` +
+        `* \`/done [task]\` — Mark task as Done (defaults to active task)\n` +
+        `* \`/start [task]\` — Move task to In Progress\n` +
+        `* \`/todo [task]\` — Move task to To Do\n` +
+        `* \`/priority <task> <level>\` — Set priority (\`low\`, \`medium\`, \`high\`, \`urgent\`)\n` +
+        `* \`/assign <task> to <member>\` — Assign member\n` +
+        `* \`/due <task> <date>\` — Set due date (\`tomorrow\`, \`Friday\`, \`YYYY-MM-DD\`)\n` +
+        `* \`/tag <task> with <tags>\` — Add labels/tags\n` +
+        `* \`/subtask <title> for <task>\` — Add subtask\n` +
+        `* \`/comment on <task> saying <text>\` — Post a comment\n` +
+        `* \`/filter <query>\` — Filter board\n` +
+        `* \`/clear\` — Clear conversation history`
+      );
+      return;
+    }
+
+    if (cmd === '/project' || cmd === '/p') {
+      if (!rest) {
+        const available = this.workspace.filteredProjects().map((p) => p.name).join(', ') || 'None';
+        this.finishMessage(pendingId, `Please specify a project name. Available projects: ${available}. Example: \`/project ${this.workspace.filteredProjects()[0]?.name || 'MyProject'}\``);
+        return;
+      }
+      const projName = rest.toLowerCase();
+      const found = this.workspace.filteredProjects().find((p) =>
+        p.name.toLowerCase() === projName || p.name.toLowerCase().includes(projName)
+      );
+      if (found) {
+        this.workspace.selectProject(found.id);
+        this.finishMessage(pendingId, `Switched active project context to **${found.name}**.`);
+        this.toast.show(`Project: ${found.name}`, 'success');
+      } else {
+        const available = this.workspace.filteredProjects().map((p) => p.name).join(', ') || 'None';
+        this.finishMessage(pendingId, `Could not find project matching “${rest}”. Available projects: ${available}.`);
+      }
+      return;
+    }
+
+    if (cmd === '/create' || cmd === '/task') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify what tasks to create. Examples:\n- \`/create 5 landing page design tasks\`\n- \`/task Fix responsive header alignment\``);
+        return;
+      }
+
+      // Check for negative or 0 task counts (e.g. /create -5, /create 0)
+      if (/(?:^|\s)-\d+/.test(rest)) {
+        this.finishMessage(pendingId, `Task count must be a positive number between 1 and 15 (e.g. \`/create 5 landing page tasks\`).`);
+        return;
+      }
+      if (/^0\b/.test(rest) || /^0\s+/i.test(rest)) {
+        this.finishMessage(pendingId, `Task count must be at least 1 (e.g. \`/create 1 login task\`).`);
+        return;
+      }
+
+      this.createTask(pendingId, targetProjectId, rest);
+      return;
+    }
+
+    if (cmd === '/done') {
+      const handled = this.runTaskAction(pendingId, targetProjectId, rest ? `mark ${rest} done` : 'mark done');
+      if (!handled) {
+        this.finishMessage(pendingId, rest ? `Could not find task matching “${rest}” to mark as done.` : 'There are no tasks on the active board to mark done.');
+      }
+      return;
+    }
+
+    if (cmd === '/start') {
+      const handled = this.runTaskAction(pendingId, targetProjectId, rest ? `start ${rest}` : 'start');
+      if (!handled) {
+        this.finishMessage(pendingId, rest ? `Could not find task matching “${rest}” to start.` : 'There are no tasks on the active board to start.');
+      }
+      return;
+    }
+
+    if (cmd === '/todo') {
+      const handled = this.runTaskAction(pendingId, targetProjectId, rest ? `reopen ${rest}` : 'reopen');
+      if (!handled) {
+        this.finishMessage(pendingId, rest ? `Could not find task matching “${rest}” to move to To Do.` : 'There are no tasks on the active board.');
+      }
+      return;
+    }
+
+    if (cmd === '/priority') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a task and priority level (\`low\`, \`medium\`, \`high\`, \`urgent\`). Example: \`/priority Homepage urgent\``);
+        return;
+      }
+      const priorityLevels = ['low', 'medium', 'high', 'urgent'];
+      const hasValidLevel = priorityLevels.some((lvl) => rest.toLowerCase().includes(lvl));
+      if (!hasValidLevel) {
+        this.finishMessage(pendingId, `Invalid priority level in “${rest}”. Available levels are: \`low\`, \`medium\`, \`high\`, \`urgent\`. Example: \`/priority Homepage urgent\``);
+        return;
+      }
+      const handled = this.runTaskAction(pendingId, targetProjectId, `set priority of ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not update priority for “${rest}”.`);
+      }
+      return;
+    }
+
+    if (cmd === '/assign') {
+      if (!rest) {
+        const memberList = this.members.members().map((m) => m.name).join(', ') || 'none';
+        this.finishMessage(pendingId, `Please specify a task and member. Example: \`/assign Homepage to Alice\`. Available members: ${memberList}`);
+        return;
+      }
+      const assignMatch = rest.match(/(?:(.+?)\s+to\s+(.+)|(.+)\s+([A-Za-z0-9_.-]+))$/i);
+      const memberQuery = (assignMatch ? (assignMatch[2] || assignMatch[4]) : rest).trim().toLowerCase();
+      const allMembers = this.members.members();
+      const memberFound = allMembers.find(
+        (m) => m.name.toLowerCase().includes(memberQuery) || m.email.toLowerCase().includes(memberQuery)
+      ) || (this.auth.currentUser() && (this.auth.currentUser()!.name?.toLowerCase().includes(memberQuery) || this.auth.currentUser()!.email?.toLowerCase().includes(memberQuery)));
+
+      if (!memberFound) {
+        const available = allMembers.map((m) => m.name).join(', ') || 'none';
+        this.finishMessage(pendingId, `Could not find team member matching “${memberQuery}”. Available members: ${available}.`);
+        return;
+      }
+
+      const handled = this.runTaskAction(pendingId, targetProjectId, `assign ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not assign task “${rest}”. Make sure the task name is specified.`);
+      }
+      return;
+    }
+
+    if (cmd === '/due') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a task and due date. Example: \`/due Login page tomorrow\` or \`/due Homepage 2026-10-15\``);
+        return;
+      }
+      const parsed = parseDueDate(rest);
+      const words = rest.split(/\s+/);
+      const lastWord = words[words.length - 1];
+      const lastTwo = words.slice(-2).join(' ');
+      const parsedPart = parseDueDate(lastTwo) || parseDueDate(lastWord);
+
+      if (!parsed && !parsedPart) {
+        this.finishMessage(pendingId, `Could not parse due date from “${rest}”. Please use formats like “today”, “tomorrow”, “Friday”, “in 3 days”, or “YYYY-MM-DD”.`);
+        return;
+      }
+
+      const handled = this.runTaskAction(pendingId, targetProjectId, `set due date of ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not set due date for “${rest}”.`);
+      }
+      return;
+    }
+
+    if (cmd === '/tag') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a task and labels. Example: \`/tag Homepage with frontend, urgent\``);
+        return;
+      }
+      const handled = this.runTaskAction(pendingId, targetProjectId, `tag ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not add tags to “${rest}”. Example: \`/tag Homepage with frontend, ui\``);
+      }
+      return;
+    }
+
+    if (cmd === '/subtask') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a subtask and task. Example: \`/subtask Write unit tests for Login feature\``);
+        return;
+      }
+      const handled = this.runTaskAction(pendingId, targetProjectId, `add subtask ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not add subtask “${rest}”. Format: \`/subtask <title> for <task>\``);
+      }
+      return;
+    }
+
+    if (cmd === '/comment') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a task and comment text. Example: \`/comment on Homepage saying Great progress on this!\``);
+        return;
+      }
+      const handled = this.runCommentAction(pendingId, targetProjectId, `add comment on ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not add comment. Format: \`/comment on <task> saying <text>\``);
+      }
+      return;
+    }
+
+    if (cmd === '/filter') {
+      if (!rest) {
+        this.finishMessage(pendingId, `Please specify a filter query. Example: \`/filter high priority tasks\``);
+        return;
+      }
+      this.ai.searchTasks({ projectId: targetProjectId, query: rest }).subscribe({
+        next: (data) => {
+          const chips = chipsFromFilters(data.interpretedQuery);
+          const count = data.tasks.length;
+          this.messages.update((list) =>
+            list.map((msg) =>
+              msg.id === pendingId
+                ? {
+                    ...msg,
+                    text: count ? `Found ${count} tasks matching "${rest}".` : `No tasks found for "${rest}".`,
+                    queryLabel: rest,
+                    chips,
+                    tasks: data.tasks.slice(0, 8),
+                    pending: false,
+                  }
+                : msg,
+            ),
+          );
+          this.sending.set(false);
+        },
+        error: () => this.finishMessage(pendingId, 'Failed to filter tasks. Please try again.'),
+      });
+      return;
+    }
+
+    // Unrecognized slash command
+    this.finishMessage(pendingId, `Unrecognized command “${cmd}”. Type \`/help\` to see the list of supported commands.`);
+  }
+
   formatMarkdown(raw: string): string {
     if (!raw) return '';
     let text = raw;
 
-    // Escape raw HTML entities
+    // 1. Escape raw HTML entities
     text = text
       .replace(/&/g, '&amp;')
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;');
 
-    // Headers: ### Title -> <h4 class="md-h4">Title</h4>
+    // 2. Normalize standalone alert emojis: e.g. "⚠️\n\nNote:" -> "> ⚠️ Note:"
+    text = text.replace(/^(⚠️|ℹ️|💡|📌)\s*\n+([A-Za-z*].+)$/gm, '&gt; $1 $2');
+
+    // 3. Code blocks: ```lang ... ``` -> <pre class="md-code-block"><code>...</code></pre>
+    text = text.replace(/```([a-zA-Z0-9_-]*)\r?\n([\s\S]*?)```/g, (_, lang, code) => {
+      return `<pre class="md-code-block"><code class="language-${lang}">${code.trim()}</code></pre>`;
+    });
+
+    // 4. Headers: ### Title -> <h4 class="md-h4">Title</h4>
     text = text.replace(/^###\s+(.+)$/gm, '<h4 class="md-h4">$1</h4>');
     text = text.replace(/^##\s+(.+)$/gm, '<h3 class="md-h3">$1</h3>');
     text = text.replace(/^#\s+(.+)$/gm, '<h2 class="md-h2">$1</h2>');
 
-    // Bold + Italic: ***text*** -> <strong><em>text</em></strong>
-    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+    // 5. Horizontal rule: --- -> <hr class="md-hr"/>
+    text = text.replace(/^[ \t]*[-*_]{3,}[ \t]*$/gm, '<hr class="md-hr"/>');
 
-    // Bold: **text** -> <strong>$1</strong>
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-    // Italic: *text* -> <em>$1</em>
-    text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
-
-    // Inline code: `code` -> <code class="md-code">$1</code>
-    text = text.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
-
-    // Bullet lists: Convert consecutive lines starting with - or *
-    text = text.replace(/(?:^[ \t]*[-*]\s+(.+)(?:\r?\n|$))+/gm, (match) => {
+    // 6. Blockquotes: > text -> <blockquote class="md-quote">...</blockquote>
+    text = text.replace(/(?:^[ \t]*&gt;\s*(.+)(?:\r?\n|$))+/gm, (match) => {
       const items = match
         .trim()
         .split(/\r?\n/)
-        .map((line) => line.replace(/^[ \t]*[-*]\s+/, '').trim())
+        .map((line) => line.replace(/^[ \t]*&gt;\s*/, '').trim())
+        .filter(Boolean)
+        .join('<br/>');
+      return `<blockquote class="md-quote">${items}</blockquote>`;
+    });
+
+    // 7. Markdown Tables:
+    text = text.replace(/((?:^[ \t]*\|.+?\|[ \t]*(?:\r?\n|$)){2,})/gm, (block) => {
+      const lines = block
+        .trim()
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter(Boolean);
+      if (lines.length < 2) return block;
+
+      const isSeparator = (line: string) => {
+        const cells = line
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map((c) => c.trim());
+        return cells.length > 0 && cells.every((c) => /^:?-+:?$/.test(c));
+      };
+
+      if (!isSeparator(lines[1])) return block;
+
+      const parseCells = (line: string) => {
+        return line
+          .replace(/^\|/, '')
+          .replace(/\|$/, '')
+          .split('|')
+          .map((c) => c.trim());
+      };
+
+      const headerCells = parseCells(lines[0]);
+      const dataRows = lines.slice(2).filter((l) => !isSeparator(l)).map(parseCells);
+
+      const thead = `<thead><tr>${headerCells
+        .map((h) => `<th>${h}</th>`)
+        .join('')}</tr></thead>`;
+      const tbody = `<tbody>${dataRows
+        .map(
+          (r) =>
+            `<tr>${r
+              .map((cell) => `<td>${cell}</td>`)
+              .join('')}</tr>`,
+        )
+        .join('')}</tbody>`;
+
+      return `<div class="md-table-wrap"><table class="md-table">${thead}${tbody}</table></div>`;
+    });
+
+    // 8. Bullet lists: Convert lines starting with -, *, or •
+    text = text.replace(/(?:^[ \t]*[-*•]\s+(.+)(?:\r?\n|$))+/gm, (match) => {
+      const items = match
+        .trim()
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^[ \t]*[-*•]\s+/, '').trim())
         .filter(Boolean)
         .map((item) => `<li>${item}</li>`)
         .join('');
       return `<ul class="md-list">${items}</ul>`;
     });
 
-    // Numbered lists: Convert consecutive lines starting with 1. 2.
+    // 9. Numbered lists: Convert lines starting with 1. 2.
     text = text.replace(/(?:^[ \t]*\d+\.\s+(.+)(?:\r?\n|$))+/gm, (match) => {
       const items = match
         .trim()
@@ -597,7 +744,19 @@ export class AiCopilotComponent {
       return `<ol class="md-num-list">${items}</ol>`;
     });
 
-    // Paragraph spacing: Double newlines -> separate paragraphs
+    // 10. Bold + Italic: ***text*** -> <strong><em>text</em></strong>
+    text = text.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+
+    // 11. Bold: **text** -> <strong>$1</strong>
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // 12. Italic: *text* -> <em>$1</em>
+    text = text.replace(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
+
+    // 13. Inline code: `code` -> <code class="md-code">$1</code>
+    text = text.replace(/`([^`]+)`/g, '<code class="md-code">$1</code>');
+
+    // 14. Paragraph spacing: Double newlines -> separate paragraphs
     const paragraphs = text
       .split(/\n\n+/)
       .map((p) => p.trim())
@@ -608,7 +767,11 @@ export class AiCopilotComponent {
           p.startsWith('<h3') ||
           p.startsWith('<h4') ||
           p.startsWith('<ul') ||
-          p.startsWith('<ol')
+          p.startsWith('<ol') ||
+          p.startsWith('<div class="md-table-wrap"') ||
+          p.startsWith('<blockquote') ||
+          p.startsWith('<pre') ||
+          p.startsWith('<hr')
         ) {
           return p;
         }
@@ -692,21 +855,33 @@ export class AiCopilotComponent {
       });
   }
 
-  private extractTaskCount(text: string): number {
+  private extractTaskCount(text: string): { count: number; error?: string } {
+    if (/(?:^|\s)-\d+/.test(text)) {
+      return { count: 1, error: 'Task count must be a positive number between 1 and 15 (e.g. `/create 5 landing page tasks`).' };
+    }
+    if (/^0\b/.test(text) || /\b0\s+(?:tasks?|items?)?/i.test(text)) {
+      return { count: 1, error: 'Task count must be at least 1 (e.g. `/create 1 login task`).' };
+    }
     const match =
       text.match(/\b(?:create|add|make|generate)\s+(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?(?:tasks?|items?|to-?dos?)\b/i) ||
-      text.match(/\b(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?tasks?\b/i);
+      text.match(/\b(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?tasks?\b/i) ||
+      text.match(/^(\d{1,2})\s+/);
     if (match) {
       const num = parseInt(match[1], 10);
-      if (!isNaN(num) && num > 1) {
-        return Math.min(num, 15);
+      if (!isNaN(num) && num >= 1) {
+        return { count: Math.min(num, 15) };
       }
     }
-    return 1;
+    return { count: 1 };
   }
 
   private createTask(pendingId: string, projectId: string, request: string): void {
-    const count = this.extractTaskCount(request);
+    const countResult = this.extractTaskCount(request);
+    if (countResult.error) {
+      this.finishMessage(pendingId, countResult.error);
+      return;
+    }
+    const count = countResult.count;
 
     // Extract inline priority / urgency if specified
     const priorityMatch =
@@ -775,6 +950,13 @@ export class AiCopilotComponent {
         }
 
         const cleanTitle = this.taskTitleFromRequest(request);
+        if (!cleanTitle || /^\d+$/.test(cleanTitle.trim())) {
+          this.finishMessage(
+            pendingId,
+            'Please specify what tasks to create. Examples:\n- `/create 5 landing page tasks`\n- `/create Fix header responsive styling`',
+          );
+          return;
+        }
 
         this.ai
           .generateTasks({
@@ -1545,6 +1727,8 @@ export class AiCopilotComponent {
 
 function parseDueDate(text: string): Date | null {
   const clean = text.trim().toLowerCase();
+  if (!clean || /^\d{1,2}$/.test(clean)) return null;
+
   const now = new Date();
   if (clean === 'today') {
     now.setHours(23, 59, 59, 999);
@@ -1565,10 +1749,12 @@ function parseDueDate(text: string): Date | null {
   const inDaysMatch = clean.match(/^in\s+(\d+)\s+days?$/i);
   if (inDaysMatch) {
     const days = parseInt(inDaysMatch[1], 10);
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    d.setHours(23, 59, 59, 999);
-    return d;
+    if (days >= 0 && days <= 3650) {
+      const d = new Date();
+      d.setDate(d.getDate() + days);
+      d.setHours(23, 59, 59, 999);
+      return d;
+    }
   }
   const daysOfWeek = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const dayMatch = clean.match(/^(?:this\s+|next\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/i);
@@ -1582,9 +1768,25 @@ function parseDueDate(text: string): Date | null {
     d.setHours(23, 59, 59, 999);
     return d;
   }
+
+  // ISO date parsing with leap-year calendar verification
+  const isoMatch = clean.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const y = parseInt(isoMatch[1], 10);
+    const m = parseInt(isoMatch[2], 10);
+    const day = parseInt(isoMatch[3], 10);
+    if (y < 1970 || y > 2100 || m < 1 || m > 12 || day < 1 || day > 31) return null;
+    const d = new Date(Date.UTC(y, m - 1, day, 23, 59, 59, 999));
+    if (d.getUTCFullYear() !== y || d.getUTCMonth() !== m - 1 || d.getUTCDate() !== day) {
+      return null; // catches Feb 29 on non-leap years
+    }
+    return d;
+  }
+
   const parsed = new Date(text);
   if (!isNaN(parsed.getTime())) {
-    return parsed;
+    const yr = parsed.getFullYear();
+    if (yr >= 1970 && yr <= 2100) return parsed;
   }
   return null;
 }

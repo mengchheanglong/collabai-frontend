@@ -209,6 +209,15 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+.field-control input:focus,
+.field-control input:focus-visible,
+.field-wrap input:focus,
+.field-wrap input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.35);
   color: var(--text);

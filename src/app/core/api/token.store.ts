@@ -15,8 +15,20 @@ export class TokenStore {
 
   readonly token = this.tokenSignal.asReadonly();
 
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (event) => {
+        if (event.key === STORAGE_KEY) {
+          this.tokenSignal.set(event.newValue);
+        }
+      });
+    }
+  }
+
   get(): string | null {
-    return this.tokenSignal();
+    const val = this.tokenSignal();
+    if (val !== null) return val;
+    return readInitial();
   }
 
   setToken(token: string): void {

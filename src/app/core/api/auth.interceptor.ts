@@ -15,7 +15,7 @@ import { AuthStoreService } from '../state/auth-store.service';
 import { TokenStore } from './token.store';
 
 let isRefreshing = false;
-const refreshTokenSubject = new BehaviorSubject<string | null>(null);
+const refreshTokenSubject = new BehaviorSubject<string | null | false>(null);
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   if (!req.url.startsWith(environment.apiBaseUrl)) {
@@ -88,7 +88,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 if (!newAccessToken) {
                   tokenStore.clear();
                   authStore.clearSession();
-                  refreshTokenSubject.next(null);
+                  refreshTokenSubject.next(false);
                   void router.navigate(['/login']);
                   return throwError(() => error);
                 }
@@ -105,7 +105,7 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               catchError((refreshErr) => {
                 tokenStore.clear();
                 authStore.clearSession();
-                refreshTokenSubject.next(null);
+                refreshTokenSubject.next(false);
                 void router.navigate(['/login']);
                 return throwError(() => refreshErr);
               }),
@@ -114,18 +114,21 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
               }),
             );
         } else {
-          // If a refresh is already in progress, wait for the new token and retry
+          // If a refresh is already in progress, wait for the new token or failure signal
           return refreshTokenSubject.pipe(
-            filter((newToken): newToken is string => newToken !== null),
+            filter((tokenState): tokenState is string | false => tokenState !== null),
             take(1),
-            switchMap((newToken) =>
-              next(
+            switchMap((tokenState) => {
+              if (tokenState === false) {
+                return throwError(() => error);
+              }
+              return next(
                 req.clone({
                   withCredentials: true,
-                  setHeaders: { Authorization: `Bearer ${newToken}` },
+                  setHeaders: { Authorization: `Bearer ${tokenState}` },
                 }),
-              ),
-            ),
+              );
+            }),
           );
         }
       }

@@ -215,35 +215,90 @@
 }
 
 .wk-task-item {
+  display: block;
   list-style: none;
-  border-radius: var(--ui-radius-sm, 10px);
-  transition: background 0.16s var(--wk-ease);
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--wk-radius-sm, 11px);
+  margin-bottom: 8px;
+  overflow: hidden;
+  transition:
+    background 0.16s var(--wk-ease),
+    border-color 0.16s var(--wk-ease),
+    box-shadow 0.16s var(--wk-ease);
 
   &:hover {
-    background: var(--hover);
+    background: var(--panel-2);
+    border-color: var(--line-2);
   }
 
   &.is-editing {
-    background: var(--hover);
+    border-color: var(--brand-border);
+    box-shadow: 0 0 0 1px var(--brand-soft);
+
   }
 }
 
 .wk-task-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 10px 4px 6px;
+  gap: 12px;
+  padding: 10px 14px;
+}
 
-  .ui-task {
-    flex: 1;
-    min-width: 0;
-    padding: 10px 10px;
-    border: none;
-    background: transparent;
+.wk-task-btn {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+  padding: 4px 6px;
+  margin: -4px -6px;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.15s var(--wk-ease);
 
-    &:hover {
-      background: transparent;
-    }
+  .ui-prio {
+    width: 4px;
+    align-self: stretch;
+    min-height: 38px;
+    border-radius: 999px;
+    flex-shrink: 0;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+}
+
+.wk-task-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+
+  .ui-task-title {
+    color: var(--text-2);
+    font-size: 14.5px;
+    font-weight: 600;
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .ui-task-sub {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
   }
 }
 
