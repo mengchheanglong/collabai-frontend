@@ -7,6 +7,7 @@ import { TaskStoreService } from './task-store.service';
 import { CommentApiService } from '../api/comment-api.service';
 import { IndexedDbService } from '../pwa/indexed-db.service';
 import { OfflineSyncService } from '../pwa/offline-sync.service';
+import { WorkspaceContextService } from '../workspace/workspace-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class CommentStoreService {
@@ -16,12 +17,25 @@ export class CommentStoreService {
   private readonly commentApi = inject(CommentApiService);
   private readonly idb = inject(IndexedDbService);
   private readonly offlineSync = inject(OfflineSyncService);
+  private readonly workspace = inject(WorkspaceContextService);
 
   readonly commentsByTaskId = signal<Record<string, Comment[]>>({});
   readonly commentDraft = signal('');
   readonly isLoading = signal(false);
+  readonly isPosting = signal(false);
+  private readonly deletingCommentIds = new Set<string>();
 
   constructor() {
+    effect(() => {
+      // Clear cached comments whenever switching project
+      this.workspace.activeProjectId();
+      this.commentsByTaskId.set({});
+      this.commentDraft.set('');
+      this.isLoading.set(false);
+      this.isPosting.set(false);
+      this.deletingCommentIds.clear();
+    });
+
     effect(() => {
       const task = this.tasks.selectedTask();
       if (task) {
@@ -31,6 +45,14 @@ export class CommentStoreService {
         this.commentDraft.set('');
       }
     });
+  }
+
+  clear(): void {
+    this.commentsByTaskId.set({});
+    this.commentDraft.set('');
+    this.isLoading.set(false);
+    this.isPosting.set(false);
+    this.deletingCommentIds.clear();
   }
 
   loadComments(taskId: string): void {
@@ -81,7 +103,7 @@ export class CommentStoreService {
 
   postComment(task: Task): void {
     const body = this.commentDraft().trim();
-    if (!body) return;
+    if (!body || this.isPosting()) return;
 
     if (!navigator.onLine) {
       const newComment: Comment = {
@@ -106,8 +128,10 @@ export class CommentStoreService {
       return;
     }
 
+    this.isPosting.set(true);
     this.commentApi.createComment(task.id, body).subscribe({
       next: ({ comment: dto }) => {
+        this.isPosting.set(false);
         const newComment: Comment = {
           id: dto._id || (dto as any).id,
           authorId: dto.authorId,
@@ -128,6 +152,7 @@ export class CommentStoreService {
         this.toast.show('Comment posted', 'success');
       },
       error: (err) => {
+        this.isPosting.set(false);
         if (err.status === 0 || !navigator.onLine) {
           const newComment: Comment = {
             id: `offline-c-${Date.now()}`,
@@ -156,6 +181,9 @@ export class CommentStoreService {
   }
 
   deleteComment(taskId: string, commentId: string): void {
+    if (this.deletingCommentIds.has(commentId)) return;
+    this.deletingCommentIds.add(commentId);
+
     // Optimistic delete
     this.commentsByTaskId.update((map) => {
       const existing = map[taskId] ?? [];
@@ -174,9 +202,11 @@ export class CommentStoreService {
 
     this.commentApi.deleteComment(commentId).subscribe({
       next: () => {
+        this.deletingCommentIds.delete(commentId);
         this.toast.show('Comment deleted', 'success');
       },
       error: (err) => {
+        this.deletingCommentIds.delete(commentId);
         if (err.status === 0 || !navigator.onLine) {
           void this.offlineSync.enqueue('DELETE_COMMENT', `/comments/${commentId}`, 'DELETE');
           this.toast.show('Comment deleted (offline)', 'info');

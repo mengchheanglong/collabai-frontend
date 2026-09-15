@@ -604,21 +604,25 @@
 .ui-prio {
   width: 4px;
   align-self: stretch;
-  min-height: 44px;
+  min-height: 36px;
   border-radius: 999px;
   flex-shrink: 0;
   background: var(--line-2);
 
-  &.priority-urgent {
+  &.priority-urgent,
+  &[data-priority='urgent'] {
     background: var(--red);
   }
-  &.priority-high {
+  &.priority-high,
+  &[data-priority='high'] {
     background: var(--amber);
   }
-  &.priority-medium {
+  &.priority-medium,
+  &[data-priority='medium'] {
     background: var(--brand);
   }
-  &.priority-low {
+  &.priority-low,
+  &[data-priority='low'] {
     background: var(--muted-2);
   }
 }
@@ -667,28 +671,45 @@
   gap: 4px;
   color: var(--muted-2);
   font-size: 13px;
-  font-weight: 650;
+  font-weight: 600;
   white-space: nowrap;
 
   .material-symbols-rounded {
     font-size: 16px;
   }
 
-  &.is-overdue {
+  &.is-overdue,
+  &[data-tone='overdue'] {
     color: var(--red);
+  }
+
+  &[data-tone='today'] {
+    color: var(--amber);
   }
 }
 
 /* ── Chips, tags, dots, avatars ──────────────────────────────── */
 .ui-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
   padding: 4px 11px;
   border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--panel-2);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 650;
+  font-size: 12.5px;
+  font-weight: 600;
   letter-spacing: 0.01em;
+  line-height: 1.2;
+  flex-shrink: 0;
+
+  &[data-status='todo'] {
+    color: var(--muted);
+    background: var(--panel-2);
+    border-color: var(--line);
+  }
 
   &[data-status='in_progress'] {
     color: var(--brand);
@@ -700,6 +721,31 @@
     color: var(--green);
     background: var(--green-soft);
     border-color: color-mix(in srgb, var(--green) 30%, transparent);
+  }
+
+  &.is-priority {
+    text-transform: capitalize;
+
+    &[data-priority='urgent'] {
+      color: var(--red);
+      background: var(--red-soft);
+      border-color: color-mix(in srgb, var(--red) 30%, transparent);
+    }
+    &[data-priority='high'] {
+      color: var(--amber);
+      background: var(--amber-soft);
+      border-color: color-mix(in srgb, var(--amber) 30%, transparent);
+    }
+    &[data-priority='medium'] {
+      color: var(--brand);
+      background: var(--brand-soft);
+      border-color: var(--brand-border);
+    }
+    &[data-priority='low'] {
+      color: var(--muted);
+      background: var(--panel-2);
+      border-color: var(--line);
+    }
   }
 }
 .ui-tag {

@@ -120,20 +120,15 @@
 
       <!-- Modern Prompt Composer -->
       <footer class="ai-copilot-composer">
-        <!-- Slash Command Autocomplete Palette (Raycast / Linear Style) -->
+        <!-- Slash Command Autocomplete Palette (Clean & Minimal) -->
         @if (showSlashMenu() && filteredCommands().length > 0) {
           <div class="ai-slash-palette" role="listbox" aria-label="Command suggestions">
             <div class="ai-slash-palette-head">
               <div class="palette-head-title">
                 <span class="material-symbols-rounded sm">terminal</span>
-                <span>COMMANDS</span>
-                <span class="palette-count">{{ filteredCommands().length }}</span>
+                <span>Commands</span>
               </div>
-              <div class="palette-shortcuts">
-                <kbd>↑</kbd><kbd>↓</kbd> <span>nav</span>
-                <kbd>↵</kbd> <span>select</span>
-                <kbd>esc</kbd> <span>close</span>
-              </div>
+              <span class="palette-esc-hint">esc to close</span>
             </div>
             <div class="ai-slash-palette-list">
               @for (cmd of filteredCommands(); track cmd.name; let idx = $index) {
@@ -144,79 +139,56 @@
                   (click)="selectCommand(cmd)"
                   (mouseenter)="selectedCommandIndex.set(idx)"
                 >
-                  <div class="ai-slash-icon-wrap" [attr.data-cat]="cmd.category || 'Tasks'">
-                    <span class="material-symbols-rounded sm">{{ cmd.icon }}</span>
-                  </div>
+                  <span class="material-symbols-rounded sm ai-slash-icon">{{ cmd.icon }}</span>
                   <div class="ai-slash-info">
-                    <div class="ai-slash-name-row">
-                      <code class="ai-slash-code">{{ cmd.name }}</code>
-                      @if (cmd.syntax && cmd.syntax !== cmd.name) {
-                        <span class="ai-slash-syntax">{{ cmd.syntax }}</span>
-                      }
-                    </div>
+                    <span class="ai-slash-code">{{ cmd.name }}</span>
                     <span class="ai-slash-desc">{{ cmd.description }}</span>
                   </div>
-                  <div class="ai-slash-enter-hint">
-                    <span class="material-symbols-rounded sm">keyboard_return</span>
-                  </div>
+                  <span class="material-symbols-rounded sm ai-slash-enter-hint">keyboard_return</span>
                 </button>
               }
             </div>
           </div>
         }
 
-        <!-- Active Context & Quick Toolbar -->
-        <div class="ai-composer-bar">
-          <div class="ai-context-tag">
-            <span class="material-symbols-rounded sm">folder</span>
-            <span class="ai-context-name">{{ workspace.activeProjectName() || 'Select Project' }}</span>
-          </div>
-          <div class="ai-quick-tools">
-            <button
-              type="button"
-              class="ai-tool-pill"
-              (click)="openSlashPalette()"
-            >
-              <code>/</code>
-              <span>commands</span>
-            </button>
-          </div>
-        </div>
-
         <!-- Single Cohesive Input Box -->
         <div class="ai-input-card" [class.focused]="isInputFocused()">
+          <button
+            type="button"
+            class="ai-cmd-trigger-btn"
+            (click)="openSlashPalette()"
+            matTooltip="Commands (/)"
+            aria-label="Commands"
+          >
+            <code>/</code>
+          </button>
+
           <textarea
             #composer
-            rows="2"
+            rows="1"
             class="ai-prompt-input"
             [value]="draft()"
             (input)="onDraftInput($any($event.target).value)"
             (keydown)="onKeydown($event)"
             (focus)="isInputFocused.set(true)"
             (blur)="isInputFocused.set(false)"
-            placeholder="Type / for commands or ask anything in English..."
+            placeholder="Ask CollabAI or type / for commands..."
             aria-label="CollabAI prompt input"
           ></textarea>
 
-          <div class="ai-input-bottom">
-            <span class="ai-input-hint">
-              <kbd>↵</kbd> send &bull; <kbd>Shift</kbd>+<kbd>↵</kbd> newline
+          <button
+            type="button"
+            class="ai-send-btn"
+            matRipple
+            [disabled]="!draft().trim() || sending()"
+            (click)="send()"
+            [matTooltip]="sending() ? 'Thinking...' : 'Send message'"
+            [attr.aria-label]="sending() ? 'Running command' : 'Send message'"
+          >
+            <span class="material-symbols-rounded sm" [class.spin]="sending()" aria-hidden="true">
+              {{ sending() ? 'progress_activity' : 'arrow_upward' }}
             </span>
-
-            <button
-              type="button"
-              class="ai-send-btn"
-              matRipple
-              [disabled]="!draft().trim() || sending()"
-              (click)="send()"
-              [matTooltip]="sending() ? 'Running...' : 'Send message (Enter)'"
-              [attr.aria-label]="sending() ? 'Running command' : 'Run command'"
-            >
-              <span class="material-symbols-rounded sm" [class.spin]="sending()" aria-hidden="true">
-                {{ sending() ? 'progress_activity' : 'arrow_upward' }}
-              </span>
-            </button>
-          </div>
+          </button>
         </div>
       </footer>
     </section>

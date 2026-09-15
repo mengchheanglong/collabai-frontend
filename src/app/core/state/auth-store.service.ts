@@ -29,7 +29,23 @@ export class AuthStoreService {
 
   private restoreSessionRequest: Observable<boolean> | null = null;
 
-  login(email: string, password: string): void {
+  constructor() {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('storage', (event) => {
+        if (event.key === 'collabai.accessToken') {
+          if (!event.newValue) {
+            this.clearSession();
+            void this.router.navigate(['/login']);
+          } else {
+            this.accessToken.set(event.newValue);
+          }
+        }
+      });
+    }
+  }
+
+  login(rawEmail: string, password: string): void {
+    const email = rawEmail.trim().toLowerCase();
     this.isLoading.set(true);
     this.authError.set(null);
     this.auth.login({ email, password }).subscribe({
@@ -57,7 +73,8 @@ export class AuthStoreService {
     });
   }
 
-  register(firstName: string, lastName: string, email: string, password: string): void {
+  register(firstName: string, lastName: string, rawEmail: string, password: string): void {
+    const email = rawEmail.trim().toLowerCase();
     this.isLoading.set(true);
     this.authError.set(null);
     this.auth.register({ firstName, lastName, email, password }).subscribe({

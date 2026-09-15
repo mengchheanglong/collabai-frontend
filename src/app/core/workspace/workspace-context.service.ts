@@ -225,6 +225,29 @@ export class WorkspaceContextService {
     return name;
   }
 
+  deleteProject(projectId: string): void {
+    if (!projectId) return;
+    this.projectApi.remove(projectId).subscribe({
+      next: () => {
+        this.toast.show('Project deleted', 'success');
+        if (this.activeProjectId() === projectId) {
+          this.activeProjectId.set(null);
+          this.selectedWorkspaceId.set(null);
+          this.boardsState.set([]);
+          this.activeBoardId.set(null);
+        }
+        this.reloadProjects();
+      },
+      error: (err) => {
+        const msg =
+          err?.error?.error?.message ||
+          err?.error?.message ||
+          'Could not delete project. Only the project owner can delete it.';
+        this.toast.show(msg, 'error');
+      },
+    });
+  }
+
   selectWorkspace(workspaceId: string): void {
     this.selectedWorkspaceId.set(workspaceId);
     this.isWorkspaceCreatorOpen.set(false);

@@ -14,7 +14,7 @@ export class ThemeService {
     effect(() => {
       const mode = this.mode();
       this.document.documentElement.dataset['theme'] = mode;
-      this.document.documentElement.style.colorScheme = mode;
+      this.document.documentElement.style.colorScheme = mode === 'dark' ? 'dark' : 'light';
       localStorage.setItem(STORAGE_KEY, mode);
     });
   }
