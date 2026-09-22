@@ -98,13 +98,12 @@
   justify-content: center;
   margin-bottom: 20px;
   text-decoration: none;
+  color: var(--text);
   transition: transform 0.2s var(--ease), opacity 0.2s;
 
-  img {
-    height: 34px;
-    width: auto;
-    display: block;
-    object-fit: contain;
+  &:hover {
+    transform: translateY(-1px);
+    opacity: 0.9;
   }
 }
 
@@ -609,6 +608,16 @@
   margin-top: 20px;
   font-size: 13.5px;
   color: var(--muted);
+}
+
+// Email address in verify/forgot screens: always sits on its own line so the
+// address never breaks mid-string (fixes the awkward 3-line wrap).
+.auth-email {
+  display: block;
+  margin-top: 2px;
+  color: var(--brand);
+  font-weight: 600;
+  word-break: break-all; /* very long addresses must never overflow the card */
 }
 
 .auth-otp {

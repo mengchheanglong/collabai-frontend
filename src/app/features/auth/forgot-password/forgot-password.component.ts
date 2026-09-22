@@ -4,13 +4,14 @@ import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OtpInputComponent } from '../../../shared/ui/otp-input/otp-input.component';
+import { LogoComponent } from '../../../shared/ui/logo/logo.component';
 
 type Stage = 'email' | 'code';
 
 @Component({
   selector: 'app-forgot-password',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink, OtpInputComponent],
+  imports: [ReactiveFormsModule, RouterLink, OtpInputComponent, LogoComponent],
   templateUrl: './forgot-password.component.html',
   styleUrl: '../auth-pages.scss',
 })

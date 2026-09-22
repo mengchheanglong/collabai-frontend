@@ -4,6 +4,7 @@ import { MatRippleModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatBadgeModule } from '@angular/material/badge';
 import { MAIN_NAV_ITEMS } from '../../shared/lib/nav-items';
+import { LogoComponent } from '../../shared/ui/logo/logo.component';
 import { CommandCenterService } from '../command-center/command-center.service';
 import { MemberDirectoryService } from '../state/member-directory.service';
 import { TaskStoreService } from '../state/task-store.service';
@@ -19,7 +20,7 @@ import { OfflineSyncService } from '../pwa/offline-sync.service';
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatRippleModule, MatTooltipModule, MatBadgeModule],
+  imports: [RouterLink, RouterLinkActive, MatRippleModule, MatTooltipModule, MatBadgeModule, LogoComponent],
   templateUrl: './sidebar.component.html',
 })
 export class SidebarComponent implements OnInit {

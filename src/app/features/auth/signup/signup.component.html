@@ -2,7 +2,7 @@
   <main class="auth-card auth-card-wide">
     <header class="auth-card-header">
       <a routerLink="/" class="auth-brand" aria-label="CollabAI Home">
-        <img src="/collab-logo-clean.svg" class="auth-logo" alt="CollabAI" />
+        <app-logo size="lg" />
       </a>
       <div class="auth-heading">
         <h1>Create your account</h1>
@@ -100,7 +100,7 @@
             id="password"
             [type]="showPassword() ? 'text' : 'password'"
             formControlName="password"
-            placeholder="At least 8 characters"
+            placeholder="At least 8 characters, one number"
             autocomplete="new-password"
           />
           <button
@@ -134,9 +134,9 @@
               <span class="material-symbols-rounded">{{ passwordStrength().hasCase ? 'check' : 'circle' }}</span>
               Upper &amp; lowercase
             </span>
-            <span class="req-item" [class.met]="passwordStrength().hasNum || passwordStrength().hasSpecial">
-              <span class="material-symbols-rounded">{{ (passwordStrength().hasNum || passwordStrength().hasSpecial) ? 'check' : 'circle' }}</span>
-              Number or symbol
+            <span class="req-item" [class.met]="passwordStrength().hasNum">
+              <span class="material-symbols-rounded">{{ passwordStrength().hasNum ? 'check' : 'circle' }}</span>
+              A number
             </span>
           </div>
         }
@@ -144,7 +144,7 @@
         @if (isInvalid('password')) {
           <div class="field-error-msg" role="alert">
             <span class="material-symbols-rounded">error</span>
-            <span>Password must be at least 8 characters</span>
+            <span>At least 8 characters with upper &amp; lowercase and a number</span>
           </div>
         }
       </div>

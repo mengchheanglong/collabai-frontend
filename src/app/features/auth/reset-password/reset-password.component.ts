@@ -3,11 +3,12 @@ import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
+import { LogoComponent } from '../../../shared/ui/logo/logo.component';
 
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, LogoComponent],
   templateUrl: './reset-password.component.html',
   styleUrl: '../auth-pages.scss',
 })
