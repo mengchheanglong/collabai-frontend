@@ -6,9 +6,9 @@ export const environment = {
   apiBaseUrl:
     (typeof window !== 'undefined' &&
       (window as any).__COLLABAI_CONFIG__?.apiBaseUrl) ||
-    'https://collabai-api.onrender.com/api/v1',
+    '/api/v1',
   socketUrl:
     (typeof window !== 'undefined' &&
       (window as any).__COLLABAI_CONFIG__?.socketUrl) ||
-    'https://collabai-api.onrender.com',
+    '',
 };

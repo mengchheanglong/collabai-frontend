@@ -100,21 +100,11 @@
   text-decoration: none;
   transition: transform 0.2s var(--ease), opacity 0.2s;
 
-  &:hover {
-    transform: scale(1.03);
-    opacity: 0.95;
-  }
-
-  // Soft radiant aura behind logo
-  &::before {
-    content: '';
-    position: absolute;
-    inset: -14px;
-    border-radius: 50%;
-    background: radial-gradient(circle, var(--brand-soft) 20%, transparent 70%);
-    filter: blur(10px);
-    z-index: -1;
-    pointer-events: none;
+  img {
+    height: 34px;
+    width: auto;
+    display: block;
+    object-fit: contain;
   }
 }
 
