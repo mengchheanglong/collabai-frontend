@@ -5,9 +5,9 @@ services:
   # ==========================================
   # CollabAI Frontend (Angular 19 Static Site)
   # ==========================================
-  - type: static
+  - type: web
     name: collabai-web
-    plan: free
+    runtime: static
     branch: main
     buildCommand: pnpm install && pnpm run build
     staticPublishPath: dist/collabai-frontend/browser
