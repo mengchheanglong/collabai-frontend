@@ -1,6 +1,6 @@
 # CollabAI Frontend Project Context
 
-This is the Angular/TypeScript frontend for CollabAI.
+This is the Angular 21/TypeScript frontend for CollabAI. See [docs/TECH-SCOPE.md](docs/TECH-SCOPE.md) for the current frontend/backend technology baseline.
 
 ## Current implementation slice
 

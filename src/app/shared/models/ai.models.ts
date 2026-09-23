@@ -94,3 +94,36 @@ export interface ChatRequest {
 export interface ChatResponse {
   reply: string;
 }
+
+export interface ProjectInsightsResponse {
+  projectId: string;
+  projectName: string;
+  generatedAt: string;
+  source: 'ai' | 'fallback';
+  recommendations: Array<{
+    title: string;
+    rationale: string;
+    urgency: 'high' | 'medium' | 'low';
+    action: 'review_task' | 'balance_workload' | 'plan';
+    taskIds: string[];
+  }>;
+}
+
+export interface AiTaskAction {
+  id: string;
+  taskId: string;
+  taskTitle: string;
+  rationale: string;
+  previous: { status: string; priority: string; assigneeId: string | null; dueDate: string | null };
+  changes: { status?: string; priority?: string; assigneeId?: string | null; dueDate?: string | null };
+}
+
+export interface AiTaskActionPlan {
+  id: string;
+  projectId: string;
+  request: string;
+  actions: AiTaskAction[];
+  source: 'ai' | 'fallback';
+  status: 'pending' | 'applied';
+  expiresAt: string;
+}

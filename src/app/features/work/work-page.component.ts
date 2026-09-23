@@ -203,7 +203,11 @@ export class WorkPageComponent {
   toggleGroup(groupKey: WorkGroupKey): void {
     this.expandedGroups.update((expanded) => {
       const next = new Set(expanded);
-      next.has(groupKey) ? next.delete(groupKey) : next.add(groupKey);
+      if (next.has(groupKey)) {
+        next.delete(groupKey);
+      } else {
+        next.add(groupKey);
+      }
       return next;
     });
   }

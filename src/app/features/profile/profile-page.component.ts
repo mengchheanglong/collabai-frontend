@@ -3,6 +3,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { MatRippleModule } from '@angular/material/core';
 import { AuthStoreService } from '../../core/state/auth-store.service';
+import { UploadApiService } from '../../core/api/upload-api.service';
+import { finalize, switchMap } from 'rxjs';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ThemeMode, ThemeService } from '../../core/theme/theme.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
@@ -29,6 +31,7 @@ export class ProfilePageComponent {
   private readonly themeService = inject(ThemeService);
   private readonly memberDirectory = inject(MemberDirectoryService);
   private readonly authStore = inject(AuthStoreService);
+  private readonly uploads = inject(UploadApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly toast = inject(ToastService);
   readonly push = inject(PushNotificationService);
@@ -165,12 +168,18 @@ export class ProfilePageComponent {
     const dataUrl = this.avatarPreview();
     if (!dataUrl) return;
     this.isUploadingAvatar.set(true);
-    this.authStore.updateProfile({ avatarUrl: dataUrl });
-    setTimeout(() => {
+    void fetch(dataUrl).then((response) => response.blob()).then((file) =>
+      this.uploads.uploadAvatar(file).pipe(
+        switchMap((avatarUrl) => this.authStore.updateProfile({ avatarUrl })),
+        finalize(() => this.isUploadingAvatar.set(false)),
+      ).subscribe({
+        next: () => { this.avatarPreview.set(null); this.toast.show('Profile picture updated', 'success'); },
+        error: () => this.toast.show('Could not upload profile picture. Try again.', 'error'),
+      }),
+    ).catch(() => {
       this.isUploadingAvatar.set(false);
-      this.avatarPreview.set(null);
-      this.toast.show('Profile picture updated', 'success');
-    }, 500);
+      this.toast.show('Could not prepare profile picture. Try again.', 'error');
+    });
   }
 
   private resizeImage(file: File, maxW: number, maxH: number): Promise<string> {

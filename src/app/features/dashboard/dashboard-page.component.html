@@ -304,7 +304,7 @@
 
           <span class="db-insights-copy">
             <span class="db-insights-name">Workspace insights</span>
-            <span class="db-insights-sub">Projects, recent activity, and AI suggestions</span>
+            <span class="db-insights-sub">Projects, recent activity, and project recommendations</span>
           </span>
 
           <span class="db-insights-chips">
@@ -337,13 +337,12 @@
   </div>
   <!-- ── Insights overlay ─────────────────────────────────────── -->
   @if (isInsightsOpen()) {
-  <div class="db-scrim" role="presentation" (click)="closeInsights()">
-    <div #insightsDialog class="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-insights-title"
-      (click)="$event.stopPropagation()">
+  <div class="db-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeInsights()" (keyup)="$event.key === 'Escape' && closeInsights()">
+    <div #insightsDialog class="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-insights-title">
       <header class="db-modal-head">
         <div class="db-modal-copy">
           <h2 id="db-insights-title">Workspace insights</h2>
-          <p>Projects, recent activity, and AI suggestions</p>
+          <p>Projects, recent activity, and project recommendations</p>
         </div>
         <button #insightsClose type="button" class="db-modal-close" (click)="closeInsights()"
           aria-label="Close insights">
@@ -435,13 +434,29 @@
               <span class="material-symbols-rounded md filled ui-ai-mark" aria-hidden="true">
                 auto_awesome
               </span>
-              AI suggestions
+              Project recommendations
             </h2>
             <span class="ui-count">{{ suggestions.suggestions().length }}</span>
           </div>
 
           <div class="ui-panel-body">
-            @if (topSuggestions().length) {
+            @if (!suggestions.isLoading() && !suggestions.error() && suggestions.source(); as source) {
+            <p class="db-suggestion-body">{{ source === 'ai' ? 'AI analyzed current project data.' : 'Rule-based fallback is active. Configure an AI provider for model-generated insights.' }}</p>
+            }
+            @if (suggestions.isLoading()) {
+            <div class="ui-empty">
+              <span class="material-symbols-rounded" aria-hidden="true">auto_awesome</span>
+              <strong>Analyzing project activity</strong>
+              <p>Recommendations use current tasks, workload, due dates, and delivery trend.</p>
+            </div>
+            } @else if (suggestions.error()) {
+            <div class="ui-empty">
+              <span class="material-symbols-rounded" aria-hidden="true">cloud_off</span>
+              <strong>Insights are unavailable</strong>
+              <p>Could not reach the project insights service.</p>
+              <button type="button" class="ui-btn quiet sm" (click)="suggestions.refresh()">Try again</button>
+            </div>
+            } @else if (topSuggestions().length) {
             <ul class="db-suggestions">
               @for (s of topSuggestions(); track s.id) {
               <li class="db-suggestion">
@@ -474,6 +489,60 @@
               <strong>All caught up</strong>
               <p>New suggestions appear as the board changes.</p>
             </div>
+            }
+          </div>
+        </section>
+
+        <section class="ui-panel db-automation" aria-labelledby="db-automation-title">
+          <div class="ui-panel-head">
+            <h2 id="db-automation-title">
+              <span class="material-symbols-rounded md filled ui-ai-mark" aria-hidden="true">auto_awesome</span>
+              AI task automation
+            </h2>
+          </div>
+          <div class="ui-panel-body">
+            <p class="db-suggestion-body">Describe a task change. AI will use this project's tasks and team context to draft a plan; nothing changes until you approve it.</p>
+            <label class="db-automation-label" for="db-automation-request">What should change?</label>
+            <textarea id="db-automation-request" class="db-automation-input" rows="3" maxlength="1200"
+              [value]="automationRequest()" [disabled]="automationBusy()"
+              (input)="automationRequest.set($any($event.target).value)"
+              placeholder="For example: move overdue urgent work to in progress"></textarea>
+            <button type="button" class="ui-btn primary sm" matRipple
+              [disabled]="automationBusy() || !automationRequest().trim()" (click)="proposeTaskChanges()">
+              {{ automationBusy() ? 'Working…' : 'Prepare plan for review' }}
+            </button>
+            @if (automationMessage()) {
+              <p class="db-automation-message" [class.is-error]="automationError()" role="status">{{ automationMessage() }}</p>
+            }
+            @if (automationPlan(); as plan) {
+              <div class="db-automation-plan">
+                <div class="db-automation-plan-head">
+                  <strong>Review proposed changes</strong>
+                  <span>{{ plan.source === 'ai' ? 'AI proposal' : 'Fallback proposal' }}</span>
+                </div>
+                @if (plan.source === 'fallback') {
+                  <p class="db-automation-message">This proposal came from the deterministic fallback, not a language model.</p>
+                }
+                @for (action of plan.actions; track action.id) {
+                  <label class="db-automation-action">
+                    <input type="checkbox" [checked]="selectedAutomationActions().includes(action.id)"
+                      (change)="toggleAutomationAction(action.id, $any($event.target).checked)" />
+                    <span>
+                      <strong>{{ action.taskTitle }}</strong>
+                      <small>{{ describeAutomationChanges(action) }}</small>
+                      <small>{{ action.rationale }}</small>
+                    </span>
+                  </label>
+                }
+                <p class="db-automation-expiry">Plan expires {{ plan.expiresAt | date: 'mediumTime' }}. Tasks are rechecked before applying.</p>
+                <div class="db-suggestion-actions">
+                  <button type="button" class="ui-btn primary sm" matRipple
+                    [disabled]="automationBusy() || !selectedAutomationActions().length" (click)="approveTaskChanges()">
+                    {{ automationBusy() ? 'Applying…' : 'Approve and apply selected' }}
+                  </button>
+                  <button type="button" class="ui-btn quiet sm" (click)="discardTaskPlan()">Discard plan</button>
+                </div>
+              </div>
             }
           </div>
         </section>

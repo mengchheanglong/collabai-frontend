@@ -109,7 +109,7 @@ MVP approach:
 
 1. Ask AI to convert natural language query into filters.
 2. Validate filters.
-3. Run MongoDB query.
+3. Run the validated query with Prisma against PostgreSQL.
 
 Example model output:
 
@@ -139,6 +139,13 @@ Supported filters:
 ```
 
 Embedding-based semantic search is optional bonus. Do not block MVP on it.
+
+## Project recommendations
+
+The dashboard requests `POST /ai/project-insights` for the active project. It shows
+provider-generated, evidence-based recommendations and uses their validated task IDs
+to order the “Up next” queue. Loading and provider failure states are shown separately;
+client-side heuristic suggestions are not presented as model output.
 
 ## UI recommendations
 

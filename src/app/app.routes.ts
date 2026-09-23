@@ -1,89 +1,122 @@
-import { Routes } from '@angular/router';
-import { ShellComponent } from './core/layout/shell.component';
-import { authGuard } from './core/auth/auth.guard';
+import type { DocsPageComponent } from "./features/docs/docs-page.component";
+import { Routes } from "@angular/router";
+import { ShellComponent } from "./core/layout/shell.component";
+import { authGuard } from "./core/auth/auth.guard";
 
 export const routes: Routes = [
   {
-    path: '',
-    pathMatch: 'full',
-    redirectTo: 'landing',
+    path: "",
+    pathMatch: "full",
+    redirectTo: "landing",
   },
   {
-    path: 'landing',
+    path: "landing",
     loadComponent: () =>
-      import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
+      import("./features/landing/landing-page.component").then(
+        (m) => m.LandingPageComponent,
+      ),
   },
   {
-    path: 'landing/:page',
+    path: "landing/:page",
     loadComponent: () =>
-      import('./features/landing/landing-page.component').then((m) => m.LandingPageComponent),
+      import("./features/landing/landing-page.component").then(
+        (m) => m.LandingPageComponent,
+      ),
   },
   {
-    path: 'login',
+    path: "login",
     loadComponent: () =>
-      import('./features/auth/login/login.component').then((m) => m.LoginComponent),
+      import("./features/auth/login/login.component").then(
+        (m) => m.LoginComponent,
+      ),
   },
   {
-    path: 'signup',
+    path: "signup",
     loadComponent: () =>
-      import('./features/auth/signup/signup.component').then((m) => m.SignupComponent),
+      import("./features/auth/signup/signup.component").then(
+        (m) => m.SignupComponent,
+      ),
   },
   {
-    path: 'forgot-password',
+    path: "forgot-password",
     loadComponent: () =>
-      import('./features/auth/forgot-password/forgot-password.component').then(
+      import("./features/auth/forgot-password/forgot-password.component").then(
         (m) => m.ForgotPasswordComponent,
       ),
   },
   {
-    path: 'reset-password',
+    path: "reset-password",
     loadComponent: () =>
-      import('./features/auth/reset-password/reset-password.component').then(
+      import("./features/auth/reset-password/reset-password.component").then(
         (m) => m.ResetPasswordComponent,
       ),
   },
   {
-    path: 'verify-email',
+    path: "verify-email",
     loadComponent: () =>
-      import('./features/auth/verify-email/verify-email.component').then((m) => m.VerifyEmailComponent),
+      import("./features/auth/verify-email/verify-email.component").then(
+        (m) => m.VerifyEmailComponent,
+      ),
   },
   {
-    path: '',
+    path: "accept-invite",
+    loadComponent: () => import("./features/team/accept-invite.component").then((m) => m.AcceptInviteComponent),
+  },
+  {
+    path: "",
     component: ShellComponent,
     canActivate: [authGuard],
     children: [
-      { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+      { path: "", pathMatch: "full", redirectTo: "dashboard" },
       {
-        path: 'dashboard',
+        path: "dashboard",
         loadComponent: () =>
-          import('./features/dashboard/dashboard-page.component').then((m) => m.DashboardPageComponent),
+          import("./features/dashboard/dashboard-page.component").then(
+            (m) => m.DashboardPageComponent,
+          ),
+      },
+      ...["docs", "docs/:documentId"].map((path) => ({
+        path,
+        canDeactivate: [(component: DocsPageComponent) => component.canLeave()],
+        loadComponent: () =>
+          import("./features/docs/docs-page.component").then(
+            (m) => m.DocsPageComponent,
+          ),
+      })),
+      {
+        path: "work",
+        loadComponent: () =>
+          import("./features/work/work-page.component").then(
+            (m) => m.WorkPageComponent,
+          ),
       },
       {
-        path: 'work',
+        path: "board",
         loadComponent: () =>
-          import('./features/work/work-page.component').then((m) => m.WorkPageComponent),
+          import("./features/board/board-page.component").then(
+            (m) => m.BoardPageComponent,
+          ),
       },
       {
-        path: 'board',
+        path: "team",
         loadComponent: () =>
-          import('./features/board/board-page.component').then((m) => m.BoardPageComponent),
+          import("./features/team/team-page.component").then(
+            (m) => m.TeamPageComponent,
+          ),
       },
       {
-        path: 'team',
+        path: "profile",
         loadComponent: () =>
-          import('./features/team/team-page.component').then((m) => m.TeamPageComponent),
+          import("./features/profile/profile-page.component").then(
+            (m) => m.ProfilePageComponent,
+          ),
       },
       {
-        path: 'profile',
-        loadComponent: () =>
-          import('./features/profile/profile-page.component').then((m) => m.ProfilePageComponent),
-      },
-      {
-        path: 'settings',
-        pathMatch: 'full',
-        redirectTo: 'profile',
+        path: "settings",
+        pathMatch: "full",
+        redirectTo: "profile",
       },
     ],
   },
-  { path: '**', redirectTo: 'dashboard' },
+  { path: "**", redirectTo: "dashboard" },
 ];

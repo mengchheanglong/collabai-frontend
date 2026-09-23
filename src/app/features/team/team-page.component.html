@@ -150,8 +150,11 @@
             <div class="tm-person-main">
               <span class="tm-name-line">
                 <strong [title]="member.name">{{ member.name }}</strong>
-                @if (isYou(member)) {
+              @if (isYou(member)) {
                   <span class="tm-you">you</span>
+                }
+                @if (member.status === 'Pending') {
+                  <span class="tm-you">invite pending</span>
                 }
               </span>
               <small [title]="member.email">{{ member.email }}</small>
@@ -171,7 +174,7 @@
               class="tm-role-btn"
               [attr.data-role]="member.role"
               [matMenuTriggerFor]="roleMenu"
-              [disabled]="isYou(member) && members.adminCount() <= 1 && member.role === 'Admin'"
+              [disabled]="member.status === 'Pending' || (isYou(member) && members.adminCount() <= 1 && member.role === 'Admin')"
               [attr.aria-label]="'Role for ' + member.name"
               matRipple
             >
@@ -196,7 +199,7 @@
             </mat-menu>
           </div>
 
-          <div class="tm-cell tm-actions" (click)="$event.stopPropagation()">
+          <div class="tm-cell tm-actions">
             @if (!isYou(member)) {
               <button
                 type="button"
@@ -209,6 +212,16 @@
               </button>
 
               <mat-menu #actionsMenu="matMenu" class="ui-dropdown-panel" xPosition="before">
+                @if (member.status === 'Pending') {
+                  <button mat-menu-item class="ui-dropdown-item" (click)="resendInvite(member)">
+                    <span class="material-symbols-rounded sm" aria-hidden="true">forward_to_inbox</span>
+                    <span>Resend invitation</span>
+                  </button>
+                  <button mat-menu-item class="ui-dropdown-item is-danger" (click)="revokeInvite(member)">
+                    <span class="material-symbols-rounded sm" aria-hidden="true">cancel</span>
+                    <span>Revoke invitation</span>
+                  </button>
+                } @else {
                 <button
                   mat-menu-item
                   class="ui-dropdown-item is-danger"
@@ -217,6 +230,7 @@
                   <span class="material-symbols-rounded sm" aria-hidden="true">person_remove</span>
                   <span>Remove from workspace</span>
                 </button>
+                }
               </mat-menu>
             }
           </div>
@@ -246,13 +260,12 @@
 
 <!-- ── Invite dialog ────────────────────────────────────────── -->
 @if (inviteOpen()) {
-  <div class="tm-scrim" role="presentation" (click)="closeInvite()">
+  <div class="tm-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeInvite()" (keyup)="$event.key === 'Escape' && closeInvite()">
     <div
       class="tm-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="tm-invite-title"
-      (click)="$event.stopPropagation()"
     >
       <header class="tm-dialog-head">
         <h2 id="tm-invite-title">Invite people</h2>
@@ -329,13 +342,12 @@
 
 <!-- ── Remove dialog ────────────────────────────────────────── -->
 @if (removeTarget(); as target) {
-  <div class="tm-scrim" role="presentation" (click)="closeRemoveDialog()">
+  <div class="tm-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeRemoveDialog()" (keyup)="$event.key === 'Escape' && closeRemoveDialog()">
     <div
       class="tm-dialog"
       role="dialog"
       aria-modal="true"
       aria-labelledby="tm-remove-title"
-      (click)="$event.stopPropagation()"
     >
       <header class="tm-dialog-head">
         <h2 id="tm-remove-title">Remove {{ target.name }}?</h2>

@@ -1,115 +1,103 @@
-// SuggestionStoreService — AI-style suggestions derived from real workspace data
-// (no seed data). Suggestions are computed from the loaded tasks and team roster.
-
-import { Injectable, computed, inject, signal } from '@angular/core';
+// Project-aware AI recommendations come from POST /ai/project-insights.
+import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import type { Suggestion } from '../../shared/models/suggestion.models';
+import { AiService } from '../api/ai.service';
+import type { ProjectInsightsResponse } from '../../shared/models/ai.models';
+import { finalize } from 'rxjs';
 import { ToastService } from '../toast/toast.service';
-import { MemberDirectoryService } from './member-directory.service';
 import { TaskStoreService } from './task-store.service';
+import { WorkspaceContextService } from '../workspace/workspace-context.service';
 
 @Injectable({ providedIn: 'root' })
 export class SuggestionStoreService {
   private readonly toast = inject(ToastService);
   private readonly tasks = inject(TaskStoreService);
-  private readonly members = inject(MemberDirectoryService);
   private readonly router = inject(Router);
+  private readonly workspace = inject(WorkspaceContextService);
+  private readonly ai = inject(AiService);
 
+  private readonly recommendations = signal<Suggestion[]>([]);
   readonly dismissed = signal<string[]>([]);
+  readonly isLoading = signal(false);
+  readonly error = signal(false);
+  readonly source = signal<'ai' | 'fallback' | null>(null);
+  readonly suggestions = computed(() => this.recommendations().filter((s) => !this.dismissed().includes(s.id)));
+  readonly nextTaskIds = computed(() => [...new Set(this.suggestions().flatMap((item) => item.taskIds ?? []))]);
 
-  readonly suggestions = computed<Suggestion[]>(() => {
-    const open = this.tasks.tasks().filter((t) => t.status !== 'done');
-    const now = new Date();
-    const overdue = open.filter(
-      (t) => t.dueDate && new Date(t.dueDate).getTime() < now.getTime(),
-    );
-    const unscheduled = open.filter((t) => !t.dueDate);
-    const thin = open.filter((t) => t.subtasks.length <= 2);
+  constructor() {
+    effect(() => {
+      const projectId = this.workspace.activeProjectId();
+      this.dismissed.set([]);
+      this.recommendations.set([]);
+      this.error.set(false);
+      this.source.set(null);
+      if (!projectId) { this.isLoading.set(false); return; }
+      this.isLoading.set(true);
+      this.ai.projectInsights(projectId).subscribe({
+        next: (response) => {
+          if (this.workspace.activeProjectId() !== projectId) return;
+          this.recommendations.set(response.recommendations.map((item, index) => mapRecommendation(projectId, item, index)));
+          this.source.set(response.source);
+          this.error.set(false);
+          this.isLoading.set(false);
+        },
+        error: () => {
+          if (this.workspace.activeProjectId() !== projectId) return;
+          this.error.set(true);
+          this.isLoading.set(false);
+        },
+      });
+    });
+  }
 
-    const list: Suggestion[] = [];
-    if (overdue.length > 0) {
-      list.push({
-        id: 'risk-overdue',
-        title: `${overdue.length} overdue task${overdue.length === 1 ? '' : 's'}`,
-        body: `${overdue.length} open task${overdue.length === 1 ? ' is' : 's are'} past its due date. Review and reprioritize.`,
-        category: 'Risk',
-        impact: 'High',
-        action: 'Review overdue work',
-      });
-    }
-    if (unscheduled.length > 0) {
-      list.push({
-        id: 'timeline-unscheduled',
-        title: `${unscheduled.length} unscheduled task${unscheduled.length === 1 ? '' : 's'}`,
-        body: `Give ${unscheduled.length} open task${unscheduled.length === 1 ? '' : 's'} a due date so the timeline is clear.`,
-        category: 'Timeline',
-        impact: 'Medium',
-        action: 'Schedule work',
-      });
-    }
-    if (thin.length > 0) {
-      list.push({
-        id: 'tasks-subtasks',
-        title: 'Break large tasks into subtasks',
-        body: `${thin.length} open task${thin.length === 1 ? ' has' : 's have'} no subtasks. Smaller steps make progress visible.`,
-        category: 'Tasks',
-        impact: 'Medium',
-        action: 'Break down tasks',
-      });
-    }
-    if (this.members.memberCount() > 0) {
-      list.push({
-        id: 'workload-team',
-        title: 'Check team workload',
-        body: `Your team has ${this.members.memberCount()} members. Spot-check who is carrying the most open work.`,
-        category: 'Workload',
-        impact: 'Low',
-        action: 'View team',
-      });
-    }
-
-    return list.filter((s) => !this.dismissed().includes(s.id)).slice(0, 4);
-  });
+  refresh(): void {
+    const projectId = this.workspace.activeProjectId();
+    if (!projectId) return;
+    this.isLoading.set(true);
+    this.error.set(false);
+    this.source.set(null);
+    this.ai.projectInsights(projectId).pipe(finalize(() => this.isLoading.set(false))).subscribe({
+      next: (response) => {
+        if (this.workspace.activeProjectId() !== projectId) return;
+        this.recommendations.set(response.recommendations.map((item, index) => mapRecommendation(projectId, item, index)));
+        this.source.set(response.source);
+      },
+      error: () => { if (this.workspace.activeProjectId() === projectId) this.error.set(true); },
+    });
+  }
 
   applySuggestion(suggestion: Suggestion): void {
     this.dismissed.update((ids) => [...ids, suggestion.id]);
-
-    // Lightweight actions aligned with suggestion categories
-    switch (suggestion.category) {
-      case 'Tasks': {
-        const large = this.tasks
-          .tasks()
-          .find((t) => t.subtasks.length <= 2 && t.status !== 'done');
-        if (large) {
-          this.tasks.selectTask(large);
-          this.tasks.generateSubtasks(large);
-          void this.router.navigate(['/board']);
-          this.toast.show('Opening task to generate subtasks', 'ai');
-          return;
-        }
-        break;
-      }
-      case 'Risk':
-      case 'Timeline': {
-        this.tasks.searchQuery.set('high priority');
-        void this.router.navigate(['/board']);
-        this.toast.show(`Applied: ${suggestion.title}`, 'ai');
-        return;
-      }
-      case 'Workload': {
-        void this.router.navigate(['/team']);
-        this.toast.show(`Applied: ${suggestion.title}`, 'success');
-        return;
-      }
-      default:
-        break;
+    if (suggestion.category === 'Workload') {
+      void this.router.navigate(['/team']);
+      return;
     }
-
-    this.toast.show(`Applied: ${suggestion.title}`, 'success');
+    const taskId = suggestion.taskIds?.[0];
+    const task = taskId ? this.tasks.tasks().find((item) => item.id === taskId) : undefined;
+    if (task) {
+      this.tasks.selectTask(task);
+      void this.router.navigate(['/board']);
+      return;
+    }
+    this.tasks.searchQuery.set(suggestion.category === 'Risk' ? 'overdue' : '');
+    void this.router.navigate(['/board']);
+    this.toast.show(`Opened the board for: ${suggestion.title}`, 'ai');
   }
 
   dismissSuggestion(suggestion: Suggestion): void {
     this.dismissed.update((ids) => [...ids, suggestion.id]);
-    this.toast.show('Suggestion dismissed', 'info');
   }
+}
+
+function mapRecommendation(projectId: string, item: ProjectInsightsResponse['recommendations'][number], index: number): Suggestion {
+  return {
+    id: `${projectId}:${index}:${item.title}`,
+    title: item.title,
+    body: item.rationale,
+    category: item.action === 'balance_workload' ? 'Workload' : item.action === 'review_task' ? 'Risk' : 'Timeline',
+    impact: item.urgency === 'high' ? 'High' : item.urgency === 'medium' ? 'Medium' : 'Low',
+    action: item.action === 'balance_workload' ? 'Review team' : item.taskIds.length ? 'Open task' : 'Review plan',
+    taskIds: item.taskIds,
+  };
 }

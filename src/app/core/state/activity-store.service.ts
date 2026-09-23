@@ -9,6 +9,13 @@ export class ActivityStoreService {
   /** Start empty; populated by loadForProject() called from the dashboard. */
   readonly activities = signal<Activity[]>([]);
 
+  private readonly liveIds = new Set<string>();
+  applyLive(dto: ActivityDto): void {
+    if (!dto?._id || this.liveIds.has(dto._id)) return;
+    this.liveIds.add(dto._id);
+    this.activities.update(items => [toActivity(dto), ...items].slice(0, 30));
+  }
+
   loadForProject(projectId: string): void {
     if (!projectId) {
       this.activities.set([]);

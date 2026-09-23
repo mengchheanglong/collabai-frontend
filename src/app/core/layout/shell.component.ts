@@ -1,3 +1,4 @@
+import { LiveCollaborationService } from '../realtime/live-collaboration.service';
 import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { AiCopilotComponent } from '../../features/ai/ai-copilot.component';
@@ -8,6 +9,7 @@ import { SidebarNavStateService } from './sidebar-nav.service';
 
 @Component({
   selector: 'app-shell',
+  providers: [LiveCollaborationService],
   standalone: true,
   imports: [
     RouterOutlet,
@@ -19,6 +21,7 @@ import { SidebarNavStateService } from './sidebar-nav.service';
   templateUrl: './shell.component.html',
 })
 export class ShellComponent {
+  readonly live = inject(LiveCollaborationService);
   readonly navState = inject(SidebarNavStateService);
 }
 

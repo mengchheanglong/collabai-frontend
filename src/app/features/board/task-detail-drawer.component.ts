@@ -1,3 +1,4 @@
+import { LiveCollaborationService } from '../../core/realtime/live-collaboration.service';
 import { Component, HostListener, inject, signal } from '@angular/core';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatMenuModule } from '@angular/material/menu';
@@ -17,6 +18,7 @@ import type { Priority, Task, TaskStatus } from '../../shared/models/task.models
   templateUrl: './task-detail-drawer.component.html',
 })
 export class TaskDetailDrawerComponent {
+  readonly live = inject(LiveCollaborationService);
   readonly tasks = inject(TaskStoreService);
   readonly comments = inject(CommentStoreService);
   readonly members = inject(MemberDirectoryService);

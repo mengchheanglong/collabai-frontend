@@ -5,4 +5,5 @@ export interface Suggestion {
   category: 'Timeline' | 'Workload' | 'Tasks' | 'Risk' | 'Team';
   impact: 'High' | 'Medium' | 'Low';
   action: string;
+  taskIds?: string[];
 }

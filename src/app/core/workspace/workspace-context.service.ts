@@ -117,6 +117,12 @@ export class WorkspaceContextService {
     });
   }
 
+  removeLiveProject(projectId: string): void {
+    this.projectsState.update(projects => projects.filter(project => project.id !== projectId));
+    void this.idb.delete('projects', projectId);
+    if (this.activeProjectId() === projectId) this.selectProject('');
+  }
+
   selectProject(projectId: string): void {
     if (!projectId) {
       this.activeProjectId.set(null);
@@ -143,9 +149,11 @@ export class WorkspaceContextService {
     }
     this.boardApi.listBoards(projectId).subscribe({
       next: (boards) => {
+        if (this.activeProjectId() !== projectId) return;
         this.boardsState.set(boards);
         const firstBoardId = boards.length > 0 ? (boards[0]._id || (boards[0] as any).id) : null;
-        this.activeBoardId.set(firstBoardId);
+        const current = this.activeBoardId();
+        this.activeBoardId.set(boards.some(board => board._id === current) ? current : firstBoardId);
       },
       error: () => {
         this.boardsState.set([]);

@@ -16,6 +16,8 @@ import type {
   ChatResponse,
   GenerateTasksRequest,
   GenerateTasksResponse,
+  ProjectInsightsResponse,
+  AiTaskActionPlan,
 } from '../../shared/models/ai.models';
 import type { Task } from '../../shared/models/task.models';
 
@@ -57,6 +59,18 @@ export class AiService {
 
   chat(body: ChatRequest): Observable<ChatResponse> {
     return this.apiClient.post<ChatResponse>('/ai/chat', body);
+  }
+
+  projectInsights(projectId: string): Observable<ProjectInsightsResponse> {
+    return this.apiClient.post<ProjectInsightsResponse>('/ai/project-insights', { projectId });
+  }
+
+  proposeTaskActions(projectId: string, request: string): Observable<AiTaskActionPlan> {
+    return this.apiClient.post<AiTaskActionPlan>('/ai/automation/proposals', { projectId, request });
+  }
+
+  applyTaskActions(planId: string, actionIds: string[]): Observable<{ planId: string; status: 'applied'; appliedActionIds: string[]; appliedAt: string }> {
+    return this.apiClient.post<{ planId: string; status: 'applied'; appliedActionIds: string[]; appliedAt: string }>(`/ai/automation/proposals/${planId}/apply`, { actionIds });
   }
 }
 

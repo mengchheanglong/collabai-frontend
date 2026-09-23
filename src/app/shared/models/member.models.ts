@@ -5,8 +5,9 @@ export interface Member {
   role: 'Admin' | 'Member' | 'Viewer';
   avatar: string;
   avatarUrl?: string | null;
-  status: 'Active' | 'Away' | 'Offline';
+  status: 'Active' | 'Away' | 'Offline' | 'Pending';
   projects: number;
   joined: string;
   color: string;
+  invitationId?: string;
 }

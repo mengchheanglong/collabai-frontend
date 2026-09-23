@@ -33,6 +33,11 @@ export class NotificationStoreService {
     });
   }
 
+  applyLive(dto: NotificationDto): void {
+    if (!dto?._id) return;
+    this.notifications.update(items => items.some(n => n.id === dto._id) ? items : [toAppNotification(dto), ...items]);
+  }
+
   markAsRead(id: string): void {
     this.notificationApi.markAsRead(id).subscribe({
       next: () => {

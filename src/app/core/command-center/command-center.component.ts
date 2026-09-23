@@ -118,7 +118,11 @@ export class CommandCenterComponent {
     const isShortcut = (event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k';
     if (isShortcut) {
       event.preventDefault();
-      this.commandCenter.isOpen() ? this.close() : this.open();
+      if (this.commandCenter.isOpen()) {
+        this.close();
+      } else {
+        this.open();
+      }
       return;
     }
 

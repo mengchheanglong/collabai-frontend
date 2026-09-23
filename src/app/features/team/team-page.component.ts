@@ -120,6 +120,9 @@ export class TeamPageComponent {
     this.toast.success(`${member.name}'s role was updated to ${role}`, 'Role Updated');
   }
 
+  resendInvite(member: Member): void { this.members.resendInvitation(member); }
+  revokeInvite(member: Member): void { this.members.revokeInvitation(member); }
+
   toggleMenu(event: Event, memberId: string): void {
     event.stopPropagation();
     this.menuOpenId.update((id) => (id === memberId ? null : memberId));

@@ -13,9 +13,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
   styleUrl: './task-card.component.scss',
   host: {
     '[class.selected]': 'selected()',
-    '(click)': 'select.emit(task())',
-    '(keydown.enter)': 'select.emit(task())',
-    '(keydown.space)': 'select.emit(task()); $event.preventDefault()',
+    '(click)': 'taskSelected.emit(task())',
+    '(keydown.enter)': 'taskSelected.emit(task())',
+    '(keydown.space)': 'taskSelected.emit(task()); $event.preventDefault()',
   },
 })
 export class TaskCardComponent {
@@ -23,7 +23,7 @@ export class TaskCardComponent {
 
   readonly task = input.required<Task>();
   readonly selected = input(false);
-  readonly select = output<Task>();
+  readonly taskSelected = output<Task>();
 
   /** `assigneeId` is an id, so resolve it to a real person for the avatar. */
   readonly assignee = computed(() => {

@@ -260,6 +260,20 @@ export class MemberDirectoryService {
     return member;
   }
 
+  refreshMembers(): void { this.reload(); }
+
+  resendInvitation(member: Member): void {
+    const projectId = this.activeProjectId();
+    if (!projectId || !member.invitationId) return;
+    this.projectApi.resendInvitation(projectId, member.invitationId).subscribe({ next: () => this.toast.show('Invitation email resent', 'success'), error: () => this.toast.show('Could not resend invitation', 'info') });
+  }
+
+  revokeInvitation(member: Member): void {
+    const projectId = this.activeProjectId();
+    if (!projectId || !member.invitationId) return;
+    this.projectApi.revokeInvitation(projectId, member.invitationId).subscribe({ next: () => { this.toast.show('Invitation revoked', 'success'); this.reload(); }, error: () => this.toast.show('Could not revoke invitation', 'info') });
+  }
+
   private reload(): void {
     const projectId = this.activeProjectId();
     if (!projectId) {
@@ -274,15 +288,16 @@ export class MemberDirectoryService {
 
 function toMember(dto: ProjectMemberDto, index: number): Member {
   return {
-    id: dto.userId,
+    id: dto.userId ?? `invitation-${dto.invitationId}`,
     name: dto.name,
     email: dto.email,
     role: toUiRole(dto.role),
     avatar: initials(dto.name),
-    status: 'Active',
+    status: dto.pending ? 'Pending' : 'Active',
     projects: 0,
     joined: dto.joinedAt ? new Date(dto.joinedAt).toLocaleDateString() : '',
     color: AVATAR_COLORS[index % AVATAR_COLORS.length],
+    invitationId: dto.invitationId,
   };
 }
 

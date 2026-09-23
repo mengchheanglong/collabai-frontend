@@ -18,9 +18,11 @@ import { MemberDirectoryService } from '../../core/state/member-directory.servic
 import { SuggestionStoreService } from '../../core/state/suggestion-store.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
 import { AnalyticsStoreService } from '../../core/state/analytics-store.service';
+import { AiService } from '../../core/api/ai.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import { priorityRank } from '../../shared/lib/person-display';
 import type { Suggestion } from '../../shared/models/suggestion.models';
+import type { AiTaskAction, AiTaskActionPlan } from '../../shared/models/ai.models';
 import type { Task } from '../../shared/models/task.models';
 import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
 
@@ -74,12 +76,111 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   readonly suggestions = inject(SuggestionStoreService);
   readonly members = inject(MemberDirectoryService);
   readonly analytics = inject(AnalyticsStoreService);
+  private readonly ai = inject(AiService);
+  readonly automationRequest = signal('');
+  readonly automationPlan = signal<AiTaskActionPlan | null>(null);
+  readonly selectedAutomationActions = signal<string[]>([]);
+  readonly automationBusy = signal(false);
+  readonly automationMessage = signal('');
+  readonly automationError = signal(false);
 
   readonly today = signal(new Date());
   readonly isCollabSidebarOpen = signal(true);
 
   toggleCollabSidebar(): void {
     this.isCollabSidebarOpen.update(open => !open);
+  }
+
+  proposeTaskChanges(): void {
+    const projectId = this.workspace.activeProjectId();
+    const request = this.automationRequest().trim();
+    if (!projectId || !request || this.automationBusy()) return;
+    this.automationBusy.set(true);
+    this.automationMessage.set('');
+    this.automationError.set(false);
+    this.ai.proposeTaskActions(projectId, request).subscribe({
+      next: (plan) => {
+        if (this.workspace.activeProjectId() !== projectId) return;
+        this.automationPlan.set(plan);
+        this.selectedAutomationActions.set(plan.actions.map((action) => action.id));
+        this.automationMessage.set(plan.actions.length ? '' : 'No safe task changes were proposed. Try a more specific request.');
+      },
+      error: () => {
+        this.automationBusy.set(false);
+        this.automationError.set(true);
+        this.automationMessage.set('Could not prepare a task change plan. Check your project access and try again.');
+      },
+      complete: () => this.automationBusy.set(false),
+    });
+  }
+
+  toggleAutomationAction(actionId: string, checked: boolean): void {
+    this.selectedAutomationActions.update((ids) => checked
+      ? (ids.includes(actionId) ? ids : [...ids, actionId])
+      : ids.filter((id) => id !== actionId));
+  }
+
+  approveTaskChanges(): void {
+    const plan = this.automationPlan();
+    const actionIds = this.selectedAutomationActions();
+    if (!plan || !actionIds.length || this.automationBusy()) return;
+    if (plan.projectId !== this.workspace.activeProjectId()) {
+      this.automationPlan.set(null);
+      this.selectedAutomationActions.set([]);
+      this.automationError.set(true);
+      this.automationMessage.set('The active project changed. Prepare a new plan before applying changes.');
+      return;
+    }
+    this.automationBusy.set(true);
+    this.automationMessage.set('');
+    this.ai.applyTaskActions(plan.id, actionIds).subscribe({
+      next: () => {
+        const projectId = plan.projectId;
+        this.automationPlan.set(null);
+        this.selectedAutomationActions.set([]);
+        this.automationRequest.set('');
+        this.automationMessage.set(`Applied ${actionIds.length} approved task change${actionIds.length === 1 ? '' : 's'}.`);
+        if (this.workspace.activeProjectId() === projectId) {
+          this.suggestions.refresh();
+          this.analytics.loadForProject(projectId);
+          this.activities.loadForProject(projectId);
+          const boardId = this.workspace.activeBoardId();
+          if (boardId) this.tasks.loadBoard(boardId);
+        }
+      },
+      error: () => {
+        this.automationBusy.set(false);
+        this.automationError.set(true);
+        this.automationMessage.set('The plan could not be applied. A task may have changed or your write access may have been removed; prepare a new plan.');
+      },
+      complete: () => this.automationBusy.set(false),
+    });
+  }
+
+  discardTaskPlan(): void {
+    this.automationPlan.set(null);
+    this.selectedAutomationActions.set([]);
+    this.automationMessage.set('Plan discarded. No task changes were made.');
+    this.automationError.set(false);
+  }
+
+  describeAutomationChanges(action: AiTaskAction): string {
+    const parts: string[] = [];
+    const before = action.previous;
+    const changes = action.changes;
+    if (changes.status !== undefined) parts.push(`Status: ${before.status} → ${changes.status}`);
+    if (changes.priority !== undefined) parts.push(`Priority: ${before.priority} → ${changes.priority}`);
+    if (changes.assigneeId !== undefined) parts.push(`Assignee: ${this.memberName(before.assigneeId)} → ${this.memberName(changes.assigneeId)}`);
+    if (changes.dueDate !== undefined) parts.push(`Due date: ${this.dateLabel(before.dueDate)} → ${this.dateLabel(changes.dueDate)}`);
+    return parts.join(' · ');
+  }
+
+  private memberName(id: string | null): string {
+    return id ? this.members.members().find((member) => member.id === id)?.name ?? 'Project member' : 'Unassigned';
+  }
+
+  private dateLabel(value: string | null): string {
+    return value ? new Date(value).toLocaleDateString() : 'No date';
   }
 
   // ----- insights overlay -----
@@ -263,6 +364,10 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     [...this.tasks.tasks()]
       .filter((t) => t.status !== 'done')
       .sort((a, b) => {
+        const recommendationOrder = this.suggestions.nextTaskIds();
+        const aIndex = recommendationOrder.indexOf(a.id);
+        const bIndex = recommendationOrder.indexOf(b.id);
+        if (aIndex >= 0 || bIndex >= 0) return (aIndex < 0 ? Infinity : aIndex) - (bIndex < 0 ? Infinity : bIndex);
         const aDue = a.dueDate ? new Date(a.dueDate).getTime() : Number.POSITIVE_INFINITY;
         const bDue = b.dueDate ? new Date(b.dueDate).getTime() : Number.POSITIVE_INFINITY;
         if (aDue !== bDue) return aDue - bDue;
@@ -346,7 +451,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
 
   private trapFocus(event: KeyboardEvent): void {
     const focusable = this.insightsDialog?.nativeElement.querySelectorAll<HTMLElement>(
-      'a[href], button:not([disabled]), [tabindex]:not([tabindex=\"-1\"])',
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])',
     );
     if (!focusable?.length) return;
     const first = focusable[0];
