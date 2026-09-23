@@ -1,0 +1,36 @@
+# Render Blueprint Specification for CollabAI Frontend (Static Site)
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  # ==========================================
+  # CollabAI Frontend (Angular 19 Static Site)
+  # ==========================================
+  - type: web
+    name: collabai-web
+    runtime: static
+    branch: main
+    buildCommand: pnpm install && pnpm run build
+    staticPublishPath: dist/collabai-frontend/browser
+    routes:
+      # Single-Page Application (SPA) routing: rewrite all paths to index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /sw.js
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+      - path: /manifest.webmanifest
+        name: Cache-Control
+        value: no-cache, no-store, must-revalidate
+    envVars:
+      - key: API_BASE_URL
+        sync: false
+      - key: SOCKET_URL
+        sync: false

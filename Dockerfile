@@ -3,13 +3,17 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
-COPY angular.json tsconfig.json tsconfig.app.json ./
+COPY angular.json tsconfig*.json ./
 COPY src ./src
 COPY public ./public
-ARG API_BASE_URL=https://api.example.com/api/v1
-RUN sed -i "s#http://localhost:4000/api/v1#${API_BASE_URL}#; s/production: false/production: true/" src/environments/environment.ts && pnpm build
+COPY scripts ./scripts
+ARG API_BASE_URL
+ARG SOCKET_URL
+ENV API_BASE_URL=${API_BASE_URL} SOCKET_URL=${SOCKET_URL}
+RUN pnpm run build
 
 FROM nginx:1.27-alpine AS runtime
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist/collabai-frontend/browser /usr/share/nginx/html
 EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]

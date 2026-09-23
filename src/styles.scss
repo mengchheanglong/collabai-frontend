@@ -209,6 +209,15 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
+.field-control input:focus,
+.field-control input:focus-visible,
+.field-wrap input:focus,
+.field-wrap input:focus-visible {
+  outline: none !important;
+  outline-offset: 0 !important;
+  box-shadow: none !important;
+}
+
 ::selection {
   background: rgba(59, 130, 246, 0.35);
   color: var(--text);
@@ -814,20 +823,49 @@ select:focus-visible {
 }
 
 .otp-box {
-  width: 44px;
+  width: 46px;
   height: 52px;
   text-align: center;
-  font-size: 20px;
-  font-weight: 600;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
+  font-size: 22px;
+  font-weight: 700;
+  background: var(--bg-elevated);
+  border: 1.5px solid var(--line-2);
   border-radius: var(--radius-sm);
   color: var(--text);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.15s var(--ease), box-shadow 0.15s var(--ease);
+
+  &::placeholder {
+    color: transparent;
+  }
+
+  &:hover {
+    border-color: var(--muted-2);
+  }
 
   &:focus {
     outline: none;
     border-color: var(--brand);
+    background: var(--panel);
     box-shadow: 0 0 0 3px var(--brand-soft);
+  }
+
+  /* Filled state — lift contrast so completed digits are unmistakable. */
+  &:not(:placeholder-shown) {
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--line-2));
+    background: var(--panel);
+  }
+}
+
+@media (max-width: 520px) {
+  .otp-input {
+    gap: 8px;
+  }
+
+  .otp-box {
+    width: 42px;
+    height: 50px;
+    font-size: 20px;
   }
 }
 

@@ -40,6 +40,10 @@ export class TaskStoreService {
   readonly isGeneratingSubtasks = signal(false);
   readonly isImprovingDescription = signal(false);
   readonly isSummarizingComments = signal(false);
+  readonly isCreatingTask = signal(false);
+  private readonly deletingTaskIds = new Set<string>();
+  private readonly togglingSubtaskIds = new Set<string>();
+  private readonly addingSubtaskTaskIds = new Set<string>();
   readonly commentSummary = signal<string | null>(null);
   /** Prevent an older board response from overwriting newer persisted task data. */
   private boardLoadVersion = 0;
@@ -313,11 +317,15 @@ export class TaskStoreService {
     const nextTask = listWithoutTask[event.currentIndex];
 
     if (prevTask && nextTask) {
-      newPosition = (prevTask.position + nextTask.position) / 2;
+      if (prevTask.position >= nextTask.position) {
+        newPosition = prevTask.position + 1;
+      } else {
+        newPosition = (prevTask.position + nextTask.position) / 2;
+      }
     } else if (prevTask) {
       newPosition = prevTask.position + 1024;
     } else if (nextTask) {
-      newPosition = nextTask.position / 2;
+      newPosition = nextTask.position > 0 ? nextTask.position / 2 : nextTask.position - 1024;
     } else {
       newPosition = 1024;
     }
@@ -371,8 +379,15 @@ export class TaskStoreService {
   }
 
   toggleSubtask(task: Task, index: number): void {
-    const updatedSubtasks = task.subtasks.map((subtask, i) =>
-      i === index ? { ...subtask, done: !subtask.done } : subtask,
+    const subtask = task.subtasks[index];
+    if (!subtask) return;
+    const subtaskId = subtask.id;
+    if (this.togglingSubtaskIds.has(subtaskId)) return;
+    this.togglingSubtaskIds.add(subtaskId);
+
+    const previousSubtasks = task.subtasks;
+    const updatedSubtasks = task.subtasks.map((item, i) =>
+      i === index ? { ...item, done: !item.done } : item,
     );
 
     const updatedTask = { ...task, subtasks: updatedSubtasks };
@@ -398,7 +413,16 @@ export class TaskStoreService {
     }
 
     this.taskApi.updateSubtask(task.id, changedSubtask.id, { done: changedSubtask.done }).subscribe({
+      next: () => {
+        this.togglingSubtaskIds.delete(subtaskId);
+      },
       error: (err) => {
+        this.togglingSubtaskIds.delete(subtaskId);
+        // Rollback optimistic subtask toggle
+        this.tasks.update((items) =>
+          items.map((item) => (item.id === task.id ? { ...item, subtasks: previousSubtasks } : item)),
+        );
+        this.refreshSelectedTask(task.id);
         if (err.status === 0 || !navigator.onLine) {
           void this.offlineSync.enqueue(
             'UPDATE_SUBTASK',
@@ -644,6 +668,9 @@ export class TaskStoreService {
   addManualSubtask(taskId: string, title: string): void {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
+    if (this.addingSubtaskTaskIds.has(taskId)) return;
+    this.addingSubtaskTaskIds.add(taskId);
+
     const task = this.tasks().find((t) => t.id === taskId);
 
     if (!navigator.onLine && task) {
@@ -653,12 +680,14 @@ export class TaskStoreService {
       this.refreshSelectedTask(taskId);
       void this.idb.put('tasks', updatedTask);
       void this.offlineSync.enqueue('ADD_SUBTASK', `/tasks/${taskId}/subtasks`, 'POST', { title: cleanTitle }, task.projectId);
+      this.addingSubtaskTaskIds.delete(taskId);
       this.toast.show('Subtask added (offline)', 'info');
       return;
     }
 
     this.taskApi.addSubtask(taskId, cleanTitle).subscribe({
       next: (t) => {
+        this.addingSubtaskTaskIds.delete(taskId);
         const subtasks = (t.subtasks || []).map((s) => ({
           id: s._id,
           title: s.title,
@@ -673,6 +702,7 @@ export class TaskStoreService {
         this.toast.show('Subtask added', 'success');
       },
       error: (err) => {
+        this.addingSubtaskTaskIds.delete(taskId);
         if ((err.status === 0 || !navigator.onLine) && task) {
           const newSubtask = { id: `offline-sub-${Date.now()}`, title: cleanTitle, done: false };
           const updatedTask = { ...task, subtasks: [...task.subtasks, newSubtask] };
@@ -689,6 +719,7 @@ export class TaskStoreService {
   }
 
   addQuickTask(overrides?: { title?: string; assigneeId?: string | null }): void {
+    if (this.isCreatingTask()) return;
     const projectId = this.workspace.activeProjectId();
     const boardId = this.workspace.activeBoardId();
     if (!projectId || !boardId) {
@@ -696,6 +727,7 @@ export class TaskStoreService {
       return;
     }
 
+    this.isCreatingTask.set(true);
     const payload = {
       title: overrides?.title || 'Untitled task',
       description: 'Add a short description of the work.',
@@ -729,12 +761,14 @@ export class TaskStoreService {
       this.setBoardView('kanban');
       void this.idb.put('tasks', task);
       void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
+      this.isCreatingTask.set(false);
       this.toast.show('Task created (saved offline)', 'info');
       return;
     }
 
     this.taskApi.createTask(projectId, boardId, payload).subscribe({
       next: (t) => {
+        this.isCreatingTask.set(false);
         const task: Task = {
           id: t._id || (t as any).id,
           boardId: t.boardId ?? null,
@@ -761,6 +795,7 @@ export class TaskStoreService {
         this.toast.show('Task created', 'success');
       },
       error: (err) => {
+        this.isCreatingTask.set(false);
         if (err.status === 0 || !navigator.onLine) {
           const offlineId = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
           const task: Task = {
@@ -864,6 +899,9 @@ export class TaskStoreService {
   }
 
   deleteTask(taskId: string): void {
+    if (this.deletingTaskIds.has(taskId)) return;
+    this.deletingTaskIds.add(taskId);
+
     const taskToDelete = this.tasks().find((item) => item.id === taskId);
     // Optimistic UI delete
     this.tasks.update((items) => items.filter((item) => item.id !== taskId));
@@ -881,14 +919,19 @@ export class TaskStoreService {
         undefined,
         taskToDelete?.projectId,
       );
+      this.deletingTaskIds.delete(taskId);
       this.toast.show('Task deleted (offline)', 'info');
       return;
     }
 
     // API Call
     this.taskApi.deleteTask(taskId).subscribe({
-      next: () => this.toast.show('Task deleted', 'success'),
+      next: () => {
+        this.deletingTaskIds.delete(taskId);
+        this.toast.show('Task deleted', 'success');
+      },
       error: (err) => {
+        this.deletingTaskIds.delete(taskId);
         if (err.status === 0 || !navigator.onLine) {
           void this.offlineSync.enqueue(
             'DELETE_TASK',
@@ -899,6 +942,10 @@ export class TaskStoreService {
           );
           this.toast.show('Task deleted (offline)', 'info');
         } else {
+          // Rollback optimistic delete
+          if (taskToDelete) {
+            this.tasks.update((items) => [taskToDelete, ...items]);
+          }
           this.toast.show('Failed to delete task', 'info');
           // Re-load board on rollback
           const boardId = this.workspace.activeBoardId();

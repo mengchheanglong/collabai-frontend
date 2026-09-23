@@ -1,74 +1,107 @@
 <div class="auth-shell">
-  <main class="auth-card auth-card-split">
-    <section class="auth-side">
-      <img src="/Collab%20AI.svg" class="auth-side-logo" alt="CollabAI" />
-      <div class="auth-side-copy">
-        <h2>Work together, smarter with&nbsp;AI.</h2>
-        <p>Plan projects, track tasks, and let AI handle the busywork — all in one place.</p>
+  <main class="auth-card">
+    <header class="auth-card-header">
+      <a routerLink="/" class="auth-brand" aria-label="CollabAI Home">
+        <app-logo size="lg" />
+      </a>
+      <div class="auth-heading">
+        <h1>Welcome back</h1>
+        <p>Enter your credentials to access your workspace</p>
       </div>
-      <ul class="auth-side-features">
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Real-time boards &amp; tasks
-        </li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> AI subtask &amp; summary
-          helpers</li>
-        <li><span class="material-symbols-rounded" aria-hidden="true">check_circle</span> Team directory &amp; roles
-        </li>
-      </ul>
-      <div class="auth-side-dots"><span class="active"></span><span></span></div>
-    </section>
+    </header>
 
-    <section class="auth-main">
-      <div class="auth-head">
-        <h1>Log in</h1>
-        <p>Don't have an account? <a routerLink="/signup" class="auth-link">Sign up</a></p>
-      </div>
-
-      <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
-        <div class="field">
-          <label for="email">Email</label>
-          <div class="field-control">
-            <span class="material-symbols-rounded field-icon" aria-hidden="true">mail</span>
-            <input id="email" type="email" formControlName="email" placeholder="you@example.com" autocomplete="email" />
-          </div>
-          @if (form.controls.email.touched && form.controls.email.invalid) {
-          <span class="field-error">Enter a valid email address</span>
+    <form class="auth-form" [formGroup]="form" (ngSubmit)="submit()">
+      <!-- Email Field -->
+      <div class="field">
+        <label for="email">Email address</label>
+        <div class="field-control" [class.is-valid]="isValid('email')" [class.is-invalid]="isInvalid('email')">
+          <span class="material-symbols-rounded field-icon" aria-hidden="true">mail</span>
+          <input
+            id="email"
+            type="email"
+            formControlName="email"
+            placeholder="you@company.com"
+            autocomplete="email"
+          />
+          @if (isValid('email')) {
+            <span class="material-symbols-rounded field-status-icon success" aria-hidden="true">check_circle</span>
           }
         </div>
-
-        <div class="field">
-          <label for="password">Password</label>
-          <div class="field-control">
-            <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
-            <input id="password" [type]="showPassword() ? 'text' : 'password'" formControlName="password"
-              placeholder="Enter your password" autocomplete="current-password" />
-            <button type="button" class="field-toggle" (click)="togglePasswordVisibility()"
-              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
-              <span class="material-symbols-rounded" aria-hidden="true">{{ showPassword() ? 'visibility_off' :
-                'visibility' }}</span>
-            </button>
+        @if (isInvalid('email')) {
+          <div class="field-error-msg" role="alert">
+            <span class="material-symbols-rounded">error</span>
+            <span>Please enter a valid email address</span>
           </div>
-          @if (form.controls.password.touched && form.controls.password.invalid) {
-          <span class="field-error">Password must be at least 8 characters</span>
-          }
-        </div>
-
-        <div class="auth-row">
-          <a routerLink="/forgot-password" class="auth-link">Forgot password?</a>
-        </div>
-
-        @if (authStore.authError()) {
-        <p class="form-error" role="alert">{{ authStore.authError() }}</p>
         }
+      </div>
 
-        <button type="submit" class="auth-submit" [disabled]="authStore.isLoading()">
-          <span>{{ authStore.isLoading() ? 'Signing in…' : 'Log in' }}</span>
+      <!-- Password Field -->
+      <div class="field">
+        <div class="field-label-row">
+          <label for="password">Password</label>
+          <a routerLink="/forgot-password" class="auth-text-link sm">Forgot password?</a>
+        </div>
+        <div class="field-control" [class.is-valid]="isValid('password')" [class.is-invalid]="isInvalid('password')">
+          <span class="material-symbols-rounded field-icon" aria-hidden="true">lock</span>
+          <input
+            id="password"
+            [type]="showPassword() ? 'text' : 'password'"
+            formControlName="password"
+            placeholder="••••••••"
+            autocomplete="current-password"
+          />
+          <button
+            type="button"
+            class="field-toggle-btn"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'"
+          >
+            <span class="material-symbols-rounded" aria-hidden="true">
+              {{ showPassword() ? 'visibility_off' : 'visibility' }}
+            </span>
+          </button>
+        </div>
+        @if (isInvalid('password')) {
+          <div class="field-error-msg" role="alert">
+            <span class="material-symbols-rounded">error</span>
+            <span>Password must be at least 8 characters</span>
+          </div>
+        }
+      </div>
+
+      <!-- Global Auth Error Banner -->
+      @if (authStore.authError()) {
+        <div class="auth-error-banner" role="alert">
+          <span class="material-symbols-rounded">warning</span>
+          <span>{{ authStore.authError() }}</span>
+        </div>
+      }
+
+      <!-- Submit Button -->
+      <button
+        type="submit"
+        class="auth-submit-btn"
+        [disabled]="authStore.isLoading()"
+      >
+        @if (authStore.isLoading()) {
+          <span class="auth-btn-spinner" aria-hidden="true"></span>
+          <span>Signing in…</span>
+        } @else {
+          <span>Sign in to CollabAI</span>
           <span class="material-symbols-rounded" aria-hidden="true">arrow_forward</span>
-        </button>
-      </form>
+        }
+      </button>
+    </form>
 
-      <p class="auth-note">
-        Secure workspace for your team
+    <footer class="auth-card-footer">
+      <p>
+        Don't have an account?
+        <a routerLink="/signup" class="auth-text-link bold">Sign up</a>
       </p>
-    </section>
+      <div class="auth-secure-badge">
+        <span class="material-symbols-rounded">lock</span>
+        <span>End-to-end encrypted connection</span>
+      </div>
+    </footer>
   </main>
 </div>

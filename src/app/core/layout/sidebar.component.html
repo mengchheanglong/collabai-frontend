@@ -11,14 +11,14 @@
           tabindex="0"
           aria-label="Expand sidebar"
         >
-          <img src="/collab small.png" class="brand-logo-small" alt="Collab AI" />
+          <app-logo [markOnly]="true" />
           <span class="brand-hover-expand-btn" aria-hidden="true">
             <span class="material-symbols-rounded">chevron_right</span>
           </span>
         </div>
       } @else {
         <a routerLink="/" class="brand" matRipple>
-          <img src="/Collab AI.svg" class="brand-logo" alt="Collab AI" />
+          <app-logo />
         </a>
         <button
           type="button"

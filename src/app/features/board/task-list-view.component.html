@@ -3,10 +3,10 @@
     <thead>
       <tr>
         <th scope="col" class="tl-col-task">Task</th>
-        <th scope="col">Assignee</th>
-        <th scope="col">Status</th>
-        <th scope="col">Priority</th>
-        <th scope="col">Due</th>
+        <th scope="col" class="tl-col-assignee">Assignee</th>
+        <th scope="col" class="tl-col-status">Status</th>
+        <th scope="col" class="tl-col-priority">Priority</th>
+        <th scope="col" class="tl-col-due">Due</th>
       </tr>
     </thead>
     <tbody>
@@ -30,7 +30,7 @@
               <span class="ui-task-title" [title]="task.title">{{ task.title }}</span>
             </span>
           </td>
-          <td>
+          <td class="tl-col-assignee">
             @if (assignee(task); as person) {
               <span class="tl-person">
                 <span class="ui-avatar" [style.background]="person.color" aria-hidden="true">
@@ -47,17 +47,17 @@
               </span>
             }
           </td>
-          <td>
+          <td class="tl-col-status">
             <span class="ui-chip" [attr.data-status]="task.status">
               {{ tasks.statusLabel(task.status) }}
             </span>
           </td>
-          <td>
+          <td class="tl-col-priority">
             <span class="ui-chip is-priority" [attr.data-priority]="task.priority">
               {{ task.priority }}
             </span>
           </td>
-          <td>
+          <td class="tl-col-due">
             <span class="ui-due" [class.is-overdue]="isOverdue(task)">
               <span class="material-symbols-rounded sm" aria-hidden="true">
                 {{ isOverdue(task) ? 'event_busy' : 'calendar_today' }}

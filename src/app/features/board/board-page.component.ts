@@ -140,6 +140,7 @@ export class BoardPageComponent {
   }
 
   submitCreateTask(): void {
+    if (this.isCreatingTask()) return;
     const title = this.newTitle().trim();
     if (!title) {
       this.toast.show('Please enter a task title', 'info');
@@ -154,7 +155,13 @@ export class BoardPageComponent {
     }
 
     this.isCreatingTask.set(true);
-    const dueDateVal = this.newDueDate() ? new Date(this.newDueDate()).toISOString() : undefined;
+    let dueDateVal: string | undefined;
+    if (this.newDueDate()) {
+      const d = new Date(this.newDueDate());
+      if (!isNaN(d.getTime())) {
+        dueDateVal = d.toISOString();
+      }
+    }
     const assigneeVal = this.newAssigneeId() || undefined;
 
     this.tasks

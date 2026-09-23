@@ -1,12 +1,13 @@
-﻿import { Component, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthStoreService } from '../../../core/state/auth-store.service';
+import { LogoComponent } from '../../../shared/ui/logo/logo.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, LogoComponent],
   templateUrl: './login.component.html',
   styleUrl: '../auth-pages.scss',
 })
@@ -21,6 +22,16 @@ export class LoginComponent {
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required, Validators.minLength(8)]],
   });
+
+  isValid(controlName: 'email' | 'password'): boolean {
+    const ctrl = this.form.get(controlName);
+    return !!ctrl && ctrl.valid && ctrl.touched;
+  }
+
+  isInvalid(controlName: 'email' | 'password'): boolean {
+    const ctrl = this.form.get(controlName);
+    return !!ctrl && ctrl.invalid && ctrl.touched;
+  }
 
   togglePasswordVisibility(): void {
     this.showPassword.update((v) => !v);

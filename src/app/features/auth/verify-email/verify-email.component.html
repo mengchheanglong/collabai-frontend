@@ -1,7 +1,7 @@
 <div class="auth-shell">
   <main class="auth-card">
     <div class="auth-brand">
-      <img src="/Collab%20AI.svg" alt="CollabAI" />
+      <app-logo size="lg" />
     </div>
 
     <div class="auth-icon">
@@ -10,7 +10,10 @@
     <div class="auth-head">
       <h1>Check your email</h1>
       @if (email()) {
-        <p>A 6-digit verification code was sent to <strong>{{ email() }}</strong>. Enter it below to secure your account.</p>
+        <p>
+          A 6-digit verification code was sent to
+          <strong class="auth-email">{{ email() }}</strong>.
+        </p>
       } @else {
         <p>A 6-digit verification code was sent to your email. Enter it below to secure your account.</p>
       }

@@ -3,13 +3,14 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../../core/api/auth.service';
 import { ToastService } from '../../../core/toast/toast.service';
 import { OtpInputComponent } from '../../../shared/ui/otp-input/otp-input.component';
+import { LogoComponent } from '../../../shared/ui/logo/logo.component';
 
 type State = 'entering' | 'verifying' | 'error';
 
 @Component({
   selector: 'app-verify-email',
   standalone: true,
-  imports: [OtpInputComponent],
+  imports: [OtpInputComponent, LogoComponent],
   templateUrl: './verify-email.component.html',
   styleUrl: '../auth-pages.scss',
 })
