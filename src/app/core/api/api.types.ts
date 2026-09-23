@@ -41,12 +41,16 @@ export interface UserDto {
 }
 
 export interface ProjectMemberDto {
-  userId: ObjectIdString;
+  userId: ObjectIdString | null;
   role: ProjectRole;
   name: string;
   email: string;
   avatarUrl?: string | null;
-  joinedAt?: ISODateString;
+  joinedAt?: ISODateString | null;
+  pending?: boolean;
+  invitationId?: string;
+  invitedAt?: ISODateString | null;
+  invitationExpiresAt?: ISODateString | null;
 }
 
 export type ProjectRole = 'owner' | 'admin' | 'member' | 'viewer';

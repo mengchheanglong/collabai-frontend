@@ -1,5 +1,7 @@
 # CollabAI Frontend
 
+Current stack and backend integration boundaries are documented in [docs/TECH-SCOPE.md](docs/TECH-SCOPE.md). The app is Angular 21; older extracted SRS files record original planning assumptions.
+
 This is the separate frontend workspace for CollabAI.
 
 ## Quick start for teammates
@@ -24,10 +26,12 @@ Before pushing changes, run:
 pnpm check
 ```
 
-That runs the same verification used for this frontend:
+That runs the same checks used by frontend CI:
 
 ```bash
+pnpm lint
 pnpm typecheck
+pnpm test
 pnpm build
 ```
 
@@ -80,7 +84,9 @@ pnpm install    # install dependencies
 pnpm dev        # run the Angular dev server on port 4200
 pnpm typecheck  # run TypeScript checks
 pnpm build      # create a production build
-pnpm check      # typecheck + build
+pnpm lint       # ESLint for TypeScript and templates
+pnpm test       # realtime state unit test
+pnpm check      # lint + typecheck + tests + build
 ```
 
 If port `4200` is already busy, run Angular directly on another port:

@@ -15,6 +15,21 @@ Authorization: Bearer ***
 
 All request/response bodies are JSON.
 
+## File uploads
+
+The app requests a signed URL from the backend, transfers file bytes directly to S3,
+then stores the returned `objectUrl` for avatars. Project attachments use the same
+upload flow with `kind: "attachment"` and `projectId`; downloads use a membership
+checked signed URL.
+
+- `POST /uploads/presign` — `{ kind, fileName, contentType, contentLength, projectId? }`;
+  returns `{ uploadUrl, key, objectUrl, expiresIn, requiredHeaders }`.
+- `POST /uploads/download` — `{ projectId, key }`; returns `{ url, expiresIn }`.
+
+Upload URLs expire after five minutes. Avatars allow JPEG, PNG, or WebP up to 5 MB;
+attachments allow PDF, text, common images, ZIP, or octet-stream up to 25 MB. The
+browser PUT request must send the returned `requiredHeaders`.
+
 ## Response envelope
 
 ### Success
@@ -572,7 +587,8 @@ Response `200`:
 
 ## POST /projects/:projectId/members
 
-Add/invite existing user to project.
+Invite an email address to a project. Existing accounts join immediately; unregistered
+addresses receive a seven-day token link.
 
 Auth: owner/admin.
 
@@ -590,12 +606,18 @@ Response `201`:
 ```json
 {
   "success": true,
-  "data": { "project": ProjectDto },
-  "message": "Member added"
+  "data": { "invitation": { "email": "sophea@example.com", "role": "member", "pending": true, "expiresAt": "2026-01-08T00:00:00.000Z" } },
+  "message": "Invitation sent"
 }
 ```
 
-Socket event: `member:added`.
+`GET /projects/:projectId/members` includes pending rows (`userId: null`,
+`pending: true`, `invitationId`). Owners/admins can use
+`GET /projects/:projectId/invitations`,
+`POST /projects/:projectId/invitations/:invitationId/resend`, and
+`DELETE /projects/:projectId/invitations/:invitationId`. Authenticated invitees accept
+with `POST /projects/invitations/accept` and `{ "token": "..." }`; their account email
+must match the invited address.
 
 ## PATCH /projects/:projectId/members/:userId
 
@@ -1319,7 +1341,35 @@ Response `200`:
 }
 ```
 
-MVP implementation can parse with AI into filters, then run MongoDB query. Full embeddings are bonus.
+The backend interprets the query and runs a PostgreSQL/Prisma task query.
+
+## POST /ai/project-insights
+
+Generate prioritized project recommendations using current task details, assignee
+workload, overdue counts, and two recent 14-day completion windows. Auth: project member.
+Request: `{ "projectId": "<uuid>" }`. Response data includes the project, generation
+time, `source` (`ai` or `fallback`), and up to five recommendations with title,
+rationale, urgency, action type, and validated project task IDs.
+
+## POST /ai/automation/proposals
+
+Project writers can request a short-lived task action plan using project tasks,
+delivery metrics, and member workload as context. Supported proposed changes are
+status, priority, assignee, and due date. Plans expire after 20 minutes and do not
+change tasks when generated.
+
+Request: `{ "projectId": "<uuid>", "request": "Move overdue urgent work to in progress" }`.
+The response includes a plan ID, `source` (`ai` or `fallback`), and proposed actions
+with each task's before-state and suggested changes for review.
+
+## POST /ai/automation/proposals/:planId/apply
+
+Apply selected action IDs after the user approves them. The requester must still have
+project write access, and task values must match the plan's saved before-state. Expired
+or stale plans are rejected. Successful application is recorded in project activity
+with before/after values.
+
+Request: `{ "actionIds": ["<action UUID>"] }`.
 
 ---
 
@@ -1352,3 +1402,27 @@ Recommended frontend order:
 8. Socket.io live updates.
 9. Analytics/dark mode/responsive polish.
 
+
+# Workspace documentation
+
+All routes use `/api/v1` and JWT authentication. Active members of a non-deleted
+project can read; owner/admin/member roles can create, edit and delete. Viewers
+are read-only. Missing/inaccessible resources return 404; read-only writes 403.
+
+- `GET /projects/:projectId/docs?page=1&limit=50&q=`: title search, newest updated
+  first; returns `{ success: true, data: DocumentSummary[], meta: { page, limit,
+  total, totalPages } }`. Limit maximum 100.
+- `POST /projects/:projectId/docs`: `{ title, content? }`; returns 201 with
+  `{ success: true, data: { document: DocumentDto } }`.
+- `GET /docs/:documentId`: returns `{ success: true, data: { document: DocumentDto,
+  canEdit: boolean } }`.
+- `PATCH /docs/:documentId`: `{ title?, content?, version }`; returns the updated
+  document in the same envelope as create. Version is required for optimistic
+  concurrency; stale versions return 409, preserving the caller's draft.
+- `DELETE /docs/:documentId`: returns `{ success: true, data: null }`.
+
+DocumentDto: `{ _id, projectId, createdById, title, content, version, createdAt,
+updatedAt }`. IDs are UUIDs; timestamps are ISO strings. DocumentSummary omits
+content. Titles are trimmed, 1–150 characters; Markdown content is limited to
+100,000 characters and defaults to empty. Version starts at 1. Deletion is soft;
+project hard-deletion cascades to documents. Raw HTML is not rendered by the editor.

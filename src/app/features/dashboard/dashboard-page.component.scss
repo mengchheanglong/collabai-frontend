@@ -728,6 +728,87 @@
     }
 }
 
+.db-automation {
+  grid-column: 1 / -1;
+}
+
+.db-automation-label {
+  display: block;
+  margin: 14px 0 6px;
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.db-automation-input {
+  display: block;
+  width: 100%;
+  min-height: 76px;
+  margin-bottom: 10px;
+  padding: 11px 12px;
+  resize: vertical;
+  color: inherit;
+  background: var(--surface-2, rgba(127, 127, 127, 0.08));
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.24));
+  border-radius: 10px;
+  font: inherit;
+}
+
+.db-automation-plan {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border, rgba(127, 127, 127, 0.24));
+  border-radius: 12px;
+}
+
+.db-automation-plan-head,
+.db-automation-action {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.db-automation-plan-head {
+  justify-content: space-between;
+}
+
+.db-automation-plan-head span,
+.db-automation-expiry {
+  color: var(--muted, #777);
+  font-size: 0.78rem;
+}
+
+.db-automation-action {
+  padding: 10px;
+  background: var(--surface-2, rgba(127, 127, 127, 0.06));
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.db-automation-action input {
+  margin-top: 3px;
+}
+
+.db-automation-action span {
+  display: grid;
+  gap: 4px;
+}
+
+.db-automation-action small {
+  color: var(--muted, #777);
+  line-height: 1.4;
+}
+
+.db-automation-message {
+  margin: 10px 0 0;
+  font-size: 0.84rem;
+}
+
+.db-automation-message.is-error {
+  color: var(--danger, #b42318);
+}
+
 /* ── Insights trigger ───────────────────────────────────────── */
 /*
    A card-shaped affordance rather than a plain button: icon, label, and live

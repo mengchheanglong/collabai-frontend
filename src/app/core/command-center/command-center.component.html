@@ -1,12 +1,11 @@
 @if (commandCenter.isOpen()) {
-  <div class="command-center-backdrop" role="presentation" (click)="close()">
+  <div class="command-center-backdrop" role="presentation" (click)="$event.target === $event.currentTarget && close()" (keyup)="$event.key === 'Escape' && close()">
     <section
       #dialog
       class="command-center"
       role="dialog"
       aria-modal="true"
       aria-labelledby="command-center-title"
-      (click)="$event.stopPropagation()"
     >
       <header class="command-center-search">
         <span class="material-symbols-rounded" aria-hidden="true">search</span>
@@ -24,6 +23,7 @@
           aria-controls="command-center-results"
           aria-autocomplete="list"
           role="combobox"
+          [attr.aria-expanded]="groups().length > 0"
           (input)="onQueryInput(queryInput.value)"
         />
         <button type="button" class="command-center-close" (click)="close()" aria-label="Close command center">

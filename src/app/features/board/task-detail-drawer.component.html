@@ -1,11 +1,10 @@
 @if (tasks.selectedTask(); as task) {
-  <div class="task-modal-overlay" role="presentation" (click)="tasks.closeTask()">
+  <div class="task-modal-overlay" role="presentation" (click)="$event.target === $event.currentTarget && tasks.closeTask()" (keyup)="$event.key === 'Escape' && tasks.closeTask()">
     <div
       class="task-modal"
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-modal-title"
-      (click)="$event.stopPropagation()"
     >
       <!-- Linear/Jira-style top chrome -->
       <header class="task-modal-chrome">
@@ -382,7 +381,7 @@
 
               <div class="ui-dropdown-divider"></div>
 
-              <div class="ui-dropdown-custom-date" (click)="$event.stopPropagation()">
+              <div class="ui-dropdown-custom-date">
                 <label class="custom-date-label">
                   <span class="custom-date-title">Custom date</span>
                   <input
@@ -419,12 +418,14 @@
         </span>
         <input
           [value]="comments.commentDraft()"
-          (input)="comments.commentDraft.set($any($event.target).value)"
-          (keydown.enter)="comments.postComment(task)"
+          (input)="comments.commentDraft.set($any($event.target).value); live.typing(task.id)"
+          (blur)="live.stopTyping()"
+          (keydown.enter)="comments.postComment(task); live.stopTyping()"
           placeholder="Write a comment…"
           aria-label="Write a comment"
         />
-        <button type="button" class="btn primary sm" [disabled]="!comments.commentDraft().trim()" (click)="comments.postComment(task)">Comment</button>
+        <span aria-live="polite">{{ live.typingLabel(task.id) }}</span>
+        <button type="button" class="btn primary sm" [disabled]="!comments.commentDraft().trim()" (click)="comments.postComment(task); live.stopTyping()">Comment</button>
       </footer>
     </div>
   </div>

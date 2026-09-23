@@ -152,13 +152,12 @@
 
   <!-- ── Create Task Dialog ────────────────────────────────────── -->
   @if (showCreateModal()) {
-    <div class="tm-scrim" role="presentation" (click)="closeCreateModal()">
+    <div class="tm-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeCreateModal()" (keyup)="$event.key === 'Escape' && closeCreateModal()">
       <div
         class="tm-dialog bd-create-dialog"
         role="dialog"
         aria-modal="true"
         aria-labelledby="bd-create-title"
-        (click)="$event.stopPropagation()"
       >
         <header class="tm-dialog-head">
           <h2 id="bd-create-title">Create new task</h2>
@@ -183,7 +182,6 @@
               (keydown.enter)="submitCreateTask()"
               placeholder="e.g. Real Madrid vs Barcelona match coverage"
               aria-required="true"
-              autofocus
             />
           </label>
 
@@ -365,7 +363,7 @@
 
                 <div class="ui-dropdown-divider"></div>
 
-                <div class="ui-dropdown-custom-date" (click)="$event.stopPropagation()">
+                <div class="ui-dropdown-custom-date">
                   <label class="custom-date-label">
                     <span class="custom-date-title">Custom date</span>
                     <input

@@ -2,7 +2,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { BoardDto, BoardWithTasksDto, TaskDto } from './api.types';
+import { BoardDto, BoardWithTasksDto } from './api.types';
 import { ApiClient } from './api-client.service';
 
 @Injectable({

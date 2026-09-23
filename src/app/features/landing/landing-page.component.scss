@@ -898,7 +898,7 @@ $font-display: 'Pilcrow Rounded', Archivo, ui-sans-serif, system-ui, sans-serif;
 
   > span { color: $muted; font-size: 10px; }
   .demo-panel { width: min(100%, 340px); margin-top: 10px; }
-  label {
+  > div:not(.demo-settings-title) {
     display: flex; justify-content: space-between;
     padding: 8px 0;
     color: $muted;
@@ -945,7 +945,7 @@ $font-display: 'Pilcrow Rounded', Archivo, ui-sans-serif, system-ui, sans-serif;
   span { display: flex; flex-direction: column; gap: 3px; }
   strong { font-size: 10px; }
   small { max-width: 360px; color: $muted; font-size: 8px; line-height: 1.35; }
-  label:last-child { border-bottom: 0; }
+  > div:last-child { border-bottom: 0; }
 }
 .demo-saved {
   display: inline-flex;

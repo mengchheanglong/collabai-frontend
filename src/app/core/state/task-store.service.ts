@@ -1,3 +1,4 @@
+import type { TaskDto } from '../api/api.types';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Observable, concatMap, from, map, of, switchMap, throwError, toArray } from 'rxjs';
@@ -101,6 +102,7 @@ export class TaskStoreService {
 
     effect(() => {
       const activeBoardId = this.workspace.activeBoardId();
+      this.liveChanges.clear();
       if (activeBoardId) {
         this.loadBoard(activeBoardId);
       } else {
@@ -117,6 +119,7 @@ export class TaskStoreService {
 
   loadBoard(boardId: string): void {
     const loadVersion = ++this.boardLoadVersion;
+    const liveAtStart = this.liveRevision;
     this.isLoading.set(true);
     this.hasError.set(false);
 
@@ -153,6 +156,13 @@ export class TaskStoreService {
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
         }));
+        // Replay events received while this REST snapshot was in flight.
+        for (const [id, change] of this.liveChanges) {
+          if (change.revision <= liveAtStart) continue;
+          const index = mappedTasks.findIndex(task => task.id === id);
+          if (index >= 0) mappedTasks.splice(index, 1);
+          if (change.task) mappedTasks.push(change.task);
+        }
         this.tasks.set(mappedTasks);
         void this.idb.putMany('tasks', mappedTasks);
 
@@ -172,6 +182,28 @@ export class TaskStoreService {
         }
       },
     });
+  }
+
+  private liveRevision = 0;
+  private readonly liveChanges = new Map<string, { revision: number; task: Task | null }>();
+
+  applyLiveTask(dto: TaskDto | null, deletedId?: string): void {
+    const id = dto?._id ?? deletedId; if (!id) return;
+    const task: Task | null = dto ? {
+      id, projectId: dto.projectId, boardId: dto.boardId ?? null, title: dto.title,
+      description: dto.description ?? '', status: dto.status, priority: dto.priority,
+      position: dto.position, assigneeId: dto.assigneeId ?? null, createdById: dto.createdById,
+      dueDate: dto.dueDate ?? null, labels: dto.labels ?? [], comments: dto.commentCount ?? 0,
+      subtasks: (dto.subtasks ?? []).map(s => ({ id: s._id, title: s.title, done: s.done })),
+      createdAt: dto.createdAt, updatedAt: dto.updatedAt,
+    } : null;
+    const current = this.tasks().find(t => t.id === id);
+    if (task && current && Date.parse(task.updatedAt) < Date.parse(current.updatedAt)) return;
+    const visible = task && task.boardId === this.workspace.activeBoardId() ? task : null;
+    this.liveChanges.set(id, { revision: ++this.liveRevision, task: visible });
+    this.tasks.update(items => visible ? [...items.filter(t => t.id !== id), visible] : items.filter(t => t.id !== id));
+    if (this.selectedTask()?.id === id) this.selectedTask.set(visible);
+    if (task) void this.idb.put('tasks', task); else void this.idb.delete('tasks', id);
   }
 
   readonly totalTasks = computed(() => this.tasks().length);

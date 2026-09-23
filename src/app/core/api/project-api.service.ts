@@ -90,13 +90,25 @@ export class ProjectApiService {
     projectId: string,
     email: string,
     role: Exclude<ProjectRole, 'owner'> = 'member',
-  ): Observable<ProjectDto> {
+  ): Observable<any> {
     return this.api
       .post<any>(`/projects/${projectId}/members`, {
         email,
         role,
       })
       .pipe(map((d) => d?.project || d));
+  }
+
+  revokeInvitation(projectId: string, invitationId: string): Observable<void> {
+    return this.api.delete<any>(`/projects/${projectId}/invitations/${invitationId}`).pipe(map(() => void 0));
+  }
+
+  resendInvitation(projectId: string, invitationId: string): Observable<any> {
+    return this.api.post<any>(`/projects/${projectId}/invitations/${invitationId}/resend`, {});
+  }
+
+  acceptInvitation(token: string): Observable<any> {
+    return this.api.post<any>('/projects/invitations/accept', { token });
   }
 
   updateMemberRole(

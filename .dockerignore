@@ -1,0 +1,8 @@
+node_modules
+.angular
+dist
+out-tsc
+.git
+.env
+.env.*
+!.env.example

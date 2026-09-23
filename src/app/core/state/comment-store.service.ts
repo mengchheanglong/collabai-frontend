@@ -1,3 +1,4 @@
+import type { CommentDto } from '../api/api.types';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import type { Comment } from '../../shared/models/comment.models';
 import type { Task } from '../../shared/models/task.models';
@@ -21,11 +22,14 @@ export class CommentStoreService {
   readonly commentDraft = signal('');
   readonly isLoading = signal(false);
 
+  private readonly selectedTaskId = computed(() => this.tasks.selectedTask()?.id);
+  private readonly liveVersions = new Map<string, number>();
+
   constructor() {
     effect(() => {
-      const task = this.tasks.selectedTask();
-      if (task) {
-        this.loadComments(task.id);
+      const taskId = this.selectedTaskId();
+      if (taskId) {
+        this.loadComments(taskId);
       } else {
         this.isLoading.set(false);
         this.commentDraft.set('');
@@ -35,6 +39,7 @@ export class CommentStoreService {
 
   loadComments(taskId: string): void {
     this.isLoading.set(true);
+    const liveVersion = this.liveVersions.get(taskId) ?? 0;
 
     // 1. Immediately hydrate from IndexedDB cache
     void this.idb.getAllByIndex<Comment>('comments', 'taskId', taskId).then((cached) => {
@@ -49,6 +54,7 @@ export class CommentStoreService {
 
     this.commentApi.getComments(taskId).subscribe({
       next: (dtos) => {
+        if (liveVersion !== (this.liveVersions.get(taskId) ?? 0)) { this.loadComments(taskId); return; }
         const mapped = (dtos || []).map((dto) => ({
           id: dto._id || (dto as any).id,
           taskId,
@@ -79,6 +85,14 @@ export class CommentStoreService {
     return this.commentsByTaskId()[task.id] ?? [];
   });
 
+  applyLiveComment(taskId: string, dto?: CommentDto, deletedId?: string): void {
+    const id = dto?._id ?? deletedId; if (!id) return;
+    this.liveVersions.set(taskId, (this.liveVersions.get(taskId) ?? 0) + 1);
+    const comment: Comment | null = dto ? { id, authorId: dto.authorId, author: dto.author?.name ?? 'Unknown User', body: dto.body, createdAt: dto.createdAt } : null;
+    this.commentsByTaskId.update(map => ({ ...map, [taskId]: comment ? [...(map[taskId] ?? []).filter(c => c.id !== id), comment].sort((a, b) => a.createdAt.localeCompare(b.createdAt)) : (map[taskId] ?? []).filter(c => c.id !== id) }));
+    if (comment) void this.idb.put('comments', { ...comment, taskId, projectId: dto!.projectId }); else void this.idb.delete('comments', id);
+  }
+
   postComment(task: Task): void {
     const body = this.commentDraft().trim();
     if (!body) return;
@@ -95,7 +109,7 @@ export class CommentStoreService {
         const existing = map[task.id] ?? [];
         return {
           ...map,
-          [task.id]: [...existing, newComment],
+          [task.id]: [...existing.filter(c => c.id !== newComment.id), newComment],
         };
       });
       this.tasks.incrementCommentCount(task.id);
@@ -119,7 +133,7 @@ export class CommentStoreService {
           const existing = map[task.id] ?? [];
           return {
             ...map,
-            [task.id]: [...existing, newComment],
+            [task.id]: [...existing.filter(c => c.id !== newComment.id), newComment],
           };
         });
         this.tasks.incrementCommentCount(task.id);
@@ -140,7 +154,7 @@ export class CommentStoreService {
             const existing = map[task.id] ?? [];
             return {
               ...map,
-              [task.id]: [...existing, newComment],
+              [task.id]: [...existing.filter(c => c.id !== newComment.id), newComment],
             };
           });
           this.tasks.incrementCommentCount(task.id);

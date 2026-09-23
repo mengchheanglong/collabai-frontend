@@ -114,15 +114,13 @@ export class AuthStoreService {
     return this.restoreSessionRequest;
   }
 
-  updateProfile(fields: { name?: string; avatarUrl?: string | null }): void {
-    this.auth.updateProfile(fields).subscribe({
-      next: ({ user }) => {
+  updateProfile(fields: { name?: string; avatarUrl?: string | null }): Observable<AuthUser> {
+    return this.auth.updateProfile(fields).pipe(
+      map(({ user }) => {
         this.currentUser.set(user);
-      },
-      error: () => {
-        this.toast.show('Failed to update profile', 'info');
-      },
-    });
+        return user;
+      }),
+    );
   }
 
   clearAuthError(): void {

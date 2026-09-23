@@ -29,7 +29,7 @@
             [cdkDragData]="task"
             [task]="task"
             [selected]="tasks.selectedTask()?.id === task.id"
-            (select)="tasks.selectTask($event)"
+            (taskSelected)="tasks.selectTask($event)"
             role="listitem"
           />
         } @empty {
