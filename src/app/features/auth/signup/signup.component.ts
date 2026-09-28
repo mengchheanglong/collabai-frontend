@@ -1,4 +1,5 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { ReactiveFormsModule, FormBuilder, Validators } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthStoreService } from '../../../core/state/auth-store.service';
@@ -33,7 +34,9 @@ export class SignupComponent {
     ],
   });
 
-  readonly password = computed(() => this.form.controls.password.value ?? '');
+  readonly password = toSignal(this.form.controls.password.valueChanges, {
+    initialValue: this.form.controls.password.value ?? '',
+  });
 
   readonly passwordStrength = computed(() => {
     const pw = this.password();
