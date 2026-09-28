@@ -77,10 +77,98 @@ async function testTokenStore(): Promise<void> {
   console.log('✓ Token store resilience edge cases passed.');
 }
 
+function verifyLeapDate(dateStr: string): boolean {
+  const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!isoMatch) return false;
+  const y = parseInt(isoMatch[1], 10);
+  const m = parseInt(isoMatch[2], 10);
+  const day = parseInt(isoMatch[3], 10);
+  if (y < 1970 || y > 2100 || m < 1 || m > 12 || day < 1 || day > 31) return false;
+  const d = new Date(Date.UTC(y, m - 1, day, 23, 59, 59, 999));
+  return d.getUTCFullYear() === y && d.getUTCMonth() === m - 1 && d.getUTCDate() === day;
+}
+
+async function testDateParsingEdgeCases(): Promise<void> {
+  // Valid leap year day
+  assert.equal(verifyLeapDate('2028-02-29'), true, '2028 is a leap year');
+  assert.equal(verifyLeapDate('2024-02-29'), true, '2024 is a leap year');
+  assert.equal(verifyLeapDate('2000-02-29'), true, '2000 is a century leap year');
+
+  // Invalid leap days
+  assert.equal(verifyLeapDate('2026-02-29'), false, '2026 is not a leap year');
+  assert.equal(verifyLeapDate('2025-02-29'), false, '2025 is not a leap year');
+  assert.equal(verifyLeapDate('2028-02-30'), false, 'February never has 30 days');
+
+  // Invalid calendar dates
+  assert.equal(verifyLeapDate('2026-04-31'), false, 'April has 30 days');
+  assert.equal(verifyLeapDate('2026-06-31'), false, 'June has 30 days');
+  assert.equal(verifyLeapDate('2026-11-31'), false, 'November has 30 days');
+  assert.equal(verifyLeapDate('2026-13-01'), false, 'Month 13 is invalid');
+  assert.equal(verifyLeapDate('2026-00-10'), false, 'Month 0 is invalid');
+  assert.equal(verifyLeapDate('1960-01-01'), false, 'Year < 1970 is out of bounds');
+  assert.equal(verifyLeapDate('2150-01-01'), false, 'Year > 2100 is out of bounds');
+
+  console.log('✓ Date boundary & leap-year edge cases passed.');
+}
+
+function calculatePosition(
+  prevTask: { position: number } | undefined,
+  nextTask: { position: number } | undefined,
+): number {
+  if (prevTask && nextTask) {
+    if (prevTask.position >= nextTask.position) {
+      return prevTask.position + 1;
+    }
+    return (prevTask.position + nextTask.position) / 2;
+  }
+  if (prevTask) return prevTask.position + 1024;
+  if (nextTask) return nextTask.position > 0 ? nextTask.position / 2 : nextTask.position - 1024;
+  return 1024;
+}
+
+async function testPositionMathEdgeCases(): Promise<void> {
+  // Empty column
+  assert.equal(calculatePosition(undefined, undefined), 1024);
+
+  // Appending at end of list
+  assert.equal(calculatePosition({ position: 2048 }, undefined), 3072);
+
+  // Prepending to top of list
+  assert.equal(calculatePosition(undefined, { position: 1024 }), 512);
+
+  // Inserting between two tasks
+  assert.equal(calculatePosition({ position: 1000 }, { position: 2000 }), 1500);
+
+  // Corrupted or duplicate position tie-break
+  assert.equal(calculatePosition({ position: 1000 }, { position: 1000 }), 1001);
+  assert.equal(calculatePosition({ position: 1500 }, { position: 1200 }), 1501);
+
+  console.log('✓ Drag & drop fractional position calculation edge cases passed.');
+}
+
+function computeSubtaskProgress(completed: number, total: number): number {
+  return Math.round((completed / Math.max(total, 1)) * 100);
+}
+
+async function testSubtaskProgressMath(): Promise<void> {
+  // Zero subtasks -> safe 0% (no NaN / division-by-zero)
+  assert.equal(computeSubtaskProgress(0, 0), 0);
+
+  // Normal progression
+  assert.equal(computeSubtaskProgress(1, 3), 33);
+  assert.equal(computeSubtaskProgress(2, 3), 67);
+  assert.equal(computeSubtaskProgress(3, 3), 100);
+
+  console.log('✓ Subtask progress division-by-zero protection passed.');
+}
+
 async function main(): Promise<void> {
   await testMarkdownSanitization();
   await testAiSearchChips();
   await testTokenStore();
+  await testDateParsingEdgeCases();
+  await testPositionMathEdgeCases();
+  await testSubtaskProgressMath();
   console.log('All frontend edge-case tests passed successfully!');
 }
 
