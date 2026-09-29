@@ -510,6 +510,40 @@ async function testDocsWorkflow(): Promise<void> {
   assert.equal(updatedDocPayload.body.title, 'Architecture Spec');
   assert.equal(comp.dirty(), false);
 
+  // 5. File format badges and helper checks
+  assert.equal(comp.getFileBadge('manual.pdf', 'application/pdf').label, 'PDF');
+  assert.equal(comp.getFileBadge('spec.docx').label, 'DOCX');
+  assert.equal(comp.getFileBadge('notes.doc').label, 'DOC');
+  assert.equal(comp.getFileBadge('readme.md').label, 'MD');
+  assert.equal(comp.getFileBadge('data.txt').label, 'TXT');
+  assert.equal(comp.cleanTitleFromFilename('Product_Roadmap_2026.pdf'), 'Product Roadmap 2026');
+  assert.equal(comp.formatBytes(1024), '1 KB');
+  assert.equal(comp.formatBytes(2097152), '2 MB');
+
+  // 6. Attachment management workflow
+  comp.attachments.set([
+    {
+      id: 'att-1',
+      name: 'Architecture.pdf',
+      size: 1048576,
+      type: 'application/pdf',
+      dataUrl: 'data:application/pdf;base64,JVBERi0xLjc=',
+      uploadedAt: '2026-09-01T00:00:00.000Z',
+    },
+  ]);
+  assert.equal(comp.attachments().length, 1);
+  assert.equal(comp.dirty(), true);
+
+  comp.togglePdfPreview(comp.attachments()[0]);
+  assert.equal(comp.activePreviewAttachment()?.id, 'att-1');
+  assert.ok(comp.safePdfUrl() !== null);
+
+  comp.togglePdfPreview(comp.attachments()[0]);
+  assert.equal(comp.activePreviewAttachment(), null);
+
+  comp.removeAttachment(0);
+  assert.equal(comp.attachments().length, 0);
+
   console.log('✓ Docs page component UI workflow passed.');
 }
 

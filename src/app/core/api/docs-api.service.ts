@@ -1,10 +1,20 @@
 import { Injectable, inject } from "@angular/core";
 import { ApiClient } from "./api-client.service";
+export interface DocumentAttachment {
+  id: string;
+  name: string;
+  size: number;
+  type: string;
+  dataUrl?: string;
+  uploadedAt: string;
+}
 export interface DocumentSummary {
   _id: string;
   projectId: string;
   createdById: string;
   title: string;
+  fileType?: string | null;
+  attachments?: DocumentAttachment[];
   version: number;
   createdAt: string;
   updatedAt: string;
@@ -27,7 +37,15 @@ export class DocsApiService {
       `/docs/${id}`,
     );
   }
-  create(projectId: string, input: { title: string; content: string }) {
+  create(
+    projectId: string,
+    input: {
+      title: string;
+      content?: string;
+      attachments?: DocumentAttachment[];
+      fileType?: string | null;
+    },
+  ) {
     return this.api.post<{ document: WorkspaceDocument }>(
       `/projects/${projectId}/docs`,
       input,
@@ -35,7 +53,13 @@ export class DocsApiService {
   }
   update(
     id: string,
-    input: { title: string; content: string; version: number },
+    input: {
+      title?: string;
+      content?: string;
+      attachments?: DocumentAttachment[];
+      fileType?: string | null;
+      version?: number;
+    },
   ) {
     return this.api.patch<{ document: WorkspaceDocument }>(
       `/docs/${id}`,

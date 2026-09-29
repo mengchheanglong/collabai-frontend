@@ -3,15 +3,27 @@
     <div>
       <p class="eyebrow">WORKSPACE KNOWLEDGE</p>
       <h1>Documentation</h1>
-      <p>Keep project guides, decisions, and notes together.</p>
+      <p>Keep project guides, decisions, and files together.</p>
     </div>
     @if (!id() && canEdit()) {
-      <a class="primary" routerLink="/docs/new">New document</a>
+      <div class="header-actions">
+        <a class="primary" routerLink="/docs/new">New document</a>
+        <label class="btn-action" title="Upload a PDF, Word doc, Markdown, or text file">
+          📁 Upload file
+          <input
+            type="file"
+            class="sr-only"
+            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
+            (change)="uploadNewDocumentFromFile($event)"
+          />
+        </label>
+      </div>
     }
     @if (id()) {
       <a routerLink="/docs">← All documents</a>
     }
   </header>
+
   @if (error()) {
     <div role="alert" class="error">
       {{ error() }}
@@ -41,14 +53,24 @@
       </form>
       <section class="document-list" aria-label="Documents">
         @for (doc of items(); track doc._id) {
-          <a class="document-card" [routerLink]="['/docs', doc._id]"
-            ><span class="doc-icon">▤</span>
+          <a class="document-card" [routerLink]="['/docs', doc._id]">
+            <span class="doc-icon">{{ getFileBadge(doc.title, doc.fileType ?? '').icon }}</span>
             <div>
-              <h3>{{ doc.title }}</h3>
+              <div class="doc-card-title-row">
+                <h3>{{ doc.title }}</h3>
+                @if (doc.fileType) {
+                  <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType).class">
+                    {{ getFileBadge(doc.title, doc.fileType).label }}
+                  </span>
+                }
+                @if (doc.attachments && doc.attachments.length > 0) {
+                  <span class="attachment-count-badge">📎 {{ doc.attachments.length }}</span>
+                }
+              </div>
               <p>Updated {{ doc.updatedAt | date: "medium" }}</p>
             </div>
-            <span>→</span></a
-          >
+            <span>→</span>
+          </a>
         } @empty {
           @if (!error()) {
             <div class="empty">
@@ -63,7 +85,7 @@
                 {{
                   search
                     ? "Try another title."
-                    : "Add a guide, meeting notes, or your first project decision."
+                    : "Add a guide, meeting notes, upload a PDF/Word doc, or import markdown."
                 }}
               </p>
             </div>
@@ -73,9 +95,10 @@
       @if (totalPages() > 1) {
         <nav class="pagination" aria-label="Document pages">
           <button [disabled]="page() === 1" (click)="changePage(-1)">
-            Previous</button
-          ><span>Page {{ page() }} of {{ totalPages() }}</span
-          ><button [disabled]="page() >= totalPages()" (click)="changePage(1)">
+            Previous
+          </button>
+          <span>Page {{ page() }} of {{ totalPages() }}</span>
+          <button [disabled]="page() >= totalPages()" (click)="changePage(1)">
             Next
           </button>
         </nav>
@@ -86,21 +109,59 @@
       <p>This documentation is read-only.</p>
     }
     <form (ngSubmit)="save()">
-      <label for="doc-title">Title</label
-      ><input
-        id="doc-title"
-        name="title"
-        [ngModel]="title()"
-        (ngModelChange)="title.set($event)"
-        maxlength="150"
-        required
-        [disabled]="!canEdit() || busy()"
-        placeholder="Untitled document"
-      />
+      <div class="title-row">
+        <div class="title-input-wrapper">
+          <label for="doc-title">Title</label>
+          <input
+            id="doc-title"
+            name="title"
+            [ngModel]="title()"
+            (ngModelChange)="title.set($event)"
+            maxlength="150"
+            required
+            [disabled]="!canEdit() || busy()"
+            placeholder="Untitled document"
+          />
+        </div>
+        @if (fileType()) {
+          <div class="file-type-indicator">
+            <span class="format-label">Format</span>
+            <span class="file-badge" [class]="getFileBadge(title(), fileType()).class">
+              {{ getFileBadge(title(), fileType()).icon }} {{ getFileBadge(title(), fileType()).label }}
+            </span>
+          </div>
+        }
+      </div>
+
       <div class="toolbar">
         <button type="button" (click)="preview.set(!preview())">
-          {{ preview() ? "Edit Markdown" : "Preview" }}</button
-        ><span>{{ dirty() ? "Unsaved changes" : "All changes saved" }}</span>
+          {{ preview() ? "Edit Markdown" : "Preview" }}
+        </button>
+
+        @if (canEdit()) {
+          <label class="btn-subtle-label" title="Import markdown or text from file">
+            📥 Import .md / .txt
+            <input
+              type="file"
+              class="sr-only"
+              accept=".md,.markdown,.txt"
+              (change)="importMarkdownOrText($event)"
+            />
+          </label>
+          <label class="btn-subtle-label" title="Attach PDF, Word, Markdown, or other files">
+            📎 Attach files
+            <input
+              type="file"
+              multiple
+              class="sr-only"
+              accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
+              (change)="onFilesSelected($event)"
+            />
+          </label>
+        }
+
+        <span class="save-status">{{ dirty() ? "Unsaved changes" : "All changes saved" }}</span>
+
         @if (canEdit()) {
           <button
             class="primary"
@@ -111,13 +172,119 @@
           </button>
         }
       </div>
+
+      <!-- Drag & drop zone -->
+      @if (canEdit() && !preview()) {
+        <button
+          type="button"
+          class="dropzone"
+          [class.drag-over]="isDraggingOver()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onFileDrop($event)"
+          (click)="fileDropInput.click()"
+        >
+          <input
+            #fileDropInput
+            type="file"
+            multiple
+            class="sr-only"
+            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
+            (change)="onFilesSelected($event)"
+          />
+          <span class="dropzone-text">
+            📎 Drag &amp; drop files here, or <span class="browse-link">browse</span> (PDF, DOC, DOCX, MD, TXT, images)
+          </span>
+        </button>
+      }
+
+      <!-- Attached files section -->
+      @if (attachments().length > 0) {
+        <section class="attachments-section" aria-label="Attached files">
+          <h4>Attached Files ({{ attachments().length }})</h4>
+          <div class="attachment-cards-grid">
+            @for (att of attachments(); track att.id; let i = $index) {
+              <div class="attachment-card">
+                <div class="attachment-info">
+                  <span class="file-badge" [class]="getFileBadge(att.name, att.type).class">
+                    {{ getFileBadge(att.name, att.type).icon }} {{ getFileBadge(att.name, att.type).label }}
+                  </span>
+                  <div class="attachment-details">
+                    <strong class="attachment-name" [title]="att.name">{{ att.name }}</strong>
+                    <span class="attachment-size">{{ formatBytes(att.size) }}</span>
+                  </div>
+                </div>
+                <div class="attachment-actions">
+                  @if (att.type === 'application/pdf' || att.name.toLowerCase().endsWith('.pdf')) {
+                    <button
+                      type="button"
+                      class="btn-subtle"
+                      (click)="togglePdfPreview(att)"
+                    >
+                      {{ activePreviewAttachment()?.id === att.id ? "✕ Close PDF" : "👁 View PDF" }}
+                    </button>
+                  }
+                  <button
+                    type="button"
+                    class="btn-subtle"
+                    (click)="downloadAttachment(att)"
+                    title="Download original file"
+                  >
+                    ⬇ Download
+                  </button>
+                  @if (canEdit()) {
+                    <button
+                      type="button"
+                      class="btn-subtle"
+                      (click)="insertAttachmentMarkdown(att)"
+                      title="Insert link into markdown"
+                    >
+                      🔗 Insert link
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-subtle btn-danger-icon"
+                      (click)="removeAttachment(i)"
+                      title="Remove attachment"
+                    >
+                      ✕
+                    </button>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      }
+
+      <!-- Embedded PDF preview viewer -->
+      @if (activePreviewAttachment() && safePdfUrl()) {
+        <div class="pdf-viewer-container">
+          <div class="pdf-viewer-header">
+            <span>📕 PDF Preview: {{ activePreviewAttachment()?.name }}</span>
+            <button
+              type="button"
+              class="btn-subtle"
+              (click)="activePreviewAttachment.set(null)"
+            >
+              ✕ Close Preview
+            </button>
+          </div>
+          <iframe
+            [src]="safePdfUrl()!"
+            class="pdf-iframe"
+            title="PDF Preview"
+          ></iframe>
+        </div>
+      }
+
+      <!-- Markdown Preview or Textarea Editor -->
       @if (preview() || !canEdit()) {
         <article class="preview" [innerHTML]="html()"></article>
       } @else {
         <label for="doc-content">Markdown content</label>
         <p class="hint">
-          Use # headings, **bold**, *italic*, - lists, > quotes, and ``` code
-          blocks.
+          Use # headings, **bold**, *italic*, - lists, > quotes, and ``` code blocks.
         </p>
         <textarea
           id="doc-content"
@@ -129,6 +296,7 @@
           placeholder="Start writing your project documentation…"
         ></textarea>
       }
+
       @if (document() && canEdit()) {
         <button
           class="danger"
