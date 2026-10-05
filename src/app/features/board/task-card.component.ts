@@ -1,6 +1,8 @@
 import { Component, computed, inject, input, output } from '@angular/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
+import { LiveCollaborationService } from '../../core/realtime/live-collaboration.service';
+import { AuthStoreService } from '../../core/state/auth-store.service';
 import type { Task } from '../../shared/models/task.models';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -20,6 +22,20 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 })
 export class TaskCardComponent {
   private readonly members = inject(MemberDirectoryService);
+  private readonly live = inject(LiveCollaborationService, { optional: true });
+  private readonly auth = inject(AuthStoreService, { optional: true });
+
+  readonly activeViewers = computed(() => {
+    if (!this.live) return [];
+    const myId = this.auth?.currentUser()?._id;
+    return this.live.taskViewersFor(this.task().id).filter((u) => u.userId !== myId);
+  });
+
+  readonly activeViewersTooltip = computed(() => {
+    const viewers = this.activeViewers();
+    if (!viewers.length) return '';
+    return viewers.map((v) => v.name).join(', ') + ' currently viewing';
+  });
 
   readonly task = input.required<Task>();
   readonly selected = input(false);

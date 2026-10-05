@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, effect, inject, signal, untracked } from '@angular/core';
+import { Injectable, OnDestroy, effect, computed, inject, signal, untracked } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { SocketService, LiveEvent } from './socket.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
@@ -25,19 +25,34 @@ export class LiveCollaborationService implements OnDestroy {
  private readonly subscriptions = new Subscription();
  private deferred = false;
  private refreshVersion = 0;
+ readonly onlineUsers = signal<Array<{ userId: string; name: string; email?: string }>>([]);
+ readonly onlineUsersLabel = computed(() => {
+  const users = this.onlineUsers();
+  if (!users.length) return 'No teammates online';
+  return users.map(u => u.name || 'Teammate').join(', ') + ' online';
+ });
+ readonly taskViewers = signal<Record<string, Array<{ userId: string; name: string }>>>({});
+ private viewingTask: string | null = null;
  readonly typingUsers = signal<Record<string, { taskId: string; name: string }>>({});
  private readonly typingTimers = new Map<string, ReturnType<typeof setTimeout>>();
  private stopTimer?: ReturnType<typeof setTimeout>;
  private typingTask: string | null = null;
  constructor() {
   effect(() => { const projectId = this.workspace.activeProjectId(); untracked(() => { this.clearTyping(); this.socket.setProject(projectId); }); });
-  effect(() => { const taskId = this.tasks.selectedTask()?.id; untracked(() => { if (this.typingTask && this.typingTask !== taskId) this.stopTyping(); }); });
+  effect(() => {
+   const taskId = this.tasks.selectedTask()?.id;
+   untracked(() => {
+    if (this.typingTask && this.typingTask !== taskId) this.stopTyping();
+    if (this.viewingTask && this.viewingTask !== taskId) this.stopViewingTask();
+    if (taskId) this.startViewingTask(taskId);
+   });
+  });
   effect(() => { const pending = this.offline.pendingCount(); const syncing = this.offline.isSyncing(); if (!pending && !syncing && this.deferred) untracked(() => { this.deferred = false; void this.refresh(); }); });
   this.subscriptions.add(this.socket.joined$.subscribe(() => void this.refresh()));
   this.subscriptions.add(this.socket.denied$.subscribe(id => { if (id === this.workspace.activeProjectId()) this.loseProject(id); }));
   this.subscriptions.add(this.socket.events$.subscribe(({ name, event }) => this.apply(name, event)));
  }
- ngOnDestroy() { this.refreshVersion++; this.subscriptions.unsubscribe(); this.stopTyping(); this.clearTyping(); this.socket.setProject(null); }
+ ngOnDestroy() { this.refreshVersion++; this.subscriptions.unsubscribe(); this.stopTyping(); this.clearTyping(); this.stopViewingTask(); this.taskViewers.set({}); this.socket.setProject(null); }
  private async refresh() {
   const projectId = this.workspace.activeProjectId(); const version = ++this.refreshVersion;
   if (!projectId) return;
@@ -58,6 +73,15 @@ export class LiveCollaborationService implements OnDestroy {
   if (name === 'member:added' && data['userId'] === this.auth.currentUser()?._id) this.workspace.reloadProjects();
   if (event.projectId !== this.workspace.activeProjectId()) return;
   if (name === 'project:deleted' || (name === 'member:removed' && data['userId'] === this.auth.currentUser()?._id)) { this.loseProject(event.projectId); return; }
+  if (name === 'presence:update') {
+   const users = (data['users'] as Array<{ userId: string; name: string; email?: string }>) || [];
+   this.onlineUsers.set(users);
+   return;
+  }
+  if (name === 'task:viewing:started' || name === 'task:viewing:stopped') {
+   this.applyTaskViewing(name, event);
+   return;
+  }
   if (name === 'typing:started' || name === 'typing:stopped') { this.applyTyping(name, event); return; }
   if (this.offline.pendingCount() || this.offline.isSyncing()) { this.deferred = true; return; }
   if (name.startsWith('task:')) {
@@ -68,6 +92,36 @@ export class LiveCollaborationService implements OnDestroy {
   else if (name === 'project:updated') this.workspace.reloadProjects(event.projectId);
   else if (name.startsWith('member:')) { this.members.refreshMembers(); this.workspace.reloadProjects(event.projectId); }
   else if (name === 'activity:created') this.activities.applyLive(data['activity'] as ActivityDto);
+ }
+ startViewingTask(taskId: string) {
+  if (this.viewingTask && this.viewingTask !== taskId) this.stopViewingTask();
+  this.viewingTask = taskId;
+  this.socket.taskViewing(taskId, true);
+ }
+ stopViewingTask() {
+  if (this.viewingTask) {
+   this.socket.taskViewing(this.viewingTask, false);
+   this.viewingTask = null;
+  }
+ }
+ taskViewersFor(taskId: string): Array<{ userId: string; name: string }> {
+  return this.taskViewers()[taskId] ?? [];
+ }
+ private applyTaskViewing(name: string, event: LiveEvent) {
+  const taskId = String(event.data['taskId']);
+  const userId = event.actorId;
+  const nameStr = String(event.data['userName'] || event.data['name'] || 'Teammate');
+  this.taskViewers.update(viewers => {
+   const current = (viewers[taskId] ?? []).filter(u => u.userId !== userId);
+   const next = { ...viewers };
+   if (name === 'task:viewing:stopped') {
+    if (current.length === 0) delete next[taskId];
+    else next[taskId] = current;
+   } else {
+    next[taskId] = [...current, { userId, name: nameStr }];
+   }
+   return next;
+  });
  }
  typing(taskId: string) {
   if (this.typingTask && this.typingTask !== taskId) this.stopTyping();

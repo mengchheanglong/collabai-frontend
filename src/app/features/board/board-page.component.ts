@@ -4,6 +4,8 @@ import { MatRippleModule } from '@angular/material/core';
 import { MatMenuModule } from '@angular/material/menu';
 import { AuthStoreService } from '../../core/state/auth-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
+import { LiveCollaborationService } from '../../core/realtime/live-collaboration.service';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { TaskStoreService } from '../../core/state/task-store.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
@@ -26,6 +28,7 @@ import { TaskListViewComponent } from './task-list-view.component';
     TaskListViewComponent,
     TaskDetailDrawerComponent,
     ThemeToggleComponent,
+    MatTooltipModule,
   ],
   templateUrl: './board-page.component.html',
   styleUrl: './board-page.component.scss',
@@ -34,6 +37,7 @@ export class BoardPageComponent {
   readonly workspace = inject(WorkspaceContextService);
   readonly tasks = inject(TaskStoreService);
   readonly members = inject(MemberDirectoryService);
+  readonly live = inject(LiveCollaborationService, { optional: true });
   private readonly auth = inject(AuthStoreService);
   private readonly toast = inject(ToastService);
 

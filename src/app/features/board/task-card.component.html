@@ -14,6 +14,15 @@
     </div>
   }
 
+  @if (activeViewers().length) {
+    <div class="tc-viewer-badge" [matTooltip]="activeViewersTooltip()">
+      <span class="viewer-eye">👁️</span>
+      <span class="viewer-name">{{ activeViewers()[0].name }}</span>
+      @if (activeViewers().length > 1) {
+        <span class="viewer-more">+{{ activeViewers().length - 1 }}</span>
+      }
+    </div>
+  }
   <footer class="tc-foot">
     @if (assignee(); as person) {
       @if (person.avatarUrl) {

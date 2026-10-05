@@ -21,6 +21,22 @@
     </div>
 
     <div class="ui-hero-actions">
+            @if (live && live.onlineUsers().length) {
+        <div class="online-presence-stack" [matTooltip]="live.onlineUsersLabel()">
+          <span class="presence-pulse-dot" aria-hidden="true"></span>
+          <span class="presence-count">{{ live.onlineUsers().length }} online</span>
+          <div class="presence-avatars">
+            @for (u of live.onlineUsers().slice(0, 4); track u.userId) {
+              <span class="presence-avatar-bubble" [matTooltip]="u.name">
+                {{ u.name.charAt(0).toUpperCase() }}
+              </span>
+            }
+            @if (live.onlineUsers().length > 4) {
+              <span class="presence-avatar-more">+{{ live.onlineUsers().length - 4 }}</span>
+            }
+          </div>
+        </div>
+      }
       <app-theme-toggle />
       <button
         type="button"
@@ -432,7 +448,6 @@
               (input)="newProjectName.set($any($event.target).value)"
               (keydown.enter)="submitCreateProject()"
               placeholder="e.g. Website Redesign"
-              autofocus
             />
           </label>
 

@@ -64,4 +64,10 @@ export class SocketService {
  typing(taskId: string, active: boolean) {
   if (this.socket?.connected && this.project) this.socket.emit(active ? 'typing:start' : 'typing:stop', { projectId: this.project, taskId });
  }
+ docEditing(documentId: string, active: boolean) {
+  if (this.socket?.connected && this.project) this.socket.emit(active ? 'doc:editing:start' : 'doc:editing:stop', { projectId: this.project, documentId });
+ }
+ taskViewing(taskId: string, active: boolean) {
+  if (this.socket?.connected && this.project) this.socket.emit(active ? 'task:viewing:start' : 'task:viewing:stop', { projectId: this.project, taskId });
+ }
 }
