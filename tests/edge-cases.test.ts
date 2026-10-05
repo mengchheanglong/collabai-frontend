@@ -162,6 +162,99 @@ async function testSubtaskProgressMath(): Promise<void> {
   console.log('✓ Subtask progress division-by-zero protection passed.');
 }
 
+async function testBulkMoveEdgeCases(): Promise<void> {
+  function statusFromText(value: string): string | null {
+    const normalized = value.replace(/[\s_-]+/g, '').toLowerCase();
+    if (normalized === 'todo' || normalized === 'open' || normalized === 'reopen') return 'todo';
+    if (normalized === 'inprogress' || normalized === 'progress' || normalized === 'doing' || normalized === 'start' || normalized === 'started') return 'in_progress';
+    if (normalized === 'done' || normalized === 'complete' || normalized === 'completed' || normalized === 'finished') return 'done';
+    return null;
+  }
+
+  function parseBulkMove(text: string): { sourceStatus?: string; targetStatus: string } | null {
+    const clean = text.trim();
+    const shorthandMatch = clean.match(
+      /^(?:please\s+)?(start|complete|finish|reopen)\s+(?:all\s+)?(?:the\s+)?(?:(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|done|completed?)\s+)?(?:tasks?|items?|to-?dos?|everything)?\s*$/i,
+    );
+    if (shorthandMatch) {
+      const verb = shorthandMatch[1].toLowerCase();
+      const targetStatus = verb === 'start' ? 'in_progress' : verb === 'reopen' ? 'todo' : 'done';
+      const sourceRaw = shorthandMatch[2];
+      const sourceStatus = sourceRaw ? statusFromText(sourceRaw) : undefined;
+      return { sourceStatus: sourceStatus ?? undefined, targetStatus };
+    }
+
+    const hasBulkWord =
+      /\b(?:all|every|everything)\b/i.test(clean) ||
+      (/\b(?:tasks|items|to-?dos)\b/i.test(clean) &&
+        /\b(?:to\s*-?\s*do|todo|in\s*-?\s*progress|progress|done)\b/i.test(clean));
+    if (!hasBulkWord) return null;
+
+    const hasMoveVerb = /\b(?:move|mark|set|change|put|transfer|shift|transition|turn)\b/i.test(clean);
+    if (!hasMoveVerb) return null;
+
+    const targetMatch = clean.match(
+      /(?:(?:to|into|as|unto)\s+(?:(?:the\s+)?column\s+)?|(?:(?:to|into|as|unto)\s+)?)(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\s*(?:column|status)?\s*$/i,
+    );
+    if (!targetMatch) return null;
+
+    const targetStatus = statusFromText(targetMatch[1]);
+    if (!targetStatus) return null;
+
+    const beforeTarget = clean.slice(0, targetMatch.index).trim();
+    let sourceStatus: string | undefined = undefined;
+
+    const sourceFromIn = beforeTarget.match(
+      /\b(?:from|in|inside|under)\s+(?:the\s+)?(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\b/i,
+    );
+    if (sourceFromIn) {
+      sourceStatus = statusFromText(sourceFromIn[1]) ?? undefined;
+    } else {
+      const sourceInline =
+        beforeTarget.match(
+          /\b(?:all|every|everything)\s+(?:of\s+)?(?:the\s+)?(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\b/i,
+        ) ||
+        beforeTarget.match(
+          /\b(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\s+(?:tasks?|items?|to-?dos?)\b/i,
+        );
+      if (sourceInline) {
+        sourceStatus = statusFromText(sourceInline[1]) ?? undefined;
+      }
+    }
+
+    return { sourceStatus, targetStatus };
+  }
+
+  // Test exact user prompt
+  const res1 = parseBulkMove('move all the todo task to in progress');
+  assert.deepEqual(res1, { sourceStatus: 'todo', targetStatus: 'in_progress' });
+
+  // Test variants
+  const res2 = parseBulkMove('move all todo tasks to in progress');
+  assert.deepEqual(res2, { sourceStatus: 'todo', targetStatus: 'in_progress' });
+
+  const res3 = parseBulkMove('move all tasks from todo to in progress');
+  assert.deepEqual(res3, { sourceStatus: 'todo', targetStatus: 'in_progress' });
+
+  const res4 = parseBulkMove('move all tasks to in progress');
+  assert.deepEqual(res4, { sourceStatus: undefined, targetStatus: 'in_progress' });
+
+  const res5 = parseBulkMove('mark all done');
+  assert.deepEqual(res5, { sourceStatus: undefined, targetStatus: 'done' });
+
+  const res6 = parseBulkMove('move all in progress tasks to done');
+  assert.deepEqual(res6, { sourceStatus: 'in_progress', targetStatus: 'done' });
+
+  const res7 = parseBulkMove('complete all todo tasks');
+  assert.deepEqual(res7, { sourceStatus: 'todo', targetStatus: 'done' });
+
+  // Single task must NOT trigger bulk move
+  const resSingle = parseBulkMove('move Homepage to in progress');
+  assert.equal(resSingle, null);
+
+  console.log('✓ Bulk task movement natural language parsing edge cases passed.');
+}
+
 async function main(): Promise<void> {
   await testMarkdownSanitization();
   await testAiSearchChips();
@@ -169,6 +262,7 @@ async function main(): Promise<void> {
   await testDateParsingEdgeCases();
   await testPositionMathEdgeCases();
   await testSubtaskProgressMath();
+  await testBulkMoveEdgeCases();
   console.log('All frontend edge-case tests passed successfully!');
 }
 

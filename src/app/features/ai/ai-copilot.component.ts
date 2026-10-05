@@ -427,6 +427,7 @@ export class AiCopilotComponent {
         `* \`/done [task]\` — Mark task as Done (defaults to active task)\n` +
         `* \`/start [task]\` — Move task to In Progress\n` +
         `* \`/todo [task]\` — Move task to To Do\n` +
+        `* \`/move <task or all> to <status>\` — Move task(s) to To Do, In Progress, or Done\n` +
         `* \`/priority <task> <level>\` — Set priority (\`low\`, \`medium\`, \`high\`, \`urgent\`)\n` +
         `* \`/assign <task> to <member>\` — Assign member\n` +
         `* \`/due <task> <date>\` — Set due date (\`tomorrow\`, \`Friday\`, \`YYYY-MM-DD\`)\n` +
@@ -500,6 +501,21 @@ export class AiCopilotComponent {
       const handled = this.runTaskAction(pendingId, targetProjectId, rest ? `reopen ${rest}` : 'reopen');
       if (!handled) {
         this.finishMessage(pendingId, rest ? `Could not find task matching “${rest}” to move to To Do.` : 'There are no tasks on the active board.');
+      }
+      return;
+    }
+
+    if (cmd === '/move') {
+      if (!rest) {
+        this.finishMessage(
+          pendingId,
+          `Please specify what to move and the target status. Example: \`/move all todo to in progress\` or \`/move Homepage to done\``,
+        );
+        return;
+      }
+      const handled = this.runTaskAction(pendingId, targetProjectId, `move ${rest}`);
+      if (!handled) {
+        this.finishMessage(pendingId, `Could not move tasks for “${rest}”. Format: \`/move <task or all> to <status>\``);
       }
       return;
     }
@@ -1427,63 +1443,115 @@ export class AiCopilotComponent {
       return true;
     }
 
-    // 1. Bulk mark all tasks: "mark all done", "move all tasks to in progress"
-    const bulkMove = text.match(/(?:mark|set|move)\s+all\s+(?:tasks?\s+)?(?:to|as\s+)?(to\s*do|todo|in\s*progress|done|complete(?:d)?)/i);
+    // 1. Bulk move/mark tasks: e.g. "move all the todo task to in progress", "move all tasks to done", "mark all done"
+    const bulkMove = this.parseBulkMove(text);
     if (bulkMove) {
-      const status = this.statusFromText(bulkMove[1]);
-      if (status) {
-        const activeTasks = this.tasks.tasks();
-        if (activeTasks.length === 0) {
-          this.finishMessage(pendingId, 'There are no tasks on the active board to update.');
-          return true;
-        }
-        const observables = activeTasks.map((t) => this.taskApi.moveTask(t.id, status, t.position));
-        forkJoin(observables).subscribe({
-          next: () => {
-            this.reloadActiveBoard();
-            this.finishMessage(pendingId, `Moved all ${activeTasks.length} tasks to ${this.tasks.statusLabel(status)}.`);
-            this.toast.show(`Moved all tasks to ${this.tasks.statusLabel(status)}`, 'success');
-          },
-          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'Failed to update all tasks. Please try again.')),
-        });
+      const { sourceStatus, targetStatus } = bulkMove;
+      let targetTasks = this.tasks.tasks();
+      if (sourceStatus) {
+        targetTasks = targetTasks.filter((t) => t.status === sourceStatus);
+      } else {
+        targetTasks = targetTasks.filter((t) => t.status !== targetStatus);
+      }
+
+      if (targetTasks.length === 0) {
+        const sourceLabel = sourceStatus ? this.tasks.statusLabel(sourceStatus) : '';
+        const msg = sourceLabel
+          ? `There are no ${sourceLabel} tasks on the active board to move.`
+          : `All tasks on the board are already ${this.tasks.statusLabel(targetStatus)}.`;
+        this.finishMessage(pendingId, msg);
         return true;
       }
+
+      const targetLabel = this.tasks.statusLabel(targetStatus);
+      const sourceLabel = sourceStatus ? ` from ${this.tasks.statusLabel(sourceStatus)}` : '';
+
+      // Optimistically update in UI state immediately so board reflects change without waiting
+      this.tasks.tasks.update((items) =>
+        items.map((item) =>
+          targetTasks.some((t) => t.id === item.id)
+            ? { ...item, status: targetStatus }
+            : item,
+        ),
+      );
+
+      from(targetTasks)
+        .pipe(
+          concatMap((t) =>
+            this.taskApi.moveTask(t.id, targetStatus).pipe(
+              catchError((err) => {
+                console.warn(`Failed to move task ${t.title}:`, err);
+                return of(null);
+              }),
+            ),
+          ),
+          toArray(),
+        )
+        .subscribe({
+          next: (results) => {
+            const movedCount = results.filter(Boolean).length;
+            this.reloadActiveBoard();
+            this.finishMessage(
+              pendingId,
+              `Moved ${movedCount} task${movedCount === 1 ? '' : 's'}${sourceLabel} to **${targetLabel}**.`,
+            );
+            this.toast.show(
+              `Moved ${movedCount} task${movedCount === 1 ? '' : 's'} to ${targetLabel}`,
+              'success',
+            );
+          },
+          error: (err: unknown) => {
+            this.reloadActiveBoard();
+            this.finishMessage(
+              pendingId,
+              apiErrorMessage(err, 'Failed to update tasks. Please try again.'),
+            );
+          },
+        });
+      return true;
     }
 
     // 2. Shorthand action verbs: "start <task>", "finish <task>", "complete <task>", "reopen <task>"
     const verbAction = text.match(/^(?:please\s+)?(start|finish|complete|reopen)\s+(?:the\s+)?(?:task\s+)?(.+?)$/i);
     if (verbAction) {
-      const verb = verbAction[1].toLowerCase();
-      const status: TaskStatus = verb === 'start' ? 'in_progress' : verb === 'reopen' ? 'todo' : 'done';
-      this.resolveTask(projectId, verbAction[2], pendingId, (task) => {
-        this.taskApi.moveTask(task.id, status, task.position).subscribe({
-          next: () => {
-            this.reloadActiveBoard();
-            this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
-            this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
-          },
-          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
+      if (!/^(?:all|every|everything)\b/i.test(verbAction[2].trim())) {
+        const verb = verbAction[1].toLowerCase();
+        const status: TaskStatus = verb === 'start' ? 'in_progress' : verb === 'reopen' ? 'todo' : 'done';
+        this.resolveTask(projectId, verbAction[2], pendingId, (task) => {
+          this.taskApi.moveTask(task.id, status, task.position).subscribe({
+            next: () => {
+              this.reloadActiveBoard();
+              this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
+              this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
+            },
+            error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
+          });
         });
-      });
-      return true;
+        return true;
+      }
     }
 
     // 3. Move / set / mark / change status: "mark task X done", "move X to in progress", "set status of X to done"
-    const move = text.match(/(?:mark|set|move|change)\s+(?:the\s+)?(?:status\s+(?:of\s+)?)?(?:task\s+)?(.+?)\s+(?:(?:status\s+)?(?:to|as)\s+)?(to\s*do|todo|in\s*progress|done|complete(?:d)?)/i);
+    const move = text.match(
+      /(?:mark|set|move|change)\s+(?:the\s+)?(?:status\s+(?:of\s+)?)?(?:task\s+)?(.+?)\s+(?:(?:status\s+)?(?:to|as|into)\s+)?(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\s*(?:column|status)?\s*$/i,
+    );
     if (move) {
-      const status = this.statusFromText(move[2]);
-      if (!status) return false;
-      this.resolveTask(projectId, move[1], pendingId, (task) => {
-        this.taskApi.moveTask(task.id, status, task.position).subscribe({
-          next: () => {
-            this.reloadActiveBoard();
-            this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
-            this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
-          },
-          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not move “${task.title}”. Please try again.`)),
-        });
-      });
-      return true;
+      if (!/^(?:all|every|everything)\b/i.test(move[1].trim())) {
+        const status = this.statusFromText(move[2]);
+        if (status) {
+          this.resolveTask(projectId, move[1], pendingId, (task) => {
+            this.taskApi.moveTask(task.id, status, task.position).subscribe({
+              next: () => {
+                this.reloadActiveBoard();
+                this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
+                this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
+              },
+              error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not move “${task.title}”. Please try again.`)),
+            });
+          });
+          return true;
+        }
+      }
     }
 
     // 4. Change priority: "set priority of X to high", "change X to urgent priority", "set urgency to high"
@@ -1798,6 +1866,75 @@ export class AiCopilotComponent {
     if (normalized === 'inprogress' || normalized === 'progress' || normalized === 'doing' || normalized === 'start' || normalized === 'started') return 'in_progress';
     if (normalized === 'done' || normalized === 'complete' || normalized === 'completed' || normalized === 'finished') return 'done';
     return null;
+  }
+
+  private parseBulkMove(
+    text: string,
+  ): { sourceStatus?: TaskStatus; targetStatus: TaskStatus } | null {
+    const clean = text.trim();
+
+    // 1. Shorthand verbs: "start all tasks", "complete all todo tasks", "finish all in progress tasks", "reopen all tasks"
+    const shorthandMatch = clean.match(
+      /^(?:please\s+)?(start|complete|finish|reopen)\s+(?:all\s+)?(?:the\s+)?(?:(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|done|completed?)\s+)?(?:tasks?|items?|to-?dos?|everything)?\s*$/i,
+    );
+    if (shorthandMatch) {
+      const verb = shorthandMatch[1].toLowerCase();
+      const targetStatus: TaskStatus =
+        verb === 'start'
+          ? 'in_progress'
+          : verb === 'reopen'
+            ? 'todo'
+            : 'done';
+      const sourceRaw = shorthandMatch[2];
+      const sourceStatus = sourceRaw ? this.statusFromText(sourceRaw) : undefined;
+      return { sourceStatus: sourceStatus ?? undefined, targetStatus };
+    }
+
+    // 2. Bulk keywords or plural keywords:
+    const hasBulkWord =
+      /\b(?:all|every|everything)\b/i.test(clean) ||
+      (/\b(?:tasks|items|to-?dos)\b/i.test(clean) &&
+        /\b(?:to\s*-?\s*do|todo|in\s*-?\s*progress|progress|done)\b/i.test(clean));
+    if (!hasBulkWord) return null;
+
+    // Must have a move/transition verb
+    const hasMoveVerb = /\b(?:move|mark|set|change|put|transfer|shift|transition|turn)\b/i.test(clean);
+    if (!hasMoveVerb) return null;
+
+    // Extract target status from the end or after "to/into/as"
+    const targetMatch = clean.match(
+      /(?:(?:to|into|as|unto)\s+(?:(?:the\s+)?column\s+)?|(?:(?:to|into|as|unto)\s+)?)(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\s*(?:column|status)?\s*$/i,
+    );
+    if (!targetMatch) return null;
+
+    const targetStatus = this.statusFromText(targetMatch[1]);
+    if (!targetStatus) return null;
+
+    // Extract optional source status from the portion BEFORE the target status
+    const beforeTarget = clean.slice(0, targetMatch.index).trim();
+    let sourceStatus: TaskStatus | undefined = undefined;
+
+    // Check "from/in/inside/under <status>"
+    const sourceFromIn = beforeTarget.match(
+      /\b(?:from|in|inside|under)\s+(?:the\s+)?(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\b/i,
+    );
+    if (sourceFromIn) {
+      sourceStatus = this.statusFromText(sourceFromIn[1]) ?? undefined;
+    } else {
+      // Check inline status after all/every/everything or before task(s)
+      const sourceInline =
+        beforeTarget.match(
+          /\b(?:all|every|everything)\s+(?:of\s+)?(?:the\s+)?(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\b/i,
+        ) ||
+        beforeTarget.match(
+          /\b(to\s*-?\s*do|todo|in\s*-?\s*progress|progress|doing|done|complete(?:d)?)\s+(?:tasks?|items?|to-?dos?)\b/i,
+        );
+      if (sourceInline) {
+        sourceStatus = this.statusFromText(sourceInline[1]) ?? undefined;
+      }
+    }
+
+    return { sourceStatus, targetStatus };
   }
 
   private isCapabilityRequest(text: string): boolean {

@@ -42,9 +42,13 @@ export class TaskApiService {
       .pipe(map((res) => res?.task || res));
   }
 
-  moveTask(taskId: string, status: TaskStatus, position: number): Observable<TaskDto> {
+  moveTask(taskId: string, status: TaskStatus, position?: number): Observable<TaskDto> {
+    const payload: { status: TaskStatus; position?: number } = { status };
+    if (typeof position === 'number') {
+      payload.position = position;
+    }
     return this.apiClient
-      .patch<any>(`/tasks/${taskId}/status`, { status, position })
+      .patch<any>(`/tasks/${taskId}/status`, payload)
       .pipe(map((res) => res?.task || res));
   }
 
