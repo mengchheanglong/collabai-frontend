@@ -52,8 +52,18 @@ export class TaskDetailDrawerComponent {
     }
   }
 
+  /** Keep the checkbox showing the real state; the store ticks it (or explains why not). */
+  onToggleSubtask(event: Event, task: Task, index: number): void {
+    (event.target as HTMLInputElement).checked = task.subtasks[index]?.done ?? false;
+    this.tasks.toggleSubtask(task, index);
+  }
+
   saveTitle(task: Task, inputEl: HTMLInputElement): void {
     const trimmed = inputEl.value.trim();
+    if (trimmed !== task.title && !this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) {
+      inputEl.value = task.title;
+      return;
+    }
     if (!trimmed) {
       inputEl.value = task.title;
       return;

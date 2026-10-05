@@ -191,7 +191,13 @@ export class MemberDirectoryService {
   ensureCanWorkOnTask(assigneeId: string | null): boolean {
     if (!this.ensureCanEdit()) return false;
     if (this.canWorkOnTask(assigneeId)) return true;
-    this.toast.error(NOT_YOUR_TASK_MESSAGE, 'Not Your Task');
+    const assignee = assigneeId ? this.memberName(assigneeId) : '';
+    this.toast.error(
+      assignee
+        ? `This task is assigned to ${assignee}. ${NOT_YOUR_TASK_MESSAGE}`
+        : NOT_YOUR_TASK_MESSAGE,
+      'Not Your Task',
+    );
     return false;
   }
 

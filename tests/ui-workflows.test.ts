@@ -202,6 +202,8 @@ async function testTaskDetailDrawerWorkflow(): Promise<void> {
     memberName: (id: string) => (id === 'user-1' ? 'Alice Smith' : 'Bob Jones'),
     canEditContent: () => true,
     ensureCanEdit: () => true,
+    canWorkOnTask: () => true,
+    ensureCanWorkOnTask: () => true,
   };
 
   const mockWorkspace = {
