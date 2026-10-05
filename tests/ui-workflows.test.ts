@@ -289,7 +289,7 @@ async function testTeamPageWorkflow(): Promise<void> {
     inviteMember: (email: string, role: string) => {
       invitedEmail = email;
       invitedRole = role;
-      return { id: 'new-user', name: email.split('@')[0], email, role: role as any, avatarUrl: null };
+      return { ok: true };
     },
     updateRole: (id: string, role: Member['role']) => {
       roleUpdated = `${id}:${role}`;
@@ -370,7 +370,7 @@ async function testTeamPageWorkflow(): Promise<void> {
   // 6. Self-removal protection
   const clickEvent = { stopPropagation: () => {} } as any;
   comp.openRemoveDialog(clickEvent, membersList[0]); // user-1 is currentUser
-  assert.ok(toastError?.includes('cannot remove your own active account'));
+  assert.ok(toastError?.includes("can't remove yourself"));
   assert.equal(comp.removeTarget(), null);
 
   // Removing another user opens dialog

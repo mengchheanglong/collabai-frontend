@@ -178,26 +178,20 @@ export class TeamPageComponent implements OnDestroy {
       return;
     }
 
-    const sel = this.selectedUser();
-    const added = this.members.inviteMember(email, this.inviteRole());
-    if (!added) {
-      this.toast.error('That user is already on the team or cannot be added.', 'Invite Failed');
+    // The directory reports the outcome (one toast) once the server answers.
+    const result = this.members.inviteMember(email, this.inviteRole());
+    if (!result.ok) {
+      this.toast.error(result.reason, 'Invite Failed');
       return;
     }
-
-    const targetName = sel?.name || added.name;
     this.closeInvite();
-    this.toast.success(`Successfully invited ${targetName} as ${this.inviteRole()}`, 'Invitation Sent');
   }
 
   onRoleChange(member: Member, role: Member['role']): void {
     if (member.role === role) return;
+    // The directory reports the outcome (one toast) once the server answers.
     const result = this.members.updateRole(member.id, role);
-    if (!result.ok) {
-      this.toast.error(result.reason, 'Role Update Failed');
-      return;
-    }
-    this.toast.success(`${member.name}'s role was updated to ${role}`, 'Role Updated');
+    if (!result.ok) this.toast.error(result.reason, 'Role Update Failed');
   }
 
   resendInvite(member: Member): void { this.members.resendInvitation(member); }
@@ -213,7 +207,7 @@ export class TeamPageComponent implements OnDestroy {
     this.menuOpenId.set(null);
 
     if (member.id === this.members.currentUser.id) {
-      this.toast.error("You cannot remove your own active account from the workspace.", 'Action Restricted');
+      this.toast.error("You can't remove yourself from the project here.", 'Action Restricted');
       return;
     }
 
@@ -230,11 +224,22 @@ export class TeamPageComponent implements OnDestroy {
 
     const result = this.members.removeMember(member.id);
     this.removeTarget.set(null);
-    if (!result.ok) {
-      this.toast.error(result.reason, 'Removal Failed');
-      return;
-    }
-    this.toast.success(`${member.name} has been removed from this workspace`, 'Member Removed');
+    if (!result.ok) this.toast.error(result.reason, 'Removal Failed');
+  }
+
+  /** Owners/admins may change other members' roles — never their own. */
+  canChangeRole(member: Member): boolean {
+    return (
+      member.status !== 'Pending' &&
+      !this.isYou(member) &&
+      this.members.myRole() === 'Admin'
+    );
+  }
+
+  roleLockReason(member: Member): string | null {
+    if (this.isYou(member)) return "You can't change your own role";
+    if (member.status === 'Pending') return 'Role can be changed after the invite is accepted';
+    return null;
   }
 
   isYou(member: Member): boolean {

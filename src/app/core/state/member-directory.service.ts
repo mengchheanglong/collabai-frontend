@@ -156,111 +156,128 @@ export class MemberDirectoryService {
     return { ok: true };
   }
 
-  /** Change a member's role. Optimistic local update + PATCH to the backend. */
+  /** The signed-in user's role in the active project (owners show as Admin), if loaded. */
+  myRole(): Member['role'] | null {
+    return this.membersState().find((m) => m.id === this.currentUser.id)?.role ?? null;
+  }
+
+  /**
+   * Change a member's role. Rules the client can see are checked up front; otherwise the
+   * change is applied only once the server confirms, with exactly one toast either way
+   * (the server's reason on refusal — e.g. only the owner may grant admin).
+   */
   updateRole(
     memberId: string,
     role: Member['role'],
   ): { ok: true } | { ok: false; reason: string } {
     const target = this.membersState().find((m) => m.id === memberId);
-    if (!target) return { ok: false, reason: 'Member not found' };
-    if (target.role === 'Admin' && role !== 'Admin' && this.adminCount() <= 1) {
-      return { ok: false, reason: 'Keep at least one admin' };
+    if (!target) return { ok: false, reason: 'Member not found.' };
+    if (memberId === this.currentUser.id) {
+      return { ok: false, reason: "You can't change your own role. Ask a project owner to do it." };
     }
-
-    this.membersState.update((list) =>
-      list.map((m) => (m.id === memberId ? { ...m, role } : m)),
-    );
-
+    if (this.myRole() !== 'Admin') {
+      return { ok: false, reason: 'Only project owners and admins can change member roles.' };
+    }
     const projectId = this.activeProjectId();
-    if (projectId) {
-      this.projectApi
-        .updateMemberRole(projectId, memberId, toBackendRole(role))
-        .subscribe({
-          next: () => this.toast.show('Role updated', 'success'),
-          error: () => {
-            this.toast.show('Failed to update role', 'info');
-            this.reload();
-          },
-        });
-    }
+    if (!projectId) return { ok: false, reason: 'Select a project first.' };
+
+    this.projectApi
+      .updateMemberRole(projectId, memberId, toBackendRole(role))
+      .subscribe({
+        next: () => {
+          this.membersState.update((list) =>
+            list.map((m) => (m.id === memberId ? { ...m, role } : m)),
+          );
+          this.toast.success(`${target.name}'s role was updated to ${role}.`, 'Role Updated');
+        },
+        error: (err: unknown) => {
+          this.toast.error(
+            apiErrorMessage(err, 'Could not update the role. Please try again.'),
+            'Role Update Failed',
+          );
+        },
+      });
     return { ok: true };
   }
 
-  /** Remove a member. Optimistic local remove + DELETE to the backend. */
+  /**
+   * Remove a member. Applied once the server confirms, with one toast either way
+   * (the server's reason on refusal — e.g. only the owner may remove an admin).
+   */
   removeMember(memberId: string): { ok: true } | { ok: false; reason: string } {
     if (memberId === this.currentUser.id) {
-      return { ok: false, reason: "You can't remove yourself from here" };
+      return { ok: false, reason: "You can't remove yourself from the project here." };
     }
     const target = this.membersState().find((m) => m.id === memberId);
-    if (!target) return { ok: false, reason: 'Member not found' };
-    if (target.role === 'Admin' && this.adminCount() <= 1) {
-      return { ok: false, reason: 'Keep at least one admin' };
+    if (!target) return { ok: false, reason: 'Member not found.' };
+    if (this.myRole() !== 'Admin') {
+      return { ok: false, reason: 'Only project owners and admins can remove members.' };
     }
-
-    this.membersState.update((list) => list.filter((m) => m.id !== memberId));
-
     const projectId = this.activeProjectId();
-    if (projectId) {
-      this.projectApi
-        .removeMember(projectId, memberId)
-        .subscribe({
-          next: () => this.toast.show('Member removed', 'success'),
-          error: () => {
-            this.toast.show('Failed to remove member', 'info');
-            this.reload();
-          },
-        });
-    }
+    if (!projectId) return { ok: false, reason: 'Select a project first.' };
+
+    this.projectApi.removeMember(projectId, memberId).subscribe({
+      next: () => {
+        this.membersState.update((list) => list.filter((m) => m.id !== memberId));
+        this.toast.success(`${target.name} was removed from the project.`, 'Member Removed');
+      },
+      error: (err: unknown) =>
+        this.toast.error(
+          apiErrorMessage(err, 'Could not remove the member. Please try again.'),
+          'Removal Failed',
+        ),
+    });
     return { ok: true };
   }
 
-  /** Invite by email. Optimistic local add + POST to the backend. */
-  inviteMember(email: string, role: Member['role']): Member | null {
+  /**
+   * Invite by email. Existing users are added straight away; anyone else gets an
+   * invitation email. One toast once the server answers, saying which happened.
+   */
+  inviteMember(email: string, role: Member['role']): { ok: true } | { ok: false; reason: string } {
     const projectId = this.activeProjectId();
     if (!projectId) {
-      this.toast.show('Please create or select a project from the sidebar first', 'info');
-      return null;
+      return { ok: false, reason: 'Create or select a project from the sidebar first.' };
     }
-
     const normalized = email.trim().toLowerCase();
-    if (!normalized || !normalized.includes('@')) return null;
-    if (this.membersState().some((m) => m.email.toLowerCase() === normalized)) {
-      return null;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized)) {
+      return { ok: false, reason: 'Enter a valid email address.' };
     }
-
-    const local = normalized.split('@')[0] || 'user';
-    const name =
-      local
-        .split(/[._-]+/)
-        .filter(Boolean)
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join(' ') || 'New member';
-
-    const member: Member = {
-      id: `pending-${Date.now()}`,
-      name,
-      email: normalized,
-      role,
-      avatar: initials(name),
-      status: 'Active',
-      projects: 0,
-      joined: 'Just now',
-      color: AVATAR_COLORS[this.membersState().length % AVATAR_COLORS.length],
-    };
-    this.membersState.update((list) => [...list, member]);
+    const existing = this.membersState().find((m) => m.email.toLowerCase() === normalized);
+    if (existing) {
+      return {
+        ok: false,
+        reason:
+          existing.status === 'Pending'
+            ? `${normalized} already has a pending invitation. Use Resend instead.`
+            : `${existing.name} is already on the team.`,
+      };
+    }
+    if (this.myRole() !== 'Admin') {
+      return { ok: false, reason: 'Only project owners and admins can invite members.' };
+    }
 
     const backendRole = toBackendRole(role) as Exclude<ProjectRole, 'owner'>;
     this.projectApi.addMember(projectId, normalized, backendRole).subscribe({
-      next: () => {
-        this.toast.show(`Added ${name} to team`, 'success');
-        this.reload(); // replace the optimistic row with the real member
-      },
-      error: () => {
-        this.toast.show('Failed to add member', 'info');
+      next: (project: { members?: Array<{ email?: string; name?: string }> }) => {
+        const added = project?.members?.find((m) => m.email?.toLowerCase() === normalized);
+        if (added) {
+          this.toast.success(`${added.name || normalized} was added to the team as ${role}.`, 'Member Added');
+        } else {
+          this.toast.success(
+            `Invitation sent to ${normalized}. They'll join as ${role} after creating their account.`,
+            'Invitation Sent',
+          );
+        }
         this.reload();
       },
+      error: (err: unknown) =>
+        this.toast.error(
+          apiErrorMessage(err, 'Could not send the invitation. Please try again.'),
+          'Invite Failed',
+        ),
     });
-    return member;
+    return { ok: true };
   }
 
   refreshMembers(): void { this.reload(); }
@@ -268,13 +285,33 @@ export class MemberDirectoryService {
   resendInvitation(member: Member): void {
     const projectId = this.activeProjectId();
     if (!projectId || !member.invitationId) return;
-    this.projectApi.resendInvitation(projectId, member.invitationId).subscribe({ next: () => this.toast.show('Invitation email resent', 'success'), error: () => this.toast.show('Could not resend invitation', 'info') });
+    this.projectApi.resendInvitation(projectId, member.invitationId).subscribe({
+      next: () =>
+        this.toast.success(`A new invitation link was sent to ${member.email}.`, 'Invitation Resent'),
+      error: (err: unknown) => {
+        this.toast.error(
+          apiErrorMessage(err, 'Could not resend the invitation. Please try again.'),
+          'Resend Failed',
+        );
+        this.reload(); // e.g. it was accepted meanwhile — refresh the list
+      },
+    });
   }
 
   revokeInvitation(member: Member): void {
     const projectId = this.activeProjectId();
     if (!projectId || !member.invitationId) return;
-    this.projectApi.revokeInvitation(projectId, member.invitationId).subscribe({ next: () => { this.toast.show('Invitation revoked', 'success'); this.reload(); }, error: () => this.toast.show('Could not revoke invitation', 'info') });
+    this.projectApi.revokeInvitation(projectId, member.invitationId).subscribe({
+      next: () => {
+        this.toast.success(`The invitation to ${member.email} was revoked.`, 'Invitation Revoked');
+        this.reload();
+      },
+      error: (err: unknown) =>
+        this.toast.error(
+          apiErrorMessage(err, 'Could not revoke the invitation. Please try again.'),
+          'Revoke Failed',
+        ),
+    });
   }
 
   private reload(): void {
@@ -333,4 +370,10 @@ function toBackendRole(role: Member['role']): ProjectRole {
   if (role === 'Admin') return 'admin';
   if (role === 'Viewer') return 'viewer';
   return 'member';
+}
+
+/** Message from the API error envelope `{ success: false, error: { code, message } }`. */
+function apiErrorMessage(err: unknown, fallback: string): string {
+  const body = (err as { error?: { error?: { message?: string }; message?: string } })?.error;
+  return body?.error?.message ?? body?.message ?? fallback;
 }

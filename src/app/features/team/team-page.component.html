@@ -177,7 +177,8 @@
               class="tm-role-btn"
               [attr.data-role]="member.role"
               [matMenuTriggerFor]="roleMenu"
-              [disabled]="member.status === 'Pending' || (isYou(member) && members.adminCount() <= 1 && member.role === 'Admin')"
+              [disabled]="!canChangeRole(member)"
+              [attr.title]="roleLockReason(member)"
               [attr.aria-label]="'Role for ' + member.name"
               matRipple
             >
