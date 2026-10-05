@@ -75,7 +75,13 @@ export class DocsPageComponent implements OnDestroy {
 
   readonly html = computed(() => renderMarkdown(this.content()));
   readonly safePdfUrl = computed<SafeResourceUrl | null>(() => {
-    const att = this.activePreviewAttachment();
+    let att = this.activePreviewAttachment();
+    if (!att) {
+      att =
+        this.attachments().find(
+          (a) => a.type === "application/pdf" || a.name.toLowerCase().endsWith(".pdf")
+        ) ?? null;
+    }
     if (!att?.dataUrl) return null;
     return this.sanitizer.bypassSecurityTrustResourceUrl(att.dataUrl);
   });
@@ -239,10 +245,18 @@ export class DocsPageComponent implements OnDestroy {
         this.document.set(result.document);
         this.title.set(result.document.title);
         this.content.set(result.document.content);
-        this.attachments.set(result.document.attachments ?? []);
+        const atts = result.document.attachments ?? [];
+        this.attachments.set(atts);
         this.fileType.set(result.document.fileType ?? null);
         this.canEdit.set(result.canEdit);
         if (!result.canEdit) this.preview.set(true);
+
+        const pdfAtt = atts.find(
+          (a) => a.type === "application/pdf" || a.name.toLowerCase().endsWith(".pdf"),
+        );
+        if (pdfAtt) {
+          this.activePreviewAttachment.set(pdfAtt);
+        }
       } else {
         this.document.set(null);
         this.title.set("");
@@ -283,16 +297,20 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   async save() {
-    if (this.busy() || !this.canEdit() || !this.title().trim()) return;
+    if (this.busy() || !this.canEdit()) return;
     const project = this.editorProject;
     const doc = this.document();
     if (!doc && !project) return;
+    const derivedTitle =
+      this.title().trim() ||
+      this.attachments()[0]?.name ||
+      "Untitled document";
     this.busy.set(true);
     this.error.set("");
     this.success.set("");
     try {
       const input = {
-        title: this.title().trim(),
+        title: derivedTitle,
         content: this.content(),
         attachments: this.attachments(),
         fileType: this.fileType(),
@@ -467,77 +485,114 @@ export class DocsPageComponent implements OnDestroy {
     }
   }
 
-  async uploadNewDocumentFromFile(event: Event) {
+  onMainFileDrop(event: DragEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    this.isDraggingOver.set(false);
+    if (event.dataTransfer?.files && event.dataTransfer.files.length > 0) {
+      void this.processAndUploadFiles(event.dataTransfer.files);
+    }
+  }
+
+  onFilesSelectedForNew(event: Event) {
     const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+    if (input.files && input.files.length > 0) {
+      void this.processAndUploadFiles(input.files);
+    }
+    input.value = "";
+  }
+
+  async processAndUploadFiles(files: FileList | File[]) {
+    if (this.busy() || !this.canEdit()) return;
     const project = this.workspace.activeProjectId();
     if (!project) {
       this.error.set("Please select or create a project first.");
-      input.value = "";
       return;
     }
     this.busy.set(true);
     this.error.set("");
     try {
-      const ext = this.getFileExtension(file.name);
-      const title = this.cleanTitleFromFilename(file.name) || file.name;
-      let content = "";
-      let dataUrl = "";
-      if (file.size > 20 * 1024 * 1024) {
-        throw new Error(`File "${file.name}" exceeds the 20MB limit.`);
+      let created = 0;
+      let lastDocId: string | null = null;
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (file.size > 20 * 1024 * 1024) {
+          this.error.set(`File "${file.name}" exceeds the 20MB limit.`);
+          continue;
+        }
+        const ext = this.getFileExtension(file.name);
+        const title = this.cleanTitleFromFilename(file.name) || file.name;
+        let content = "";
+        let dataUrl = "";
+        if (["md", "markdown", "txt"].includes(ext)) {
+          try {
+            content = await this.readFileAsText(file);
+          } catch {
+            content = "";
+          }
+          dataUrl = await this.readFileAsDataUrl(file);
+        } else if (ext === "pdf") {
+          dataUrl = await this.readFileAsDataUrl(file);
+          content = `# ${title}\n\nUploaded PDF document: **${file.name}** (${this.formatBytes(file.size)}).`;
+        } else if (["doc", "docx"].includes(ext)) {
+          dataUrl = await this.readFileAsDataUrl(file);
+          content = `# ${title}\n\nUploaded Word document: **${file.name}** (${this.formatBytes(file.size)}).`;
+        } else {
+          dataUrl = await this.readFileAsDataUrl(file);
+          content = `# ${title}\n\nUploaded file: **${file.name}** (${this.formatBytes(file.size)}).`;
+        }
+
+        const attachment: DocumentAttachment = {
+          id:
+            typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : "att_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8),
+          name: file.name,
+          size: file.size,
+          type:
+            file.type ||
+            (ext === "pdf"
+              ? "application/pdf"
+              : ext === "docx"
+                ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                : "application/octet-stream"),
+          dataUrl,
+          uploadedAt: new Date().toISOString(),
+        };
+
+        const result = await firstValueFrom(
+          this.api.create(project, {
+            title,
+            content,
+            fileType: ext,
+            attachments: [attachment],
+          }),
+        );
+        created++;
+        lastDocId = result.document._id;
       }
 
-      if (["md", "markdown", "txt"].includes(ext)) {
-        content = await this.readFileAsText(file);
-        dataUrl = await this.readFileAsDataUrl(file);
-      } else if (ext === "pdf") {
-        dataUrl = await this.readFileAsDataUrl(file);
-        content = `# ${title}\n\nUploaded PDF document: **${file.name}** (${this.formatBytes(file.size)}).\n\nUse the preview or download buttons below to view this file.`;
-      } else if (["doc", "docx"].includes(ext)) {
-        dataUrl = await this.readFileAsDataUrl(file);
-        content = `# ${title}\n\nUploaded Word document: **${file.name}** (${this.formatBytes(file.size)}).\n\nClick below to download or view the attached document.`;
+      if (this.id() === "new" && lastDocId) {
+        await this.router.navigate(["/docs", lastDocId]);
       } else {
-        dataUrl = await this.readFileAsDataUrl(file);
-        content = `# ${title}\n\nAttached file: **${file.name}** (${this.formatBytes(file.size)}).`;
+        await this.load();
       }
-
-      const attachment: DocumentAttachment = {
-        id:
-          typeof crypto !== "undefined" && crypto.randomUUID
-            ? crypto.randomUUID()
-            : "att_" + Date.now() + "_" + Math.random().toString(36).substring(2, 8),
-        name: file.name,
-        size: file.size,
-        type:
-          file.type ||
-          (ext === "pdf"
-            ? "application/pdf"
-            : ext === "docx"
-              ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-              : "application/octet-stream"),
-        dataUrl,
-        uploadedAt: new Date().toISOString(),
-      };
-
-      const result = await firstValueFrom(
-        this.api.create(project, {
-          title,
-          content,
-          fileType: ext,
-          attachments: [attachment],
-        }),
-      );
-
-      this.busy.set(false);
-      await this.router.navigate(["/docs", result.document._id]);
-      this.success.set(`Created document from ${file.name}`);
+      if (created > 0) {
+        this.success.set(`Uploaded ${created} file(s) successfully.`);
+      }
     } catch (e) {
       this.error.set(this.message(e));
     } finally {
       this.busy.set(false);
-      input.value = "";
     }
+  }
+
+  async uploadNewDocumentFromFile(event: Event) {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      await this.processAndUploadFiles(input.files);
+    }
+    input.value = "";
   }
 
   async importMarkdownOrText(event: Event) {

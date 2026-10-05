@@ -153,7 +153,8 @@ export class WorkspaceContextService {
         this.boardsState.set(boards);
         const firstBoardId = boards.length > 0 ? (boards[0]._id || (boards[0] as any).id) : null;
         const current = this.activeBoardId();
-        this.activeBoardId.set(boards.some(board => board._id === current) ? current : firstBoardId);
+        const boardExists = current && boards.some(board => (board._id || (board as any).id) === current);
+        this.activeBoardId.set(boardExists ? current : firstBoardId);
       },
       error: () => {
         this.boardsState.set([]);

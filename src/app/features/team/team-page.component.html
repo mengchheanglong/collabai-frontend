@@ -333,7 +333,7 @@
                     @if (user.avatarUrl) {
                       <img [src]="user.avatarUrl" [alt]="user.name" class="ui-avatar-img" />
                     } @else {
-                      {{ user.name.slice(0, 1).toUpperCase() }}
+                      {{ ((user.name || user.email || 'U')[0] || 'U').toUpperCase() }}
                     }
                   </span>
                   <div class="tm-autocomplete-text">

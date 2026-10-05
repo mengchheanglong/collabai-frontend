@@ -27,8 +27,8 @@
           <span class="presence-count">{{ live.onlineUsers().length }} online</span>
           <div class="presence-avatars">
             @for (u of live.onlineUsers().slice(0, 4); track u.userId) {
-              <span class="presence-avatar-bubble" [matTooltip]="u.name">
-                {{ u.name.charAt(0).toUpperCase() }}
+              <span class="presence-avatar-bubble" [matTooltip]="u.name || 'Teammate'">
+                {{ ((u.name || u.email || 'U')[0] || 'U').toUpperCase() }}
               </span>
             }
             @if (live.onlineUsers().length > 4) {

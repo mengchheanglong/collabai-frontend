@@ -230,26 +230,98 @@ textarea {
   color: var(--muted);
 }
 
+/* ============ MAIN DROPZONE ============ */
+.main-dropzone {
+  margin: 20px 0 28px;
+  padding: 32px 24px;
+  border: 2px dashed #3b82f6;
+  border-radius: 12px;
+  background: rgba(59, 130, 246, 0.04);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.main-dropzone:hover,
+.main-dropzone.drag-over {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.09);
+  transform: translateY(-1px);
+}
+
+.dropzone-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.dropzone-icon {
+  font-size: 36px;
+}
+
+.dropzone-text-group {
+  text-align: left;
+}
+
+.dropzone-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dropzone-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.btn-browse-action {
+  background: #2563eb !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+}
+
 /* ============ DOCUMENT CARDS ============ */
 .document-list {
   margin: 24px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.doc-card-wrapper {
+  display: flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: var(--panel);
+  transition: all 0.15s ease;
+}
+
+.doc-card-wrapper:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
 
 .document-card {
   display: flex;
   align-items: center;
-  gap: 18px;
-  border-bottom: 1px solid #cbd5e1;
-  padding: 22px 8px;
-  transition: background 0.15s ease;
-}
-
-.document-card div {
+  gap: 16px;
+  padding: 16px 20px;
   flex: 1;
+  text-decoration: none;
+  color: inherit;
 }
 
-.document-card:hover {
-  background: rgba(37, 99, 235, 0.06);
+.doc-info-col {
+  flex: 1;
 }
 
 .doc-card-title-row {
@@ -259,14 +331,37 @@ textarea {
   flex-wrap: wrap;
 }
 
-h3 {
+.doc-title-text {
   margin: 0;
-  font-size: 17px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
-.document-card p {
-  font-size: 13px;
-  margin: 8px 0 0;
+.doc-meta-text {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 4px 0 0;
+}
+
+.doc-arrow {
+  color: var(--muted);
+  font-size: 18px;
+}
+
+.btn-card-download {
+  border: none !important;
+  background: transparent !important;
+  padding: 16px 18px !important;
+  font-size: 16px !important;
+  color: var(--muted) !important;
+  border-left: 1px solid #cbd5e1 !important;
+  border-radius: 0 10px 10px 0 !important;
+  cursor: pointer;
+}
+
+.btn-card-download:hover {
+  background: rgba(37, 99, 235, 0.08) !important;
+  color: #2563eb !important;
 }
 
 .doc-icon {
@@ -285,6 +380,126 @@ h3 {
   margin: 16px 0 8px;
   font-weight: 600;
   font-size: 13px;
+}
+
+/* ============ NEW DOC HERO VIEW ============ */
+.new-doc-upload-view {
+  margin: 40px auto;
+  max-width: 600px;
+  text-align: center;
+}
+
+.new-upload-box {
+  padding: 60px 30px;
+  border: 2px dashed #cbd5e1;
+  border-radius: 16px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.new-upload-box:hover,
+.new-upload-box.drag-over {
+  border-color: #2563eb;
+  background: rgba(37, 99, 235, 0.05);
+}
+
+.upload-giant-icon {
+  font-size: 54px;
+  display: block;
+  margin-bottom: 16px;
+}
+
+/* ============ DETAIL VIEW ============ */
+.doc-detail-view {
+  margin-top: 16px;
+}
+
+.doc-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px 24px;
+  background: var(--panel);
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  margin-bottom: 24px;
+}
+
+.doc-detail-title-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.doc-badge-large {
+  font-size: 16px;
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.doc-detail-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.doc-detail-meta {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.doc-detail-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-download-hero {
+  font-weight: 600 !important;
+  font-size: 14px !important;
+}
+
+.pdf-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.doc-notes-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: var(--panel);
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+}
+
+.notes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.notes-header h4 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.notes-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.notes-save-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 12px;
 }
 
 /* ============ DROPZONE ============ */

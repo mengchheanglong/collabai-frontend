@@ -1,20 +1,20 @@
 <main class="docs-page">
   <header>
     <div>
-      <p class="eyebrow">WORKSPACE KNOWLEDGE</p>
-      <h1>Documentation</h1>
-      <p>Keep project guides, decisions, and files together.</p>
+      <p class="eyebrow">WORKSPACE FILES</p>
+      <h1>Documents &amp; Files</h1>
+      <p>Upload and manage project files, PDFs, specifications, and docs.</p>
     </div>
     @if (!id() && canEdit()) {
       <div class="header-actions">
-        <a class="primary" routerLink="/docs/new">New document</a>
-        <label class="btn-action" title="Upload a PDF, Word doc, Markdown, or text file">
-          📁 Upload file
+        <label class="primary btn-upload-header" title="Upload files (PDF, Word docs, text, markdown, spreadsheets, images)">
+          📤 Upload file(s)
           <input
             type="file"
+            multiple
             class="sr-only"
-            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
-            (change)="uploadNewDocumentFromFile($event)"
+            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
+            (change)="onFilesSelectedForNew($event)"
           />
         </label>
       </div>
@@ -36,12 +36,42 @@
     <p role="status" class="success">{{ success() }}</p>
   }
   @if (loading()) {
-    <p role="status">Loading documentation…</p>
+    <p role="status">Loading documents…</p>
   } @else if (!id()) {
     <h2>{{ workspace.activeProjectName() }}</h2>
     @if (!workspace.activeProjectId()) {
-      <p>Select or create a project to start documenting.</p>
+      <p>Select or create a project to start uploading documents.</p>
     } @else {
+      <!-- Direct drag-and-drop file upload zone -->
+      @if (canEdit()) {
+        <button
+          type="button"
+          class="main-dropzone"
+          [class.drag-over]="isDraggingOver()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onMainFileDrop($event)"
+          (click)="mainFileDropInput.click()"
+        >
+          <input
+            #mainFileDropInput
+            type="file"
+            multiple
+            class="sr-only"
+            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
+            (change)="onFilesSelectedForNew($event)"
+          />
+          <span class="dropzone-inner">
+            <span class="dropzone-icon">📁</span>
+            <span class="dropzone-text-group">
+              <strong class="dropzone-title">Upload project documents &amp; files</strong>
+              <span class="dropzone-desc">Drop PDF, Word docs, text, markdown, or spreadsheets here, or <span class="browse-link">browse files</span></span>
+            </span>
+            <span class="btn-browse-action">Select files</span>
+          </span>
+        </button>
+      }
+
       <form class="search" (ngSubmit)="searchDocs()">
         <input
           aria-label="Search document titles"
@@ -51,26 +81,44 @@
           maxlength="150"
         /><button type="submit">Search</button>
       </form>
+
       <section class="document-list" aria-label="Documents">
         @for (doc of items(); track doc._id) {
-          <a class="document-card" [routerLink]="['/docs', doc._id]">
-            <span class="doc-icon">{{ getFileBadge(doc.title, doc.fileType ?? '').icon }}</span>
-            <div>
-              <div class="doc-card-title-row">
-                <h3>{{ doc.title }}</h3>
-                @if (doc.fileType) {
-                  <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType).class">
-                    {{ getFileBadge(doc.title, doc.fileType).label }}
-                  </span>
-                }
-                @if (doc.attachments && doc.attachments.length > 0) {
-                  <span class="attachment-count-badge">📎 {{ doc.attachments.length }}</span>
-                }
+          <div class="doc-card-wrapper">
+            <a class="document-card" [routerLink]="['/docs', doc._id]">
+              <span class="doc-icon">{{ getFileBadge(doc.title, doc.fileType ?? '').icon }}</span>
+              <div class="doc-info-col">
+                <div class="doc-card-title-row">
+                  <h3 class="doc-title-text">{{ doc.title }}</h3>
+                  @if (doc.fileType) {
+                    <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType).class">
+                      {{ getFileBadge(doc.title, doc.fileType).label }}
+                    </span>
+                  }
+                  @if (doc.attachments && doc.attachments.length > 0) {
+                    <span class="attachment-count-badge">📎 {{ doc.attachments.length }}</span>
+                  }
+                </div>
+                <p class="doc-meta-text">
+                  Updated {{ doc.updatedAt | date: "medium" }}
+                  @if (doc.attachments && doc.attachments[0]?.size) {
+                    · {{ formatBytes(doc.attachments[0].size) }}
+                  }
+                </p>
               </div>
-              <p>Updated {{ doc.updatedAt | date: "medium" }}</p>
-            </div>
-            <span>→</span>
-          </a>
+              <span class="doc-arrow">→</span>
+            </a>
+            @if (doc.attachments && doc.attachments[0]) {
+              <button
+                type="button"
+                class="btn-card-download"
+                (click)="downloadAttachment(doc.attachments[0])"
+                title="Download original file"
+              >
+                ⬇️
+              </button>
+            }
+          </div>
         } @empty {
           @if (!error()) {
             <div class="empty">
@@ -78,14 +126,14 @@
                 {{
                   search
                     ? "No matching documents"
-                    : "A home for your project knowledge"
+                    : "No documents uploaded yet"
                 }}
               </h3>
               <p>
                 {{
                   search
-                    ? "Try another title."
-                    : "Add a guide, meeting notes, upload a PDF/Word doc, or import markdown."
+                    ? "Try another search term."
+                    : "Upload a PDF, Word document, text file, or markdown to get started."
                 }}
               </p>
             </div>
@@ -104,7 +152,33 @@
         </nav>
       }
     }
-  } @else if (document() || id() === "new") {
+  } @else if (id() === "new") {
+    <!-- Upload New Document Screen -->
+    <div class="new-doc-upload-view">
+      <button
+        type="button"
+        class="new-upload-box"
+        [class.drag-over]="isDraggingOver()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onMainFileDrop($event)"
+        (click)="newDocFileInput.click()"
+      >
+        <input
+          #newDocFileInput
+          type="file"
+          multiple
+          class="sr-only"
+          accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
+          (change)="onFilesSelectedForNew($event)"
+        />
+        <span class="upload-giant-icon">📄</span>
+        <h2>Select or drop a file to upload</h2>
+        <p>Supports PDF, DOC, DOCX, Markdown, Text, CSV, and images (up to 20MB)</p>
+        <span class="primary btn-hero-span">Browse Files</span>
+      </button>
+    </div>
+  } @else if (document()) {
     @if (activeEditorsLabel()) {
       <div class="active-collab-badge" role="status">
         <span class="pulse-dot"></span>
@@ -120,107 +194,76 @@
         </div>
       </div>
     }
-    @if (!canEdit()) {
-      <p>This documentation is read-only.</p>
-    }
-    <form (ngSubmit)="save()">
-      <div class="title-row">
-        <div class="title-input-wrapper">
-          <label for="doc-title">Title</label>
-          <input
-            id="doc-title"
-            name="title"
-            [ngModel]="title()"
-            (ngModelChange)="title.set($event)"
-            maxlength="150"
-            required
-            [disabled]="!canEdit() || busy()"
-            (input)="onEditorInput()"
-            placeholder="Untitled document"
-          />
-                @if (!canEdit()) {
-          <span class="badge-viewer-lock">👁️ View Only</span>
-        }
-</div>
-        @if (fileType()) {
-          <div class="file-type-indicator">
-            <span class="format-label">Format</span>
-            <span class="file-badge" [class]="getFileBadge(title(), fileType()).class">
-              {{ getFileBadge(title(), fileType()).icon }} {{ getFileBadge(title(), fileType()).label }}
-            </span>
-          </div>
-        }
-      </div>
 
-      <div class="toolbar">
-        <button type="button" (click)="preview.set(!preview())">
-          {{ preview() ? "Edit Markdown" : "Preview" }}
-        </button>
-        <button type="button" class="btn-export" (click)="exportMarkdown()" title="Export document as Markdown (.md)">
-          ⬇️ .MD
-        </button>
-        <button type="button" class="btn-export" (click)="exportPdf()" title="Print / Export as PDF">
-          🖨️ PDF
-        </button>
-
-        @if (canEdit()) {
-          <label class="btn-subtle-label" title="Import markdown or text from file">
-            📥 Import .md / .txt
-            <input
-              type="file"
-              class="sr-only"
-              accept=".md,.markdown,.txt"
-              (change)="importMarkdownOrText($event)"
-            />
-          </label>
-          <label class="btn-subtle-label" title="Attach PDF, Word, Markdown, or other files">
-            📎 Attach files
-            <input
-              type="file"
-              multiple
-              class="sr-only"
-              accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
-              (change)="onFilesSelected($event)"
-            />
-          </label>
-        }
-
-        <span class="save-status">{{ dirty() ? "Unsaved changes" : "All changes saved" }}</span>
-
-        @if (canEdit()) {
-          <button
-            class="primary"
-            type="submit"
-            [disabled]="busy() || !title().trim() || content().length > 100000"
-          >
-            {{ busy() ? "Saving…" : "Save document" }}
-          </button>
-        }
-      </div>
-
-      <!-- Drag & drop zone -->
-      @if (canEdit() && !preview()) {
-        <button
-          type="button"
-          class="dropzone"
-          [class.drag-over]="isDraggingOver()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onFileDrop($event)"
-          (click)="fileDropInput.click()"
-        >
-          <input
-            #fileDropInput
-            type="file"
-            multiple
-            class="sr-only"
-            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
-            (change)="onFilesSelected($event)"
-          />
-          <span class="dropzone-text">
-            📎 Drag &amp; drop files here, or <span class="browse-link">browse</span> (PDF, DOC, DOCX, MD, TXT, images)
+    <!-- Document Detail & Viewer -->
+    <div class="doc-detail-view">
+      <div class="doc-detail-header">
+        <div class="doc-detail-title-group">
+          <span class="doc-badge-large" [class]="getFileBadge(title(), fileType()).class">
+            {{ getFileBadge(title(), fileType()).icon }} {{ getFileBadge(title(), fileType()).label }}
           </span>
-        </button>
+          <div>
+            <h2 class="doc-detail-title">{{ title() }}</h2>
+            <p class="doc-detail-meta">
+              Updated {{ document()?.updatedAt | date: "medium" }}
+              @if (attachments().length > 0 && attachments()[0].size) {
+                · {{ formatBytes(attachments()[0].size) }}
+              }
+            </p>
+          </div>
+        </div>
+
+        <div class="doc-detail-actions">
+          @if (attachments().length > 0) {
+            <button
+              type="button"
+              class="primary btn-download-hero"
+              (click)="downloadAttachment(attachments()[0])"
+              title="Download original file"
+            >
+              ⬇️ Download File
+            </button>
+          }
+          <button type="button" class="btn-export" (click)="exportPdf()" title="Print / Export as PDF">
+            🖨️ PDF
+          </button>
+          @if (canEdit()) {
+            <button
+              class="danger"
+              type="button"
+              [disabled]="busy()"
+              (click)="remove()"
+              title="Delete document"
+            >
+              🗑️ Delete
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Embedded PDF preview viewer -->
+      @if (safePdfUrl()) {
+        <div class="pdf-viewer-container">
+          <div class="pdf-viewer-header">
+            <span>📕 PDF Preview: {{ activePreviewAttachment()?.name || title() }}</span>
+            <div class="pdf-header-actions">
+              @if (activePreviewAttachment() || attachments()[0]) {
+                <button
+                  type="button"
+                  class="btn-subtle"
+                  (click)="downloadAttachment(activePreviewAttachment() || attachments()[0])"
+                >
+                  ⬇️ Download PDF
+                </button>
+              }
+            </div>
+          </div>
+          <iframe
+            [src]="safePdfUrl()!"
+            class="pdf-iframe"
+            title="PDF Preview"
+          ></iframe>
+        </div>
       }
 
       <!-- Attached files section -->
@@ -260,14 +303,6 @@
                   @if (canEdit()) {
                     <button
                       type="button"
-                      class="btn-subtle"
-                      (click)="insertAttachmentMarkdown(att)"
-                      title="Insert link into markdown"
-                    >
-                      🔗 Insert link
-                    </button>
-                    <button
-                      type="button"
                       class="btn-subtle btn-danger-icon"
                       (click)="removeAttachment(i)"
                       title="Remove attachment"
@@ -282,57 +317,67 @@
         </section>
       }
 
-      <!-- Embedded PDF preview viewer -->
-      @if (activePreviewAttachment() && safePdfUrl()) {
-        <div class="pdf-viewer-container">
-          <div class="pdf-viewer-header">
-            <span>📕 PDF Preview: {{ activePreviewAttachment()?.name }}</span>
-            <button
-              type="button"
-              class="btn-subtle"
-              (click)="activePreviewAttachment.set(null)"
-            >
-              ✕ Close Preview
-            </button>
-          </div>
-          <iframe
-            [src]="safePdfUrl()!"
-            class="pdf-iframe"
-            title="PDF Preview"
-          ></iframe>
-        </div>
-      }
-
-      <!-- Markdown Preview or Textarea Editor -->
-      @if (preview() || !canEdit()) {
-        <article class="preview" [innerHTML]="html()"></article>
-      } @else {
-        <label for="doc-content">Markdown content</label>
-        <p class="hint">
-          Use # headings, **bold**, *italic*, - lists, > quotes, and ``` code blocks.
-        </p>
-        <textarea
-          id="doc-content"
-          name="content"
-          [ngModel]="content()"
-          (ngModelChange)="content.set($event)"
-          maxlength="100000"
-          [disabled]="busy()"
-          (input)="onEditorInput()"
-          placeholder="Start writing your project documentation…"
-        ></textarea>
-      }
-
-      @if (document() && canEdit()) {
+      <!-- Drag & drop zone to attach additional files -->
+      @if (canEdit()) {
         <button
-          class="danger"
           type="button"
-          [disabled]="busy()"
-          (click)="remove()"
+          class="dropzone"
+          [class.drag-over]="isDraggingOver()"
+          (dragover)="onDragOver($event)"
+          (dragleave)="onDragLeave($event)"
+          (drop)="onFileDrop($event)"
+          (click)="detailFileDropInput.click()"
         >
-          Delete document
+          <input
+            #detailFileDropInput
+            type="file"
+            multiple
+            class="sr-only"
+            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
+            (change)="onFilesSelected($event)"
+          />
+          <span class="dropzone-text">
+            📎 Drop files here to attach to this document, or <span class="browse-link">browse</span>
+          </span>
         </button>
       }
-    </form>
+
+      <!-- Optional Content/Notes view (only if content exists and not pure PDF) -->
+      @if (content().trim() && !fileType()?.includes('pdf')) {
+        <section class="doc-notes-section">
+          <div class="notes-header">
+            <h4>Document Notes</h4>
+            <div class="notes-actions">
+              <button type="button" class="btn-subtle" (click)="preview.set(!preview())">
+                {{ preview() ? "Edit notes" : "Preview" }}
+              </button>
+              <button type="button" class="btn-export" (click)="exportMarkdown()" title="Export notes as Markdown">
+                ⬇️ .MD
+              </button>
+            </div>
+          </div>
+          @if (preview() || !canEdit()) {
+            <article class="preview" [innerHTML]="html()"></article>
+          } @else {
+            <form (ngSubmit)="save()">
+              <textarea
+                id="doc-content"
+                name="content"
+                [ngModel]="content()"
+                (ngModelChange)="content.set($event)"
+                maxlength="100000"
+                [disabled]="busy()"
+                (input)="onEditorInput()"
+                placeholder="Optional document notes…"
+              ></textarea>
+              <div class="notes-save-bar">
+                <span class="save-status">{{ dirty() ? "Unsaved changes" : "All changes saved" }}</span>
+                <button class="primary" type="submit" [disabled]="busy()">Save notes</button>
+              </div>
+            </form>
+          }
+        </section>
+      }
+    </div>
   }
 </main>

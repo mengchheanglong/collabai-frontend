@@ -144,21 +144,25 @@ export class TaskStoreService {
         if (loadVersion !== this.boardLoadVersion) return;
         const mappedTasks: Task[] = (data.tasks || []).map((t) => ({
           id: t._id || (t as any).id,
-          boardId: t.boardId ?? null,
+          boardId: t.boardId ?? (t as any)?.board?.id ?? null,
           projectId: t.projectId,
           title: t.title,
           description: t.description ?? '',
-          status: t.status as TaskStatus,
-          priority: t.priority as Priority,
-          position: t.position,
-          assigneeId: t.assigneeId ?? null,
-          createdById: t.createdById,
+          status: (((t.status as unknown as string) || 'todo').toLowerCase()) as TaskStatus,
+          priority: (((t.priority as unknown as string) || 'medium').toLowerCase()) as Priority,
+          position: typeof t.position === 'number' ? t.position : Number(t.position) || 0,
+          assigneeId: t.assigneeId ?? (t as any)?.assignedTo ?? null,
+          createdById: t.createdById ?? (t as any)?.createdBy ?? '',
           dueDate: t.dueDate ?? null,
-          labels: t.labels || [],
-          comments: t.commentCount ?? 0,
-          subtasks: (t.subtasks || []).map((s) => ({ id: s._id || (s as any).id, title: s.title, done: s.done })),
-          createdAt: t.createdAt,
-          updatedAt: t.updatedAt,
+          labels: (t.labels || []).map((l: any) => typeof l === 'string' ? l : (l?.label?.name ?? l?.name ?? '')).filter(Boolean),
+          comments: t.commentCount ?? (t as any)?.comments?.length ?? 0,
+          subtasks: (t.subtasks || []).map((s: any) => ({
+            id: s._id || s.id,
+            title: s.title,
+            done: s.done ?? s.completed ?? false,
+          })),
+          createdAt: typeof t.createdAt === 'string' ? t.createdAt : (t.createdAt ? new Date(t.createdAt).toISOString() : new Date().toISOString()),
+          updatedAt: typeof t.updatedAt === 'string' ? t.updatedAt : (t.updatedAt ? new Date(t.updatedAt).toISOString() : new Date().toISOString()),
         }));
         // Replay events received while this REST snapshot was in flight.
         for (const [id, change] of this.liveChanges) {

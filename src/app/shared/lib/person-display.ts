@@ -1,8 +1,10 @@
 import type { Priority } from '../models/task.models';
 
-export function initials(name: string): string {
-  return name
-    .split(' ')
+export function initials(name?: string | null): string {
+  if (!name || typeof name !== 'string') return 'U';
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'U';
+  return parts
     .map((part) => part[0])
     .join('')
     .slice(0, 2)

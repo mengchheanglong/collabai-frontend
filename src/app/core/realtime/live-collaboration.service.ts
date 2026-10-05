@@ -49,7 +49,9 @@ export class LiveCollaborationService implements OnDestroy {
   });
   effect(() => { const pending = this.offline.pendingCount(); const syncing = this.offline.isSyncing(); if (!pending && !syncing && this.deferred) untracked(() => { this.deferred = false; void this.refresh(); }); });
   this.subscriptions.add(this.socket.joined$.subscribe(() => void this.refresh()));
-  this.subscriptions.add(this.socket.denied$.subscribe(id => { if (id === this.workspace.activeProjectId()) this.loseProject(id); }));
+  this.subscriptions.add(this.socket.denied$.subscribe(id => {
+    console.warn(`[LiveCollab] Socket room join was not accepted for project ${id}`);
+  }));
   this.subscriptions.add(this.socket.events$.subscribe(({ name, event }) => this.apply(name, event)));
  }
  ngOnDestroy() { this.refreshVersion++; this.subscriptions.unsubscribe(); this.stopTyping(); this.clearTyping(); this.stopViewingTask(); this.taskViewers.set({}); this.socket.setProject(null); }
@@ -74,7 +76,12 @@ export class LiveCollaborationService implements OnDestroy {
   if (event.projectId !== this.workspace.activeProjectId()) return;
   if (name === 'project:deleted' || (name === 'member:removed' && data['userId'] === this.auth.currentUser()?._id)) { this.loseProject(event.projectId); return; }
   if (name === 'presence:update') {
-   const users = (data['users'] as Array<{ userId: string; name: string; email?: string }>) || [];
+   const rawUsers = (data['users'] as Array<{ userId: string; name?: string; email?: string }>) || [];
+   const users = rawUsers.map(u => ({
+     userId: u.userId,
+     name: (u.name && u.name.trim()) ? u.name : (u.email ? u.email.split('@')[0] : 'Teammate'),
+     email: u.email,
+   }));
    this.onlineUsers.set(users);
    return;
   }
