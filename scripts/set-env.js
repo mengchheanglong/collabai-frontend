@@ -6,15 +6,26 @@ const fs = require('fs');
 const path = require('path');
 
 const rawBackendUrl = process.env.BACKEND_URL || '';
-const cleanBackend = rawBackendUrl.trim().replace(/\/$/, '');
+const rawApiBaseUrl = process.env.API_BASE_URL || '';
+const rawSocketUrl = process.env.SOCKET_URL || '';
+
+// Clean base domain (strip trailing slash and /api/v1 if included)
+let cleanBackend = rawBackendUrl.trim().replace(/\/$/, '').replace(/\/api\/v1$/, '');
+if (!cleanBackend && rawApiBaseUrl) {
+  cleanBackend = rawApiBaseUrl.trim().replace(/\/$/, '').replace(/\/api\/v1$/, '');
+}
+if (!cleanBackend && rawSocketUrl) {
+  cleanBackend = rawSocketUrl.trim().replace(/\/$/, '');
+}
 
 const apiBaseUrl =
-  process.env.API_BASE_URL?.trim() ||
+  rawApiBaseUrl.trim() ||
   (cleanBackend ? `${cleanBackend}/api/v1` : '');
 
 const socketUrl =
-  process.env.SOCKET_URL?.trim() ||
-  cleanBackend;
+  rawSocketUrl.trim() ||
+  cleanBackend ||
+  '';
 
 const envProdPath = path.join(__dirname, '../src/environments/environment.prod.ts');
 

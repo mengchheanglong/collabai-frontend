@@ -86,6 +86,7 @@ export class AiCopilotComponent {
       text: 'CollabAI ready. Ask anything about your project or type / for commands.',
       suggestions: [
         '✨ Generate 5 tasks',
+        '📚 What is in our documentation?',
         '🔍 High priority tasks',
         '📊 Tasks due this week',
       ],
@@ -95,6 +96,7 @@ export class AiCopilotComponent {
   readonly baseCommands: SlashCommand[] = [
     { name: '/create', description: 'Generate tasks with AI', icon: 'auto_awesome', category: 'Tasks', insertText: '/create ' },
     { name: '/task', description: 'Create a new task', icon: 'add_circle', category: 'Tasks', insertText: '/task ' },
+    { name: '/docs', description: 'Ask about project documentation', icon: 'description', category: 'Project', insertText: '/docs ' },
     { name: '/filter', description: 'Filter tasks on board', icon: 'filter_list', category: 'System', insertText: '/filter ' },
     { name: '/project', description: 'Switch active project', icon: 'folder', category: 'Project', insertText: '/project ' },
     { name: '/clear', description: 'Clear conversation', icon: 'cleaning_services', category: 'System', insertText: '/clear' },
@@ -311,7 +313,7 @@ export class AiCopilotComponent {
     if (this.isCapabilityRequest(text)) {
       this.finishMessage(
         pendingId,
-        'I can search and filter tasks across this project; create projects and tasks; move a task to To do, In progress, or Done; set priority; add comments; and open Dashboard, Board, My work, Team, or Profile. Type / for slash command shortcuts!',
+        'I can answer questions about your project documentation and architecture; search and filter tasks; create projects and tasks; move a task to To do, In progress, or Done; set priority; add comments; and open Dashboard, Board, My work, Team, or Profile. Type / for slash command shortcuts!',
       );
       return;
     }
@@ -418,6 +420,7 @@ export class AiCopilotComponent {
         pendingId,
         `### 🛠️ CollabAI Slash Commands\n\n` +
         `* \`/project <name>\` — Switch active project context (e.g. \`/project Mobile App\`)\n` +
+        `* \`/docs [query]\` — Ask questions or get summaries from project documentation\n` +
         `* \`/create [count] <topic>\` — Generate 1 to 15 structured tasks (e.g. \`/create 5 authentication tasks\`)\n` +
         `* \`/task <title>\` — Create a single task\n` +
         `* \`/done [task]\` — Mark task as Done (defaults to active task)\n` +
@@ -630,6 +633,32 @@ export class AiCopilotComponent {
         },
         error: () => this.finishMessage(pendingId, 'Failed to filter tasks. Please try again.'),
       });
+      return;
+    }
+
+    if (cmd === '/docs' || cmd === '/doc') {
+      const prompt = rest
+        ? `Regarding our project documentation: ${rest}`
+        : 'Please summarize our project documentation, guides, and key specifications.';
+      const history = this.messages()
+        .filter((m) => !m.pending && (m.role === 'user' || m.role === 'assistant'))
+        .slice(-6)
+        .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }));
+
+      this.ai
+        .chat({
+          message: prompt,
+          projectId: targetProjectId,
+          history,
+        })
+        .subscribe({
+          next: ({ reply }) => {
+            this.finishMessage(pendingId, reply);
+          },
+          error: () => {
+            this.finishMessage(pendingId, 'Failed to retrieve documentation context. Please try again.');
+          },
+        });
       return;
     }
 

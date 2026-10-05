@@ -192,20 +192,38 @@ export class TaskStoreService {
   private readonly liveChanges = new Map<string, { revision: number; task: Task | null }>();
 
   applyLiveTask(dto: TaskDto | null, deletedId?: string): void {
-    const id = dto?._id ?? deletedId; if (!id) return;
+    const id = dto?._id ?? (dto as any)?.id ?? deletedId;
+    if (!id) return;
     const task: Task | null = dto ? {
-      id, projectId: dto.projectId, boardId: dto.boardId ?? null, title: dto.title,
-      description: dto.description ?? '', status: dto.status, priority: dto.priority,
-      position: dto.position, assigneeId: dto.assigneeId ?? null, createdById: dto.createdById,
-      dueDate: dto.dueDate ?? null, labels: dto.labels ?? [], comments: dto.commentCount ?? 0,
-      subtasks: (dto.subtasks ?? []).map(s => ({ id: s._id, title: s.title, done: s.done })),
-      createdAt: dto.createdAt, updatedAt: dto.updatedAt,
+      id,
+      projectId: dto.projectId,
+      boardId: dto.boardId ?? (dto as any)?.board?.id ?? null,
+      title: dto.title,
+      description: dto.description ?? '',
+      status: (((dto.status as unknown as string) || 'todo').toLowerCase()) as TaskStatus,
+      priority: (((dto.priority as unknown as string) || 'medium').toLowerCase()) as Priority,
+      position: typeof dto.position === 'number' ? dto.position : Number(dto.position) || 0,
+      assigneeId: dto.assigneeId ?? (dto as any)?.assignedTo ?? null,
+      createdById: dto.createdById ?? (dto as any)?.createdBy ?? '',
+      dueDate: dto.dueDate ?? null,
+      labels: (dto.labels ?? []).map((l: any) => typeof l === 'string' ? l : (l?.label?.name ?? l?.name ?? '')).filter(Boolean),
+      comments: dto.commentCount ?? (dto as any)?.comments?.length ?? 0,
+      subtasks: (dto.subtasks ?? []).map((s: any) => ({
+        id: s._id || s.id,
+        title: s.title,
+        done: s.done ?? s.completed ?? false,
+      })),
+      createdAt: typeof dto.createdAt === 'string' ? dto.createdAt : (dto.createdAt ? new Date(dto.createdAt).toISOString() : new Date().toISOString()),
+      updatedAt: typeof dto.updatedAt === 'string' ? dto.updatedAt : (dto.updatedAt ? new Date(dto.updatedAt).toISOString() : new Date().toISOString()),
     } : null;
-    const current = this.tasks().find(t => t.id === id);
-    if (task && current && Date.parse(task.updatedAt) < Date.parse(current.updatedAt)) return;
-    const visible = task && task.boardId === this.workspace.activeBoardId() ? task : null;
+    const current = this.tasks().find((t) => t.id === id);
+    const taskUpdated = task?.updatedAt ? Date.parse(task.updatedAt) : Date.now();
+    const currentUpdated = current?.updatedAt ? Date.parse(current.updatedAt) : 0;
+    if (task && current && !isNaN(taskUpdated) && !isNaN(currentUpdated) && taskUpdated < currentUpdated) return;
+    const activeBoard = this.workspace.activeBoardId();
+    const visible = task && (!task.boardId || !activeBoard || task.boardId === activeBoard) ? task : null;
     this.liveChanges.set(id, { revision: ++this.liveRevision, task: visible });
-    this.tasks.update(items => visible ? [...items.filter(t => t.id !== id), visible] : items.filter(t => t.id !== id));
+    this.tasks.update((items) => (visible ? [...items.filter((t) => t.id !== id), visible] : items.filter((t) => t.id !== id)));
     if (this.selectedTask()?.id === id) this.selectedTask.set(visible);
     if (task) void this.idb.put('tasks', task); else void this.idb.delete('tasks', id);
   }

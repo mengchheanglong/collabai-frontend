@@ -23,7 +23,25 @@ export class SocketService {
   effect(onCleanup => {
    const token = this.tokens.token();
    if (!token) { this.connected.set(false); return; }
-   const socket = io(environment.socketUrl, { autoConnect: false, auth: { token }, reconnection: true, reconnectionDelayMax: 5000, withCredentials: true });
+   const rawTarget =
+     environment.socketUrl ||
+     (environment.apiBaseUrl?.startsWith('http')
+       ? environment.apiBaseUrl.replace(/\/api\/v1\/?$/, '')
+       : '');
+   const targetUrl = rawTarget.trim().replace(/\/$/, '');
+   if (!targetUrl) {
+     console.warn('[SocketService] No socket URL configured; live sync is disabled.');
+     this.connected.set(false);
+     return;
+   }
+   const socket = io(targetUrl, {
+     autoConnect: false,
+     auth: { token },
+     transports: ['websocket', 'polling'],
+     reconnection: true,
+     reconnectionDelayMax: 5000,
+     withCredentials: true,
+   });
    this.socket = socket;
    socket.on('connect', () => { this.connected.set(true); this.joinCurrent(); });
    socket.on('disconnect', () => { this.connected.set(false); this.joinVersion++; });
