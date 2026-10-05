@@ -1,4 +1,5 @@
 import {
+  OnDestroy,
   Component,
   HostListener,
   computed,
@@ -23,6 +24,7 @@ import { WorkspaceContextService } from "../../core/workspace/workspace-context.
 import { ProjectApiService } from "../../core/api/project-api.service";
 import { AuthStoreService } from "../../core/state/auth-store.service";
 import { renderMarkdown } from "./markdown";
+import { SocketService } from "../../core/realtime/socket.service";
 
 @Component({
   selector: "app-docs-page",
@@ -31,13 +33,24 @@ import { renderMarkdown } from "./markdown";
   templateUrl: "./docs-page.component.html",
   styleUrl: "./docs-page.component.scss",
 })
-export class DocsPageComponent {
+export class DocsPageComponent implements OnDestroy {
   readonly workspace = inject(WorkspaceContextService);
   private readonly api = inject(DocsApiService);
   private readonly projects = inject(ProjectApiService);
   private readonly auth = inject(AuthStoreService);
   private readonly router = inject(Router);
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly socket = inject(SocketService);
+  readonly activeEditors = signal<Record<string, { userId: string; name: string }>>({});
+  readonly activeEditorsLabel = computed(() => {
+    const editors = Object.values(this.activeEditors());
+    if (!editors.length) return "";
+    const names = editors.map((e) => e.name || "A collaborator");
+    return `${names.join(", ")} ${names.length === 1 ? "is" : "are"} currently editing this document`;
+  });
+  readonly remoteConflict = signal<boolean>(false);
+  private docEditingTimer?: ReturnType<typeof setTimeout>;
+  private editorClearTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private readonly params = toSignal(inject(ActivatedRoute).paramMap);
 
   readonly id = computed(() => this.params()?.get("documentId") ?? null);
@@ -99,12 +112,109 @@ export class DocsPageComponent {
         void this.load(id, project);
       });
     });
+    this.socket.events$.subscribe(({ name, event }) => {
+      const currentDoc = this.document();
+      if (!currentDoc) return;
+      const currentDocId = currentDoc._id;
+      const myId = this.auth.currentUser()?._id;
+
+      if (name === "doc:editing:started" && event.data["documentId"] === currentDocId) {
+        if (event.actorId !== myId) {
+          const editorName = String(event.data["userName"] || event.data["name"] || "A teammate");
+          const key = event.actorId;
+          clearTimeout(this.editorClearTimers.get(key));
+          this.activeEditors.update((eds) => ({
+            ...eds,
+            [key]: { userId: event.actorId, name: editorName },
+          }));
+          this.editorClearTimers.set(
+            key,
+            setTimeout(() => {
+              this.activeEditors.update((eds) => {
+                const next = { ...eds };
+                delete next[key];
+                return next;
+              });
+              this.editorClearTimers.delete(key);
+            }, 5000),
+          );
+        }
+      } else if (name === "doc:editing:stopped" && event.data["documentId"] === currentDocId) {
+        const key = event.actorId;
+        clearTimeout(this.editorClearTimers.get(key));
+        this.editorClearTimers.delete(key);
+        this.activeEditors.update((eds) => {
+          const next = { ...eds };
+          delete next[key];
+          return next;
+        });
+      } else if (name === "document:updated") {
+        const docData = event.data["document"] as any;
+        if ((docData?.id === currentDocId || docData?._id === currentDocId) && event.actorId !== myId) {
+          this.remoteConflict.set(true);
+        }
+      }
+    });
   }
 
   @HostListener("window:beforeunload", ["$event"]) beforeUnload(
     event: BeforeUnloadEvent,
   ) {
     if (this.dirty() || this.busy()) event.preventDefault();
+  }
+  ngOnDestroy() {
+    clearTimeout(this.docEditingTimer);
+    for (const t of this.editorClearTimers.values()) clearTimeout(t);
+    this.editorClearTimers.clear();
+    const doc = this.document();
+    if (doc) this.socket.docEditing(doc._id, false);
+  }
+
+  onEditorInput() {
+    const doc = this.document();
+    if (!doc || !this.canEdit()) return;
+    this.socket.docEditing(doc._id, true);
+    clearTimeout(this.docEditingTimer);
+    this.docEditingTimer = setTimeout(() => {
+      this.socket.docEditing(doc._id, false);
+    }, 2500);
+  }
+
+  reloadRemoteVersion() {
+    this.remoteConflict.set(false);
+    void this.load();
+    this.success.set("Reloaded latest version from server.");
+  }
+
+  dismissRemoteConflict() {
+    this.remoteConflict.set(false);
+  }
+
+  exportMarkdown() {
+    const content = this.content();
+    const rawTitle = this.title().trim() || "document";
+    const filename = `${rawTitle.toLowerCase().replace(/[^a-z0-9_-]+/g, "-")}.md`;
+    if (typeof document !== "undefined" && typeof document.createElement === "function") {
+      const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+      const url = typeof URL.createObjectURL === "function" ? URL.createObjectURL(blob) : "";
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body?.appendChild(a);
+      a.click();
+      document.body?.removeChild(a);
+      if (typeof URL.revokeObjectURL === "function" && url) URL.revokeObjectURL(url);
+    }
+    this.success.set(`Exported "${filename}"`);
+  }
+
+  exportPdf() {
+    this.preview.set(true);
+    if (typeof window !== "undefined" && typeof window.print === "function") {
+      setTimeout(() => {
+        window.print();
+      }, 200);
+    }
   }
 
   canLeave() {
@@ -132,6 +242,7 @@ export class DocsPageComponent {
         this.attachments.set(result.document.attachments ?? []);
         this.fileType.set(result.document.fileType ?? null);
         this.canEdit.set(result.canEdit);
+        if (!result.canEdit) this.preview.set(true);
       } else {
         this.document.set(null);
         this.title.set("");

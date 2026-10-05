@@ -105,6 +105,21 @@
       }
     }
   } @else if (document() || id() === "new") {
+    @if (activeEditorsLabel()) {
+      <div class="active-collab-badge" role="status">
+        <span class="pulse-dot"></span>
+        <span>✍️ {{ activeEditorsLabel() }}</span>
+      </div>
+    }
+    @if (remoteConflict()) {
+      <div class="remote-conflict-banner" role="alert">
+        <span>⚠️ A teammate updated this document remotely.</span>
+        <div class="conflict-actions">
+          <button type="button" class="btn-conflict-reload" (click)="reloadRemoteVersion()">Reload Latest</button>
+          <button type="button" class="btn-conflict-dismiss" (click)="dismissRemoteConflict()">Keep My Changes</button>
+        </div>
+      </div>
+    }
     @if (!canEdit()) {
       <p>This documentation is read-only.</p>
     }
@@ -120,9 +135,13 @@
             maxlength="150"
             required
             [disabled]="!canEdit() || busy()"
+            (input)="onEditorInput()"
             placeholder="Untitled document"
           />
-        </div>
+                @if (!canEdit()) {
+          <span class="badge-viewer-lock">👁️ View Only</span>
+        }
+</div>
         @if (fileType()) {
           <div class="file-type-indicator">
             <span class="format-label">Format</span>
@@ -136,6 +155,12 @@
       <div class="toolbar">
         <button type="button" (click)="preview.set(!preview())">
           {{ preview() ? "Edit Markdown" : "Preview" }}
+        </button>
+        <button type="button" class="btn-export" (click)="exportMarkdown()" title="Export document as Markdown (.md)">
+          ⬇️ .MD
+        </button>
+        <button type="button" class="btn-export" (click)="exportPdf()" title="Print / Export as PDF">
+          🖨️ PDF
         </button>
 
         @if (canEdit()) {
@@ -293,6 +318,7 @@
           (ngModelChange)="content.set($event)"
           maxlength="100000"
           [disabled]="busy()"
+          (input)="onEditorInput()"
           placeholder="Start writing your project documentation…"
         ></textarea>
       }
