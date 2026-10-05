@@ -337,7 +337,7 @@
   </div>
   <!-- ── Insights overlay ─────────────────────────────────────── -->
   @if (isInsightsOpen()) {
-  <div class="db-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeInsights()" (keyup)="$event.key === 'Escape' && closeInsights()">
+  <div class="db-scrim" role="presentation" (click)="$event.target === $event.currentTarget ? closeInsights() : null" (keyup)="$event.key === 'Escape' ? closeInsights() : null">
     <div #insightsDialog class="db-modal" role="dialog" aria-modal="true" aria-labelledby="db-insights-title">
       <header class="db-modal-head">
         <div class="db-modal-copy">

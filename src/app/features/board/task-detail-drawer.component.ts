@@ -53,8 +53,25 @@ export class TaskDetailDrawerComponent {
   }
 
   /** Keep the checkbox showing the real state; the store ticks it (or explains why not). */
+  onOverlayClick(event: MouseEvent): void {
+    if (event.target === event.currentTarget) {
+      this.tasks.closeTask();
+    }
+  }
+
+  onOverlayKeyup(event: KeyboardEvent): void {
+    if (event.key === 'Escape') {
+      this.tasks.closeTask();
+    }
+  }
+
+  /** Keep the checkbox showing the real state; the store ticks it (or explains why not). */
   onToggleSubtask(event: Event, task: Task, index: number): void {
-    (event.target as HTMLInputElement).checked = task.subtasks[index]?.done ?? false;
+    const input = event.target as HTMLInputElement;
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) {
+      input.checked = task.subtasks[index]?.done ?? false;
+      return;
+    }
     this.tasks.toggleSubtask(task, index);
   }
 

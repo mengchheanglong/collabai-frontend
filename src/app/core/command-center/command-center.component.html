@@ -1,5 +1,5 @@
 @if (commandCenter.isOpen()) {
-  <div class="command-center-backdrop" role="presentation" (click)="$event.target === $event.currentTarget && close()" (keyup)="$event.key === 'Escape' && close()">
+  <div class="command-center-backdrop" role="presentation" (click)="$event.target === $event.currentTarget ? close() : null" (keyup)="$event.key === 'Escape' ? close() : null">
     <section
       #dialog
       class="command-center"

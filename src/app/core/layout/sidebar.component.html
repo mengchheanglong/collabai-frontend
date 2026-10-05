@@ -62,7 +62,7 @@
     </button>
 
     <div class="section-label">
-      <span class="section-title">Projects</span>
+      <span class="section-title">My projects</span>
       <button
         type="button"
         class="icon-btn"
@@ -77,20 +77,31 @@
     </div>
 
     <div class="workspaces">
-      @for (ws of workspace.workspaces(); track ws.id) {
-        <button 
-          class="ws-item" 
+      @if (showProjectSearch() && !navState.isCollapsed()) {
+        <input
+          class="ws-search"
+          type="search"
+          placeholder="Filter projects…"
+          aria-label="Filter projects"
+          [value]="projectQuery()"
+          (input)="projectQuery.set($any($event.target).value)"
+        />
+      }
+
+      @for (ws of myProjects(); track ws.id) {
+        <button
+          class="ws-item"
           [class.active]="ws.id === workspace.selectedWorkspaceId()"
           (click)="selectWorkspace(ws.id)"
           matRipple
-          [matTooltip]="navState.isCollapsed() ? ws.name : ''"
+          [matTooltip]="projectTooltip(ws)"
+          matTooltipPosition="right"
           style="border: none; background: transparent; width: 100%; font-family: inherit;"
         >
           <div class="ws-dot" [style.background]="ws.accent"></div>
           <span class="ws-name">{{ ws.name }}</span>
         </button>
       }
-
       @if (workspace.isWorkspaceCreatorOpen() && !navState.isCollapsed()) {
         <div class="ws-create">
           <input
@@ -106,6 +117,29 @@
         </div>
       }
     </div>
+
+    @if (sharedProjects().length) {
+      <div class="section-label">
+        <span class="section-title">Shared with me</span>
+      </div>
+      <div class="workspaces">
+        @for (ws of sharedProjects(); track ws.id) {
+          <button
+            class="ws-item"
+            [class.active]="ws.id === workspace.selectedWorkspaceId()"
+            (click)="selectWorkspace(ws.id)"
+            matRipple
+            [matTooltip]="projectTooltip(ws)"
+            matTooltipPosition="right"
+            style="border: none; background: transparent; width: 100%; font-family: inherit;"
+          >
+            <div class="ws-dot" [style.background]="ws.accent"></div>
+            <span class="ws-name">{{ ws.name }}</span>
+            <span class="ws-role" [attr.data-role]="roleLabel(ws)">{{ roleLabel(ws) }}</span>
+          </button>
+        }
+      </div>
+    }
   </div>
   
   <div class="sidebar-bottom">

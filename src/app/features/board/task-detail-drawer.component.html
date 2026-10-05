@@ -1,7 +1,8 @@
 @if (tasks.selectedTask(); as task) {
-  <div class="task-modal-overlay" role="presentation" (click)="$event.target === $event.currentTarget && tasks.closeTask()" (keyup)="$event.key === 'Escape' && tasks.closeTask()">
+  <div class="task-modal-overlay" role="presentation" (click)="onOverlayClick($event)" (keyup)="onOverlayKeyup($event)">
     <div
       class="task-modal"
+      (click)="$event.stopPropagation()"
       role="dialog"
       aria-modal="true"
       aria-labelledby="task-modal-title"

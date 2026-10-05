@@ -52,6 +52,9 @@ export class WorkspaceContextService {
       accent: project.accent ?? ACCENTS[index % ACCENTS.length],
       projectNames: [project.name],
       description: project.description ?? '',
+      ownerId: project.ownerId,
+      ownerName: project.ownerName,
+      roles: project.roles,
     })),
   );
 
@@ -329,5 +332,10 @@ function toProject(dto: ProjectDto, index: number): Project {
     accent: dto.color ?? ACCENTS[index % ACCENTS.length],
     members: members.map((m) => m.name),
     description: dto.description ?? undefined,
+    ownerId: dto.ownerId,
+    ownerName: members.find((m) => m.userId === dto.ownerId)?.name,
+    roles: Object.fromEntries(
+      members.filter((m) => m.userId).map((m) => [m.userId as string, m.role]),
+    ),
   };
 }

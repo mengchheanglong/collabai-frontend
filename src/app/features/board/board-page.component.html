@@ -168,7 +168,7 @@
 
   <!-- ── Create Task Dialog ────────────────────────────────────── -->
   @if (showCreateModal()) {
-    <div class="tm-scrim" role="presentation" (click)="$event.target === $event.currentTarget && closeCreateModal()" (keyup)="$event.key === 'Escape' && closeCreateModal()">
+    <div class="tm-scrim" role="presentation" (click)="$event.target === $event.currentTarget ? closeCreateModal() : null" (keyup)="$event.key === 'Escape' ? closeCreateModal() : null">
       <div
         class="tm-dialog bd-create-dialog"
         role="dialog"
@@ -418,7 +418,7 @@
     <div
       class="tm-scrim"
       role="presentation"
-      (click)="$event.target === $event.currentTarget && closeProjectCreator()"
+      (click)="$event.target === $event.currentTarget ? closeProjectCreator() : null"
       (keyup)="$event.key === 'Escape' && closeProjectCreator()"
     >
       <div

@@ -163,7 +163,8 @@
       padding: 0;
       min-height: 32px;
 
-      .ws-name {
+      .ws-name,
+      .ws-role {
         display: none;
       }
     }
@@ -315,6 +316,41 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Role badge on "Shared with me" projects. */
+.ws-role {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  background: var(--hover);
+
+  &[data-role='Admin'] {
+    color: var(--brand);
+    background: var(--brand-soft);
+  }
+}
+
+.ws-search {
+  width: 100%;
+  margin: 0 0 6px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+
+  &:focus {
+    outline: none;
+    border-color: var(--brand);
+  }
 }
 
 .ws-create {
