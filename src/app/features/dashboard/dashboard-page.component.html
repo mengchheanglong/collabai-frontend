@@ -330,7 +330,7 @@
     </div>
 
     @if (isCollabSidebarOpen()) {
-    <div class="db-collab-sidebar-container">
+    <div class="db-collab-sidebar-container" (click)="$event.target === $event.currentTarget ? toggleCollabSidebar() : null">
       <app-collab-sidebar [isOpen]="isCollabSidebarOpen()" (toggleSidebar)="toggleCollabSidebar()" />
     </div>
     }

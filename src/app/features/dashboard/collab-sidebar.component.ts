@@ -52,7 +52,7 @@ export class CollabSidebarComponent {
   readonly tasks = inject(TaskStoreService);
   private readonly toast = inject(ToastService);
 
-  @Input() isOpen = true;
+  @Input() isOpen = false;
   @Output() toggleSidebar = new EventEmitter<void>();
 
   readonly activeTab = signal<CollabTab>('team');

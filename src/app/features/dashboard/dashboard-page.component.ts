@@ -88,7 +88,7 @@ export class DashboardPageComponent implements OnDestroy {
   readonly automationError = signal(false);
 
   readonly today = signal(new Date());
-  readonly isCollabSidebarOpen = signal(true);
+  readonly isCollabSidebarOpen = signal(false);
 
   toggleCollabSidebar(): void {
     this.isCollabSidebarOpen.update(open => !open);
