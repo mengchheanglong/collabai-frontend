@@ -10,7 +10,7 @@ import {
 } from "@angular/core";
 import { DatePipe } from "@angular/common";
 import { FormsModule } from "@angular/forms";
-import { ActivatedRoute, Router, RouterLink } from "@angular/router";
+import { ActivatedRoute, Router } from "@angular/router";
 import { DomSanitizer, SafeResourceUrl } from "@angular/platform-browser";
 import { toSignal } from "@angular/core/rxjs-interop";
 import { firstValueFrom } from "rxjs";
@@ -26,12 +26,13 @@ import { AuthStoreService } from "../../core/state/auth-store.service";
 import { renderMarkdown } from "./markdown";
 import { SocketService } from "../../core/realtime/socket.service";
 import { MatRippleModule } from "@angular/material/core";
+import { MatMenuModule } from "@angular/material/menu";
 import { VIEW_ONLY_MESSAGE, apiErrorMessage } from "../../core/api/api-error";
 
 @Component({
   selector: "app-docs-page",
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe, MatRippleModule],
+  imports: [FormsModule, DatePipe, MatRippleModule, MatMenuModule],
   templateUrl: "./docs-page.component.html",
   styleUrl: "./docs-page.component.scss",
 })
@@ -63,6 +64,7 @@ export class DocsPageComponent implements OnDestroy {
   readonly attachments = signal<DocumentAttachment[]>([]);
   readonly fileType = signal<string | null>(null);
   readonly activePreviewAttachment = signal<DocumentAttachment | null>(null);
+  readonly activePreviewDoc = signal<DocumentSummary | null>(null);
 
   readonly canEdit = signal(false);
   readonly loading = signal(false);
@@ -365,6 +367,93 @@ export class DocsPageComponent implements OnDestroy {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  downloadDoc(doc: DocumentSummary) {
+    const att = doc.attachments?.[0];
+    if (att?.dataUrl) {
+      this.downloadAttachment(att);
+      return;
+    }
+    this.busy.set(true);
+    firstValueFrom(this.api.get(doc._id))
+      .then((res) => {
+        const fetchedAtt = res.document.attachments?.[0];
+        if (fetchedAtt?.dataUrl) {
+          this.downloadAttachment(fetchedAtt);
+        } else if (res.document.content) {
+          const blob = new Blob([res.document.content], { type: "text/markdown;charset=utf-8" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `${(doc.title || "document").replace(/[^a-zA-Z0-9_-]/g, "_")}.md`;
+          document.body?.appendChild(a);
+          a.click();
+          document.body?.removeChild(a);
+          URL.revokeObjectURL(url);
+        } else {
+          this.error.set("No downloadable attachment found.");
+        }
+      })
+      .catch((err) => {
+        this.error.set(this.message(err));
+      })
+      .finally(() => {
+        this.busy.set(false);
+      });
+  }
+
+  async deleteDocument(doc: DocumentSummary) {
+    if (this.busy() || !this.canEdit() || !window.confirm(`Delete "${doc.title}"?`)) return;
+    this.busy.set(true);
+    this.error.set("");
+    try {
+      await firstValueFrom(this.api.remove(doc._id));
+      this.items.update((list) => list.filter((d) => d._id !== doc._id));
+      if (this.activePreviewDoc()?._id === doc._id) {
+        this.closePreview();
+      }
+      this.success.set(`Deleted "${doc.title}".`);
+    } catch (e) {
+      this.error.set(this.message(e));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  openDocument(doc: DocumentSummary) {
+    const ext = this.getFileExtension(doc.title);
+    const pdfAtt = doc.attachments?.find(
+      (a) => a.type === "application/pdf" || a.name.toLowerCase().endsWith(".pdf"),
+    );
+    if (pdfAtt) {
+      this.activePreviewDoc.set(doc);
+      this.activePreviewAttachment.set(pdfAtt);
+      return;
+    }
+    const imgAtt = doc.attachments?.find(
+      (a) =>
+        a.type?.startsWith("image/") ||
+        ["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(this.getFileExtension(a.name)),
+    );
+    if (imgAtt) {
+      this.activePreviewDoc.set(doc);
+      this.activePreviewAttachment.set(imgAtt);
+      return;
+    }
+    if (["pdf", "png", "jpg", "jpeg", "gif", "webp", "svg", "md", "markdown", "txt"].includes(ext)) {
+      this.activePreviewDoc.set(doc);
+      if (doc.attachments?.[0]) {
+        this.activePreviewAttachment.set(doc.attachments[0]);
+      }
+      return;
+    }
+    this.downloadDoc(doc);
+  }
+
+  closePreview() {
+    this.activePreviewDoc.set(null);
+    this.activePreviewAttachment.set(null);
   }
 
   // ============ FILE UPLOAD & ATTACHMENT HANDLING ============

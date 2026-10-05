@@ -75,14 +75,18 @@ export const routes: Routes = [
             (m) => m.DashboardPageComponent,
           ),
       },
-      ...["docs", "docs/:documentId"].map((path) => ({
-        path,
+      {
+        path: "docs",
         canDeactivate: [(component: DocsPageComponent) => component.canLeave()],
         loadComponent: () =>
           import("./features/docs/docs-page.component").then(
             (m) => m.DocsPageComponent,
           ),
-      })),
+      },
+      {
+        path: "docs/:documentId",
+        redirectTo: "docs",
+      },
       {
         path: "work",
         loadComponent: () =>
