@@ -266,6 +266,7 @@
   gap: 6px;
   max-width: 90%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .ai-msg-bubble {
@@ -274,6 +275,10 @@
   flex-direction: column;
   gap: 8px;
   font-family: var(--font);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 
   .ai-user-text {
     margin: 0;
@@ -287,7 +292,9 @@
   }
 }
 
-.ai-msg-body {
+:host ::ng-deep .ai-msg-body {
+  min-width: 0;
+  max-width: 100%;
   font-size: 13px;
   line-height: 1.6;
   color: var(--text);
@@ -419,13 +426,28 @@
   /* Refined Modern Table */
   .md-table-wrap {
     width: 100%;
+    max-width: 100%;
     overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
     margin: 10px 0;
     border-radius: 9px;
     border: 1px solid var(--line);
     background: var(--panel-2);
-    -webkit-overflow-scrolling: touch;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+    display: block;
+    box-sizing: border-box;
+
+    &::-webkit-scrollbar {
+      height: 5px;
+    }
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    &::-webkit-scrollbar-thumb {
+      background: var(--line-2);
+      border-radius: 4px;
+    }
   }
 
   .md-table {
@@ -1124,12 +1146,21 @@ textarea.ai-prompt-input {
 @media (max-width: 680px) {
   .ai-copilot {
     right: 12px;
-    bottom: 80px;
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
   }
 
   .ai-copilot-panel {
-    width: calc(100vw - 24px);
-    height: min(72vh, 560px);
+    width: min(calc(100vw - 24px), 440px);
+    height: min(76vh, 560px);
+    max-height: calc(100vh - 140px);
     border-radius: 16px;
+  }
+
+  .ai-msg-content {
+    max-width: 95%;
+  }
+
+  .ai-copilot-thread {
+    padding: 12px 10px;
   }
 }

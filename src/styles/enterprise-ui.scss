@@ -2347,3 +2347,58 @@ h2 {
   font-weight: 900;
   letter-spacing: -0.01em;
 }
+
+/* Global Markdown Table & Chat Bubble Containment Fix */
+.ai-msg-bubble {
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.ai-msg-body {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+
+.md-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  display: block !important;
+  box-sizing: border-box !important;
+  margin: 10px 0 !important;
+  border-radius: 9px !important;
+  border: 1px solid var(--line) !important;
+  background: var(--panel-2) !important;
+}
+
+.md-table {
+  width: 100% !important;
+  min-width: 320px !important;
+  border-collapse: collapse !important;
+  font-size: 12px !important;
+  table-layout: auto !important;
+
+  th {
+    background: var(--hover) !important;
+    font-weight: 650 !important;
+    font-size: 10.5px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
+    color: var(--muted) !important;
+    padding: 8px 12px !important;
+    border-bottom: 1px solid var(--line) !important;
+    white-space: nowrap !important;
+  }
+
+  td {
+    padding: 8px 12px !important;
+    border-bottom: 1px solid var(--line) !important;
+    color: var(--text) !important;
+    vertical-align: middle !important;
+    white-space: nowrap !important;
+  }
+}
