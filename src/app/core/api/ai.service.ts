@@ -91,9 +91,9 @@ function toTask(task: TaskDto): Task {
     labels: task.labels || [],
     comments: task.commentCount ?? 0,
     subtasks: (task.subtasks || []).map((subtask) => ({
-      id: subtask._id || (subtask as any).id,
+      id: subtask.id || subtask._id || (subtask as any).id,
       title: subtask.title,
-      done: subtask.done,
+      done: subtask.done ?? subtask.completed ?? false,
     })),
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,

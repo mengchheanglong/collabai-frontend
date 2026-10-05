@@ -413,6 +413,11 @@ export class TaskStoreService {
     if (!subtask) return;
     if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
     const subtaskId = subtask.id;
+    if (!subtaskId) {
+      console.warn('[TaskStore] Cannot toggle subtask: missing subtask ID', subtask);
+      this.toast.error('Cannot update subtask: missing ID. Please reload the board.', 'Subtask Error');
+      return;
+    }
     if (this.togglingSubtaskIds.has(subtaskId)) return;
     this.togglingSubtaskIds.add(subtaskId);
 
@@ -514,9 +519,9 @@ export class TaskStoreService {
                 const latest = updatedTasks.at(-1);
                 if (latest) {
                   const mappedSubtasks = (latest.subtasks || []).map((subtask) => ({
-                    id: subtask._id,
+                    id: subtask.id || subtask._id || (subtask as any).id,
                     title: subtask.title,
-                    done: subtask.done,
+                    done: subtask.done ?? subtask.completed ?? false,
                   }));
                   this.tasks.update((items) =>
                     items.map((item) => (item.id === task.id ? { ...item, subtasks: mappedSubtasks } : item)),
@@ -728,9 +733,9 @@ export class TaskStoreService {
       next: (t) => {
         this.addingSubtaskTaskIds.delete(taskId);
         const subtasks = (t.subtasks || []).map((s) => ({
-          id: s._id,
+          id: s.id || s._id || (s as any).id,
           title: s.title,
-          done: s.done,
+          done: s.done ?? s.completed ?? false,
         }));
         this.tasks.update((items) =>
           items.map((item) => (item.id === taskId ? { ...item, subtasks } : item)),
@@ -823,7 +828,11 @@ export class TaskStoreService {
           dueDate: t.dueDate ?? null,
           labels: t.labels || [],
           comments: t.commentCount ?? 0,
-          subtasks: (t.subtasks || []).map((s) => ({ id: s._id || (s as any).id, title: s.title, done: s.done })),
+          subtasks: (t.subtasks || []).map((s) => ({
+            id: s.id || s._id || (s as any).id,
+            title: s.title,
+            done: s.done ?? (s as any).completed ?? false,
+          })),
           createdAt: t.createdAt,
           updatedAt: t.updatedAt,
         };
@@ -922,9 +931,9 @@ export class TaskStoreService {
             labels: dto.labels || [],
             comments: dto.commentCount ?? 0,
             subtasks: (dto.subtasks || []).map((subtask) => ({
-              id: subtask._id || (subtask as any).id,
+              id: subtask.id || subtask._id || (subtask as any).id,
               title: subtask.title,
-              done: subtask.done,
+              done: subtask.done ?? subtask.completed ?? false,
             })),
             createdAt: dto.createdAt,
             updatedAt: dto.updatedAt,

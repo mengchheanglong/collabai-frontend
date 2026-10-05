@@ -68,9 +68,11 @@ export interface ProjectDto {
 }
 
 export interface SubtaskDto {
-  _id: string;
+  id?: string;
+  _id?: string;
   title: string;
-  done: boolean;
+  done?: boolean;
+  completed?: boolean;
 }
 
 export interface TaskDto {

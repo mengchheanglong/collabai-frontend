@@ -75,6 +75,13 @@ export class TaskDetailDrawerComponent {
     this.tasks.toggleSubtask(task, index);
   }
 
+  toggleSubtask(task: Task, index: number): void {
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) {
+      return;
+    }
+    this.tasks.toggleSubtask(task, index);
+  }
+
   saveTitle(task: Task, inputEl: HTMLInputElement): void {
     const trimmed = inputEl.value.trim();
     if (trimmed !== task.title && !this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) {

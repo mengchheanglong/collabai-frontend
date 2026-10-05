@@ -130,12 +130,27 @@
             @if (task.subtasks.length) {
               <mat-progress-bar mode="determinate" [value]="tasks.subtaskProgress(task)" [attr.aria-label]="'Subtask progress: ' + tasks.subtaskProgress(task) + '%'"></mat-progress-bar>
             }
-            <div class="subtasks">
+            <div class="subtasks" role="group" aria-label="Task subtasks">
               @for (sub of task.subtasks; track sub.id || $index; let i = $index) {
-                <label class="check" [class.done]="sub.done" [attr.title]="taskLockReason(task)">
-                  <input type="checkbox" [checked]="sub.done" (change)="onToggleSubtask($event, task, i)" [attr.aria-label]="(sub.done ? 'Mark incomplete: ' : 'Mark complete: ') + sub.title" />
-                  <span>{{ sub.title }}</span>
-                </label>
+                <div
+                  class="subtask-item"
+                  [class.done]="sub.done"
+                  role="checkbox"
+                  [attr.aria-checked]="sub.done"
+                  tabindex="0"
+                  (click)="toggleSubtask(task, i)"
+                  (keydown.enter)="toggleSubtask(task, i); $event.preventDefault()"
+                  (keydown.space)="toggleSubtask(task, i); $event.preventDefault()"
+                  [attr.aria-label]="(sub.done ? 'Mark incomplete: ' : 'Mark complete: ') + sub.title"
+                  [attr.title]="taskLockReason(task)"
+                >
+                  <span class="subtask-checkbox" [class.checked]="sub.done" aria-hidden="true">
+                    @if (sub.done) {
+                      <span class="material-symbols-rounded check-icon">check</span>
+                    }
+                  </span>
+                  <span class="subtask-title">{{ sub.title }}</span>
+                </div>
               }
             </div>
             <div class="subtask-add-inline">
