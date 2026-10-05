@@ -11,6 +11,7 @@ export class AnalyticsStoreService {
   readonly summary = signal<ProjectAnalyticsSummaryDto | null>(null);
   readonly burndown = signal<ProjectAnalyticsBurndownDto[]>([]);
   readonly isLoading = signal(false);
+  private requestedProjectId: string | null = null;
 
   readonly totalTasks = computed(() => this.summary()?.totalTasks ?? 0);
   readonly completionRate = computed(() => this.summary()?.completionRate ?? 0);
@@ -21,25 +22,38 @@ export class AnalyticsStoreService {
 
   loadForProject(projectId: string): void {
     if (!projectId) {
+      this.requestedProjectId = null;
       this.summary.set(null);
       this.burndown.set([]);
       this.isLoading.set(false);
       return;
     }
+    // Clear the previous project's numbers immediately and ignore late responses
+    // for a project that is no longer the one being shown.
+    this.requestedProjectId = projectId;
+    this.summary.set(null);
+    this.burndown.set([]);
     this.isLoading.set(true);
+    const isCurrent = () => this.requestedProjectId === projectId;
     this.analyticsApi.getSummary(projectId).subscribe({
       next: (data: ProjectAnalyticsSummaryDto) => {
+        if (!isCurrent()) return;
         this.summary.set(data);
         this.isLoading.set(false);
       },
       error: () => {
+        if (!isCurrent()) return;
         this.summary.set(null);
         this.isLoading.set(false);
       },
     });
     this.analyticsApi.getBurndown(projectId).subscribe({
-      next: (data: ProjectAnalyticsBurndownDto[]) => this.burndown.set(data || []),
-      error: () => this.burndown.set([]),
+      next: (data: ProjectAnalyticsBurndownDto[]) => {
+        if (isCurrent()) this.burndown.set(data || []);
+      },
+      error: () => {
+        if (isCurrent()) this.burndown.set([]);
+      },
     });
   }
 }

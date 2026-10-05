@@ -3,9 +3,9 @@ import {
   ElementRef,
   HostListener,
   OnDestroy,
-  OnInit,
   ViewChild,
   computed,
+  effect,
   inject,
   signal,
 } from '@angular/core';
@@ -33,6 +33,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 import { CollabSidebarComponent } from './collab-sidebar.component';
 import { VIEW_ONLY_MESSAGE, apiErrorMessage } from '../../core/api/api-error';
+import { AuthStoreService } from '../../core/state/auth-store.service';
 
 interface StatusSegment {
   key: 'done' | 'in_progress' | 'todo';
@@ -69,7 +70,7 @@ interface Sparkline {
   templateUrl: './dashboard-page.component.html',
   styleUrl: './dashboard-page.component.scss',
 })
-export class DashboardPageComponent implements OnInit, OnDestroy {
+export class DashboardPageComponent implements OnDestroy {
   private readonly router = inject(Router);
   readonly workspace = inject(WorkspaceContextService);
   readonly tasks = inject(TaskStoreService);
@@ -77,6 +78,7 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   readonly suggestions = inject(SuggestionStoreService);
   readonly members = inject(MemberDirectoryService);
   readonly analytics = inject(AnalyticsStoreService);
+  private readonly auth = inject(AuthStoreService);
   private readonly ai = inject(AiService);
   readonly automationRequest = signal('');
   readonly automationPlan = signal<AiTaskActionPlan | null>(null);
@@ -202,13 +204,16 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
   private lastFocusedElement: HTMLElement | null = null;
   private previousBodyOverflow = '';
 
-  ngOnInit(): void {
-    const projectId = this.workspace.activeProjectId();
-    if (projectId) {
-      this.analytics.loadForProject(projectId);
-      this.activities.loadForProject(projectId);
-    }
+  constructor() {
+    // Reload the project-scoped stats whenever the active project changes — not just once
+    // on first open — so switching projects in the sidebar shows that project's numbers.
+    effect(() => {
+      const projectId = this.workspace.activeProjectId();
+      this.analytics.loadForProject(projectId ?? '');
+      if (projectId) this.activities.loadForProject(projectId);
+    });
   }
+
 
   // ----- header -----
 
@@ -219,7 +224,8 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     return 'Good evening';
   });
 
-  readonly firstName = computed(() => this.members.currentUser.name.split(' ')[0]);
+  // Read the auth signal (not the plain currentUser object) so the name updates once the profile loads.
+  readonly firstName = computed(() => this.auth.currentUser()?.name?.trim().split(' ')[0] || 'there');
 
   // ----- metrics -----
   //
