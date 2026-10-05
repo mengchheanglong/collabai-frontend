@@ -169,6 +169,25 @@ export class MemberDirectoryService {
     return false;
   }
 
+  /**
+   * Whether the signed-in user may change a task's assignee away from `current`
+   * (null = unassigned). Owners/admins: always. Members: only an unassigned task or
+   * their own (take it / remove themselves). Viewers: never. Mirrors the backend rule.
+   */
+  canChangeAssignee(current: string | null): boolean {
+    if (this.myRole() === 'Admin') return true;
+    if (!this.canEditContent()) return false;
+    return current === null || current === this.currentUser.id;
+  }
+
+  /** People who may be picked as assignee when the task is currently assigned to `current`. */
+  assigneeOptions(current: string | null): Member[] {
+    const active = this.membersState().filter((m) => m.status !== 'Pending');
+    if (this.myRole() === 'Admin') return active;
+    if (!this.canChangeAssignee(current)) return [];
+    return active.filter((m) => m.id === this.currentUser.id);
+  }
+
   /** The signed-in user's role in the active project (owners show as Admin), if loaded. */
   myRole(): Member['role'] | null {
     return this.membersState().find((m) => m.id === this.currentUser.id)?.role ?? null;

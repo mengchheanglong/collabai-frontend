@@ -7,7 +7,6 @@ import { TitleCasePipe, DatePipe } from '@angular/common';
 import { CommentStoreService } from '../../core/state/comment-store.service';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { TaskStoreService } from '../../core/state/task-store.service';
-import { ToastService } from '../../core/toast/toast.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
 
@@ -23,7 +22,6 @@ export class TaskDetailDrawerComponent {
   readonly comments = inject(CommentStoreService);
   readonly members = inject(MemberDirectoryService);
   readonly workspace = inject(WorkspaceContextService);
-  private readonly toast = inject(ToastService);
 
   readonly priorities: Priority[] = ['low', 'medium', 'high', 'urgent'];
   readonly statuses: TaskStatus[] = ['todo', 'in_progress', 'done'];
@@ -63,7 +61,6 @@ export class TaskDetailDrawerComponent {
     if (trimmed !== task.title) {
       inputEl.value = trimmed;
       this.tasks.updateTask(task.id, { title: trimmed });
-      this.toast.success(`Renamed task to "${trimmed}"`, 'Title Updated');
     }
   }
 
@@ -71,31 +68,34 @@ export class TaskDetailDrawerComponent {
     const trimmed = newDesc.trim();
     if (trimmed !== (task.description ?? '')) {
       this.tasks.updateTask(task.id, { description: trimmed });
-      this.toast.success('Task description saved', 'Description Updated');
     }
   }
 
   updateStatus(task: Task, status: TaskStatus): void {
     if (task.status !== status) {
       this.tasks.updateTask(task.id, { status });
-      this.toast.success(`Moved to ${this.tasks.statusLabel(status)}`, 'Status Updated');
     }
   }
 
   updatePriority(task: Task, priority: Priority): void {
     if (task.priority !== priority) {
       this.tasks.updateTask(task.id, { priority });
-      this.toast.success(`Priority changed to ${priority}`, 'Priority Updated');
     }
   }
 
+  // Each update reports its outcome once the server answers (TaskStoreService.updateTask).
   updateAssignee(task: Task, assigneeId: string): void {
     const val = assigneeId ? assigneeId : null;
     if (task.assigneeId !== val) {
       this.tasks.updateTask(task.id, { assigneeId: val });
-      const name = val ? this.members.memberName(val) : 'Unassigned';
-      this.toast.success(`Assigned to ${name}`, 'Assignee Updated');
     }
+  }
+
+  assigneeLockReason(task: Task): string | null {
+    if (this.members.canChangeAssignee(task.assigneeId ?? null)) return null;
+    return this.members.canEditContent()
+      ? 'Only owners and admins can reassign this task'
+      : 'View-only access';
   }
 
   formatDueDateLabel(dueDate?: string | null): string {
@@ -165,7 +165,6 @@ export class TaskDetailDrawerComponent {
       }
     }
     this.tasks.updateTask(task.id, { dueDate: val });
-    this.toast.success(val ? `Due date set to ${this.formatDueDateLabel(val)}` : 'Due date cleared', 'Due Date Updated');
   }
 
   handleAddSubtask(task: Task, inputEl: HTMLInputElement): void {

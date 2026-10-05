@@ -282,6 +282,8 @@
               type="button"
               class="prop-dropdown-btn"
               [matMenuTriggerFor]="modalAssigneeMenu"
+              [disabled]="!members.canChangeAssignee(task.assigneeId ?? null)"
+              [attr.title]="assigneeLockReason(task)"
               aria-label="Assignee"
               matRipple
             >
@@ -301,7 +303,7 @@
                   <span class="material-symbols-rounded sm ui-dropdown-check" aria-hidden="true">check</span>
                 }
               </button>
-              @for (m of members.members(); track m.id) {
+              @for (m of members.assigneeOptions(task.assigneeId ?? null); track m.id) {
                 <button
                   mat-menu-item
                   class="ui-dropdown-item"
