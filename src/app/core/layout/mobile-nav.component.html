@@ -1,14 +1,20 @@
-<nav class="mobile-nav" aria-label="Mobile">
-  @for (page of pages; track page.key) {
-    <a [routerLink]="'/' + page.key" routerLinkActive="active" #navLink="routerLinkActive" [attr.aria-current]="navLink.isActive ? 'page' : null">
-      <span class="material-symbols-rounded" [class.filled]="navLink.isActive" aria-hidden="true">{{ page.icon }}</span>
-      <span>{{ page.label }}</span>
-    </a>
-  }
-  <button type="button" (click)="commandCenter.open()" aria-label="Open search and commands">
-    <span class="material-symbols-rounded" aria-hidden="true">search</span>
-    <span>Search</span>
-  </button>
+<nav class="mobile-nav" aria-label="Mobile Navigation">
+  <a routerLink="/dashboard" routerLinkActive="active" #dashLink="routerLinkActive" [attr.aria-current]="dashLink.isActive ? 'page' : null">
+    <span class="material-symbols-rounded" [class.filled]="dashLink.isActive" aria-hidden="true">home</span>
+    <span>Home</span>
+  </a>
+  <a routerLink="/board" routerLinkActive="active" #boardLink="routerLinkActive" [attr.aria-current]="boardLink.isActive ? 'page' : null">
+    <span class="material-symbols-rounded" [class.filled]="boardLink.isActive" aria-hidden="true">view_kanban</span>
+    <span>Board</span>
+  </a>
+  <a routerLink="/work" routerLinkActive="active" #workLink="routerLinkActive" [attr.aria-current]="workLink.isActive ? 'page' : null">
+    <span class="material-symbols-rounded" [class.filled]="workLink.isActive" aria-hidden="true">task_alt</span>
+    <span>My Work</span>
+  </a>
+  <a routerLink="/team" routerLinkActive="active" #teamLink="routerLinkActive" [attr.aria-current]="teamLink.isActive ? 'page' : null">
+    <span class="material-symbols-rounded" [class.filled]="teamLink.isActive" aria-hidden="true">group</span>
+    <span>Team</span>
+  </a>
   <a routerLink="/profile" routerLinkActive="active" #profileLink="routerLinkActive" [attr.aria-current]="profileLink.isActive ? 'page' : null">
     <span class="material-symbols-rounded" [class.filled]="profileLink.isActive" aria-hidden="true">person</span>
     <span>You</span>

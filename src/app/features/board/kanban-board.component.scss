@@ -125,9 +125,16 @@
 
 @media (max-width: 640px) {
   .kb {
-    grid-template-columns: minmax(0, 1fr);
-    overflow-x: visible;
-    scroll-snap-type: none;
+    grid-template-columns: repeat(3, minmax(280px, 85vw));
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 14px;
+    gap: 12px;
+
+    .kb-column {
+      scroll-snap-align: start;
+    }
   }
 }
 

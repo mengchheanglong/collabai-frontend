@@ -969,7 +969,65 @@
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 640px) {
+  .ui-hero {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding-bottom: 12px;
+
+    .ui-hero-copy {
+      h1 {
+        font-size: 22px !important;
+        line-height: 1.25;
+        margin-bottom: 4px;
+      }
+      .ui-eyebrow {
+        font-size: 11.5px;
+        margin-bottom: 2px;
+      }
+      .ui-sub {
+        font-size: 13px;
+        line-height: 1.4;
+      }
+    }
+  }
+
+  .ui-hero-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+
+    .ui-btn {
+      min-height: 38px;
+      height: 38px;
+      padding: 0 12px;
+      font-size: 13px;
+      border-radius: 8px;
+      flex: 1 1 auto;
+      width: auto;
+    }
+
+    .ui-btn.primary {
+      flex: 1.6 1 auto;
+      font-weight: 700;
+    }
+
+    .online-presence-stack {
+      width: auto;
+      height: 32px;
+      padding: 3px 8px;
+      font-size: 11.5px;
+    }
+
+    app-theme-toggle {
+      flex-shrink: 0;
+    }
+  }
+
   .ui-task {
     flex-wrap: wrap;
 
@@ -986,19 +1044,42 @@
     }
   }
 
-  .ui-hero-actions {
-    flex-direction: column;
-    align-items: stretch;
+  /* Keep KPIs as a clean 2x2 grid on mobile */
+  .ui-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
 
-    .ui-btn {
-      width: 100%;
+  .ui-kpi-head {
+    padding: 10px 10px 8px !important;
+    gap: 7px !important;
+  }
+
+  .ui-kpi-icon {
+    width: 26px !important;
+    height: 26px !important;
+    border-radius: 6px !important;
+
+    .material-symbols-rounded {
+      font-size: 16px !important;
     }
   }
-}
 
-@media (max-width: 420px) {
-  .ui-kpis {
-    grid-template-columns: minmax(0, 1fr);
+  .ui-kpi-title {
+    font-size: 12px !important;
+  }
+
+  .ui-kpi-body {
+    padding: 8px 10px 10px !important;
+  }
+
+  .ui-kpi-value {
+    font-size: 22px !important;
+  }
+
+  .ui-kpi-foot {
+    font-size: 11px !important;
+    margin-top: 4px !important;
   }
 }
 
