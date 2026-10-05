@@ -17,6 +17,7 @@ import type {
   ProjectMemberDto,
   ProjectRole,
 } from '../api/api.types';
+import { VIEW_ONLY_MESSAGE, apiErrorMessage } from '../api/api-error';
 
 const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b'];
 
@@ -154,6 +155,18 @@ export class MemberDirectoryService {
       ),
     );
     return { ok: true };
+  }
+
+  /** False for viewers. Unknown role (still loading) is allowed — the server enforces anyway. */
+  canEditContent(): boolean {
+    return this.myRole() !== 'Viewer';
+  }
+
+  /** For every content-changing action: shows the view-only message and returns false for viewers. */
+  ensureCanEdit(): boolean {
+    if (this.canEditContent()) return true;
+    this.toast.error(VIEW_ONLY_MESSAGE, 'View Only');
+    return false;
   }
 
   /** The signed-in user's role in the active project (owners show as Admin), if loaded. */
@@ -370,10 +383,4 @@ function toBackendRole(role: Member['role']): ProjectRole {
   if (role === 'Admin') return 'admin';
   if (role === 'Viewer') return 'viewer';
   return 'member';
-}
-
-/** Message from the API error envelope `{ success: false, error: { code, message } }`. */
-function apiErrorMessage(err: unknown, fallback: string): string {
-  const body = (err as { error?: { error?: { message?: string }; message?: string } })?.error;
-  return body?.error?.message ?? body?.message ?? fallback;
 }

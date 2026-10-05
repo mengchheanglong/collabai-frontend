@@ -14,6 +14,7 @@ import { WorkspaceContextService } from '../workspace/workspace-context.service'
 import { MemberDirectoryService } from './member-directory.service';
 import { IndexedDbService } from '../pwa/indexed-db.service';
 import { OfflineSyncService } from '../pwa/offline-sync.service';
+import { VIEW_ONLY_MESSAGE, apiErrorMessage } from '../api/api-error';
 
 @Injectable({ providedIn: 'root' })
 export class TaskStoreService {
@@ -181,12 +182,12 @@ export class TaskStoreService {
         }
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err: unknown) => {
         if (loadVersion !== this.boardLoadVersion) return;
         this.isLoading.set(false);
         if (this.tasks().length === 0) {
           this.hasError.set(true);
-          this.toast.show('Failed to load board tasks', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't load this board's tasks. Please refresh."), 'Board Unavailable');
         }
       },
     });
@@ -324,6 +325,9 @@ export class TaskStoreService {
     const task = event.item.data as Task;
     if (!task) return;
 
+    // Viewers are read-only — stop here so the card never pretends to move.
+    if (!this.members.ensureCanEdit()) return;
+
     const isSameColumn = event.previousContainer === event.container;
     if (isSameColumn && event.previousIndex === event.currentIndex) {
       return; // No change
@@ -377,6 +381,11 @@ export class TaskStoreService {
 
     // Status and position are intentionally handled by the dedicated move endpoint.
     this.taskApi.moveTask(task.id, status, newPosition).subscribe({
+      next: () => {
+        if (!isSameColumn) {
+          this.toast.success(`Moved to ${this.statusLabel(status)}`, 'Task Moved');
+        }
+      },
       error: (err) => {
         if (err.status === 0 || !navigator.onLine) {
           void this.offlineSync.enqueue(
@@ -388,21 +397,21 @@ export class TaskStoreService {
           );
           this.toast.show('Saved offline (will sync when online)', 'info');
         } else {
-          this.toast.show('Failed to update task status', 'info');
+          this.toast.error(
+            apiErrorMessage(err, "Couldn't move the task. Please try again."),
+            'Move Failed',
+          );
           const boardId = this.workspace.activeBoardId();
           if (boardId) this.loadBoard(boardId);
         }
       },
     });
-
-    if (!isSameColumn) {
-      this.toast.show(`Moved to ${this.statusLabel(status)}`, 'info');
-    }
   }
 
   toggleSubtask(task: Task, index: number): void {
     const subtask = task.subtasks[index];
     if (!subtask) return;
+    if (!this.members.ensureCanEdit()) return;
     const subtaskId = subtask.id;
     if (this.togglingSubtaskIds.has(subtaskId)) return;
     this.togglingSubtaskIds.add(subtaskId);
@@ -454,7 +463,7 @@ export class TaskStoreService {
             task.projectId,
           );
         } else {
-          this.toast.show('Failed to update subtask', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't update the subtask. Please try again."), 'Update Failed');
           const boardId = this.workspace.activeBoardId();
           if (boardId) this.loadBoard(boardId);
         }
@@ -472,6 +481,7 @@ export class TaskStoreService {
 
   generateSubtasks(task: Task): void {
     if (this.isGeneratingSubtasks()) return;
+    if (!this.members.ensureCanEdit()) return;
     this.isGeneratingSubtasks.set(true);
     this.ai
       .generateSubtasks({
@@ -516,21 +526,22 @@ export class TaskStoreService {
                 this.isGeneratingSubtasks.set(false);
                 this.toast.show(`AI added ${generated.length} subtasks`, 'ai');
               },
-              error: () => {
+              error: (err: unknown) => {
                 this.isGeneratingSubtasks.set(false);
-                this.toast.show('Could not save generated subtasks', 'info');
+                this.toast.error(apiErrorMessage(err, "Couldn't save the generated subtasks."), 'AI Subtasks Failed');
               },
             });
         },
-        error: () => {
+        error: (err: unknown) => {
           this.isGeneratingSubtasks.set(false);
-          this.toast.show('Could not generate subtasks', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't generate subtasks. Please try again."), 'AI Subtasks Failed');
         },
       });
   }
 
   improveDescription(task: Task): void {
     if (this.isImprovingDescription()) return;
+    if (!this.members.ensureCanEdit()) return;
     this.isImprovingDescription.set(true);
     this.ai
       .generateDescription({
@@ -551,15 +562,15 @@ export class TaskStoreService {
               this.isImprovingDescription.set(false);
               this.toast.show('Description improved', 'ai');
             },
-            error: () => {
+            error: (err: unknown) => {
               this.isImprovingDescription.set(false);
-              this.toast.show('Could not save the AI description', 'info');
+              this.toast.error(apiErrorMessage(err, "Couldn't save the AI description."), 'AI Description Failed');
             },
           });
         },
-        error: () => {
+        error: (err: unknown) => {
           this.isImprovingDescription.set(false);
-          this.toast.show('Could not improve description', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't improve the description. Please try again."), 'AI Description Failed');
         },
       });
   }
@@ -573,9 +584,9 @@ export class TaskStoreService {
         this.isSummarizingComments.set(false);
         this.toast.show('Discussion summarized', 'ai');
       },
-      error: () => {
+      error: (err: unknown) => {
         this.isSummarizingComments.set(false);
-        this.toast.show('Could not summarize comments', 'info');
+        this.toast.error(apiErrorMessage(err, "Couldn't summarize the comments. Please try again."), 'AI Summary Failed');
       },
     });
   }
@@ -595,6 +606,7 @@ export class TaskStoreService {
     taskId: string,
     patch: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'assigneeId' | 'dueDate' | 'labels'>>,
   ): Task | null {
+    if (!this.members.ensureCanEdit()) return null;
     const previousTask = this.tasks().find((item) => item.id === taskId) ?? null;
     let updatedTask: Task | null = null;
     this.tasks.update((items) =>
@@ -680,7 +692,10 @@ export class TaskStoreService {
           if (this.selectedTask()?.id === taskId) this.selectedTask.set(previousTask);
           const boardId = this.workspace.activeBoardId();
           if (boardId) this.loadBoard(boardId);
-          this.toast.show('Failed to save task changes', 'info');
+          this.toast.error(
+            apiErrorMessage(err, "Couldn't save your changes. Please try again."),
+            'Save Failed',
+          );
         }
       },
     });
@@ -690,6 +705,7 @@ export class TaskStoreService {
   addManualSubtask(taskId: string, title: string): void {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
+    if (!this.members.ensureCanEdit()) return;
     if (this.addingSubtaskTaskIds.has(taskId)) return;
     this.addingSubtaskTaskIds.add(taskId);
 
@@ -734,7 +750,7 @@ export class TaskStoreService {
           void this.offlineSync.enqueue('ADD_SUBTASK', `/tasks/${taskId}/subtasks`, 'POST', { title: cleanTitle }, task.projectId);
           this.toast.show('Subtask added (saved offline)', 'info');
         } else {
-          this.toast.show('Failed to add subtask', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't add the subtask. Please try again."), 'Add Subtask Failed');
         }
       },
     });
@@ -742,6 +758,7 @@ export class TaskStoreService {
 
   addQuickTask(overrides?: { title?: string; assigneeId?: string | null }): void {
     if (this.isCreatingTask()) return;
+    if (!this.members.ensureCanEdit()) return;
     const projectId = this.workspace.activeProjectId();
     const boardId = this.workspace.activeBoardId();
     if (!projectId || !boardId) {
@@ -845,7 +862,7 @@ export class TaskStoreService {
           void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
           this.toast.show('Task created (saved offline)', 'info');
         } else {
-          this.toast.show('Failed to create task', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't create the task. Please try again."), 'Create Task Failed');
         }
       },
     });
@@ -867,6 +884,9 @@ export class TaskStoreService {
       select?: boolean;
     },
   ): Observable<Task> {
+    if (!this.members.canEditContent()) {
+      return throwError(() => new Error(VIEW_ONLY_MESSAGE));
+    }
     const targetProjectId = projectId ?? this.workspace.activeProjectId();
     const targetBoardId = boardId ?? this.workspace.activeBoardId();
     if (!targetProjectId || !targetBoardId) {
@@ -922,6 +942,7 @@ export class TaskStoreService {
 
   deleteTask(taskId: string): void {
     if (this.deletingTaskIds.has(taskId)) return;
+    if (!this.members.ensureCanEdit()) return;
     this.deletingTaskIds.add(taskId);
 
     const taskToDelete = this.tasks().find((item) => item.id === taskId);
@@ -968,7 +989,7 @@ export class TaskStoreService {
           if (taskToDelete) {
             this.tasks.update((items) => [taskToDelete, ...items]);
           }
-          this.toast.show('Failed to delete task', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't delete the task. Please try again."), 'Delete Failed');
           // Re-load board on rollback
           const boardId = this.workspace.activeBoardId();
           if (boardId) this.loadBoard(boardId);

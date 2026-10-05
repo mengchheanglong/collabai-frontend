@@ -200,6 +200,8 @@ async function testTaskDetailDrawerWorkflow(): Promise<void> {
       { id: 'user-2', name: 'Bob Jones', email: 'bob@example.com', role: 'Member', avatarUrl: null },
     ]),
     memberName: (id: string) => (id === 'user-1' ? 'Alice Smith' : 'Bob Jones'),
+    canEditContent: () => true,
+    ensureCanEdit: () => true,
   };
 
   const mockWorkspace = {
@@ -400,6 +402,13 @@ async function testTeamPageWorkflow(): Promise<void> {
 }
 
 async function testBoardWorkflow(): Promise<void> {
+  // Flip to false to act as a viewer.
+  let canEdit = true;
+  const boardMembers = {
+    members: signal([]),
+    canEditContent: () => canEdit,
+    ensureCanEdit: () => canEdit,
+  };
   let createdTaskParams: any = null;
   const mockTasks = {
     searchQuery: signal(''),
@@ -430,7 +439,7 @@ async function testBoardWorkflow(): Promise<void> {
       { provide: DOCUMENT, useValue: (globalThis as any).document },
       { provide: TaskStoreService, useValue: mockTasks },
       { provide: WorkspaceContextService, useValue: mockWorkspace },
-      { provide: MemberDirectoryService, useValue: { members: signal([]) } },
+      { provide: MemberDirectoryService, useValue: boardMembers },
       { provide: ToastService, useValue: mockToast },
     ],
   });
@@ -443,6 +452,12 @@ async function testBoardWorkflow(): Promise<void> {
   assert.equal(comp.showCreateModal(), true);
   comp.closeCreateModal();
   assert.equal(comp.showCreateModal(), false);
+
+  // 1b. Viewers can't open the create dialog
+  canEdit = false;
+  comp.openCreateModal();
+  assert.equal(comp.showCreateModal(), false);
+  canEdit = true;
 
   // 2. Reject empty title
   comp.openCreateModal();
@@ -823,6 +838,8 @@ async function testAiTaskAutomationWorkflow(): Promise<void> {
 
   const mockMembers = {
     members: signal([]),
+    canEditContent: () => true,
+    ensureCanEdit: () => true,
   };
 
   TestBed.resetTestingModule();

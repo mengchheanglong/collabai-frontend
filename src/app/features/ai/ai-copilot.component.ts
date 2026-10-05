@@ -24,6 +24,7 @@ import { WorkspaceContextService } from '../../core/workspace/workspace-context.
 import { chipsFromFilters, SMART_SEARCH_PROMPTS } from '../../shared/lib/ai-search-chips';
 import type { AiSearchChip } from '../../shared/models/ai.models';
 import type { Priority, Task, TaskStatus } from '../../shared/models/task.models';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 type ChatRole = 'assistant' | 'user';
 
@@ -386,20 +387,12 @@ export class AiCopilotComponent {
         );
         this.sending.set(false);
       },
-      error: () => {
+      error: (err: unknown) => {
+        const text = apiErrorMessage(err, 'Something went wrong talking to AI. Try again in a moment.');
         this.messages.update((list) =>
-          list.map((msg) =>
-            msg.id === pendingId
-              ? {
-                  ...msg,
-                  text: 'Something went wrong talking to AI. Try again in a moment.',
-                  pending: false,
-                }
-              : msg,
-          ),
+          list.map((msg) => (msg.id === pendingId ? { ...msg, text, pending: false } : msg)),
         );
         this.sending.set(false);
-        this.toast.show('AI search failed', 'info');
       },
     });
   }
@@ -631,7 +624,7 @@ export class AiCopilotComponent {
           );
           this.sending.set(false);
         },
-        error: () => this.finishMessage(pendingId, 'Failed to filter tasks. Please try again.'),
+        error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'Failed to filter tasks. Please try again.')),
       });
       return;
     }
@@ -870,16 +863,12 @@ export class AiCopilotComponent {
           );
           this.sending.set(false);
         },
-        error: () => {
+        error: (err: unknown) => {
+          const text = apiErrorMessage(err, 'I could not generate task ideas right now. Please try again.');
           this.messages.update((list) =>
-            list.map((msg) =>
-              msg.id === pendingId
-                ? { ...msg, text: 'I could not generate task ideas right now. Please try again.', pending: false }
-                : msg,
-            ),
+            list.map((msg) => (msg.id === pendingId ? { ...msg, text, pending: false } : msg)),
           );
           this.sending.set(false);
-          this.toast.show('AI task suggestions failed', 'info');
         },
       });
   }
@@ -1034,7 +1023,7 @@ export class AiCopilotComponent {
                       this.sending.set(false);
                       this.toast.show(`Created task: ${singleTask.title}`, 'success');
                     },
-                    error: () => this.finishCreateError(pendingId),
+                    error: (err: unknown) => this.finishCreateError(pendingId, err),
                   });
                 return;
               }
@@ -1091,7 +1080,7 @@ export class AiCopilotComponent {
                     'success',
                   );
                 },
-                error: () => this.finishCreateError(pendingId),
+                error: (err: unknown) => this.finishCreateError(pendingId, err),
               });
             },
             error: () => {
@@ -1132,29 +1121,24 @@ export class AiCopilotComponent {
                     this.sending.set(false);
                     this.toast.show(`Created task: ${task.title}`, 'success');
                   },
-                  error: () => this.finishCreateError(pendingId),
+                  error: (err: unknown) => this.finishCreateError(pendingId, err),
                 });
             },
           });
       },
-      error: () => this.finishCreateError(pendingId),
+      error: (err: unknown) => this.finishCreateError(pendingId, err),
     });
   }
 
-  private finishCreateError(pendingId: string): void {
+  private finishCreateError(pendingId: string, err?: unknown): void {
+    const text = apiErrorMessage(
+      err,
+      'I could not create that task. Make sure a project and board are selected, then try again.',
+    );
     this.messages.update((list) =>
-      list.map((msg) =>
-        msg.id === pendingId
-          ? {
-              ...msg,
-              text: 'I could not create that task. Make sure a project and board are selected, then try again.',
-              pending: false,
-            }
-          : msg,
-      ),
+      list.map((msg) => (msg.id === pendingId ? { ...msg, text, pending: false } : msg)),
     );
     this.sending.set(false);
-    this.toast.show('AI task creation failed', 'info');
   }
 
   private isTaskCreationRequest(text: string): boolean {
@@ -1213,7 +1197,7 @@ export class AiCopilotComponent {
         this.finishMessage(pendingId, `Created project “${project.name}”.`);
         this.toast.show(`Created project: ${project.name}`, 'success');
       },
-      error: () => this.finishMessage(pendingId, 'I could not create that project. Check that you have permission and try again.'),
+      error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'I could not create that project. Check that you have permission and try again.')),
     });
   }
 
@@ -1307,10 +1291,10 @@ export class AiCopilotComponent {
               );
               this.toast.show(`Updated ${targetTask!.title}`, 'success');
             },
-            error: () =>
+            error: (err: unknown) =>
               this.finishMessage(
                 pendingId,
-                `I could not update “${targetTask!.title}”. Please try again.`,
+                apiErrorMessage(err, `I could not update “${targetTask!.title}”. Please try again.`),
               ),
           });
           return true;
@@ -1358,7 +1342,7 @@ export class AiCopilotComponent {
           );
           this.toast.show(`Deleted ${count} tasks`, 'success');
         },
-        error: () => this.finishMessage(pendingId, 'I could not delete all tasks. Please try again.'),
+        error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'I could not delete all tasks. Please try again.')),
       });
       return true;
     }
@@ -1380,7 +1364,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Moved all ${activeTasks.length} tasks to ${this.tasks.statusLabel(status)}.`);
             this.toast.show(`Moved all tasks to ${this.tasks.statusLabel(status)}`, 'success');
           },
-          error: () => this.finishMessage(pendingId, 'Failed to update all tasks. Please try again.'),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'Failed to update all tasks. Please try again.')),
         });
         return true;
       }
@@ -1398,7 +1382,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
             this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not update “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1416,7 +1400,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Moved “${task.title}” to ${this.tasks.statusLabel(status)}.`);
             this.toast.show(`Moved to ${this.tasks.statusLabel(status)}`, 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not move “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not move “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1433,7 +1417,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Set “${task.title}” to ${value} priority.`);
             this.toast.show(`Priority set to ${value}`, 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not update “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1449,7 +1433,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Cleared due date for “${task.title}”.`);
             this.toast.show('Due date cleared', 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not update “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1473,7 +1457,7 @@ export class AiCopilotComponent {
               this.finishMessage(pendingId, `Set due date of “${task.title}” to ${formattedDate}.`);
               this.toast.show(`Due date set to ${formattedDate}`, 'success');
             },
-            error: () => this.finishMessage(pendingId, `I could not update “${task.title}”. Please try again.`),
+            error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
           });
         });
         return true;
@@ -1489,7 +1473,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Unassigned “${task.title}”.`);
             this.toast.show('Task unassigned', 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not update “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1510,7 +1494,7 @@ export class AiCopilotComponent {
               this.finishMessage(pendingId, `Assigned “${task.title}” to ${foundMember.name}.`);
               this.toast.show(`Assigned to ${foundMember.name}`, 'success');
             },
-            error: () => this.finishMessage(pendingId, `I could not assign “${task.title}”. Please try again.`),
+            error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not assign “${task.title}”. Please try again.`)),
           });
         });
         return true;
@@ -1531,7 +1515,7 @@ export class AiCopilotComponent {
               this.finishMessage(pendingId, `Added labels [${tags.join(', ')}] to “${task.title}”.`);
               this.toast.show('Labels updated', 'success');
             },
-            error: () => this.finishMessage(pendingId, `I could not update labels for “${task.title}”. Please try again.`),
+            error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update labels for “${task.title}”. Please try again.`)),
           });
         });
         return true;
@@ -1551,7 +1535,7 @@ export class AiCopilotComponent {
               this.finishMessage(pendingId, `Renamed task to “${newTitle}”.`);
               this.toast.show('Task renamed', 'success');
             },
-            error: () => this.finishMessage(pendingId, 'I could not rename that task. Please try again.'),
+            error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'I could not rename that task. Please try again.')),
           });
         });
         return true;
@@ -1585,7 +1569,7 @@ export class AiCopilotComponent {
             this.finishMessage(pendingId, `Deleted “**${task.title}**”.`);
             this.toast.show(`Deleted ${task.title}`, 'success');
           },
-          error: () => this.finishMessage(pendingId, `I could not delete “${task.title}”. Please try again.`),
+          error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not delete “${task.title}”. Please try again.`)),
         });
       });
       return true;
@@ -1608,7 +1592,7 @@ export class AiCopilotComponent {
           this.tasks.incrementCommentCount(task.id);
           this.finishMessage(pendingId, `Added your comment to “${task.title}”.`);
         },
-        error: () => this.finishMessage(pendingId, 'I could not add that comment. Please try again.'),
+        error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'I could not add that comment. Please try again.')),
       });
     });
     return true;
@@ -1675,7 +1659,7 @@ export class AiCopilotComponent {
           }
         }
       },
-      error: () => this.finishMessage(pendingId, 'I could not look up that task. Please try again.'),
+      error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, 'I could not look up that task. Please try again.')),
     });
   }
 

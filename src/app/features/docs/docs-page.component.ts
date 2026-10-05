@@ -26,6 +26,7 @@ import { AuthStoreService } from "../../core/state/auth-store.service";
 import { renderMarkdown } from "./markdown";
 import { SocketService } from "../../core/realtime/socket.service";
 import { MatRippleModule } from "@angular/material/core";
+import { VIEW_ONLY_MESSAGE, apiErrorMessage } from "../../core/api/api-error";
 
 @Component({
   selector: "app-docs-page",
@@ -308,7 +309,7 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   async save() {
-    if (this.busy() || !this.canEdit()) return;
+    if (this.busy() || this.blockViewer()) return;
     const project = this.editorProject;
     const doc = this.document();
     if (!doc && !project) return;
@@ -348,7 +349,8 @@ export class DocsPageComponent implements OnDestroy {
 
   async remove() {
     const doc = this.document();
-    if (!doc || this.busy() || !window.confirm("Delete this document?")) return;
+    if (!doc || this.busy() || this.blockViewer()) return;
+    if (!window.confirm("Delete this document?")) return;
     this.busy.set(true);
     this.error.set("");
     try {
@@ -430,7 +432,7 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   async processUploadedFiles(files: FileList | File[]) {
-    if (this.busy() || !this.canEdit()) return;
+    if (this.busy() || this.blockViewer()) return;
     this.busy.set(true);
     this.error.set("");
     try {
@@ -519,7 +521,7 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   async processAndUploadFiles(files: FileList | File[]) {
-    if (this.busy() || !this.canEdit()) return;
+    if (this.busy() || this.blockViewer()) return;
     const project = this.workspace.activeProjectId();
     if (!project) {
       this.error.set("Please select or create a project first.");
@@ -667,7 +669,7 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   removeAttachment(index: number) {
-    if (!this.canEdit()) return;
+    if (this.blockViewer()) return;
     const atts = this.attachments();
     const removed = atts[index];
     if (this.activePreviewAttachment()?.id === removed?.id) {
@@ -676,11 +678,14 @@ export class DocsPageComponent implements OnDestroy {
     this.attachments.set(atts.filter((_, i) => i !== index));
   }
 
+  /** Viewers are read-only: explain instead of silently ignoring the action. */
+  private blockViewer(): boolean {
+    if (this.canEdit()) return false;
+    this.error.set(VIEW_ONLY_MESSAGE);
+    return true;
+  }
+
   private message(e: unknown): string {
-    const error = e as { error?: { error?: { message?: string } } };
-    return (
-      error.error?.error?.message ??
-      "Could not complete the request. Please try again."
-    );
+    return apiErrorMessage(e, "Could not complete the request. Please try again.");
   }
 }

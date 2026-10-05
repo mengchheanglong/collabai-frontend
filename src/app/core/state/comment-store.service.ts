@@ -9,6 +9,7 @@ import { CommentApiService } from '../api/comment-api.service';
 import { IndexedDbService } from '../pwa/indexed-db.service';
 import { OfflineSyncService } from '../pwa/offline-sync.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
+import { apiErrorMessage } from '../api/api-error';
 
 @Injectable({ providedIn: 'root' })
 export class CommentStoreService {
@@ -94,9 +95,9 @@ export class CommentStoreService {
         void this.idb.putMany('comments', mapped);
         this.isLoading.set(false);
       },
-      error: () => {
+      error: (err: unknown) => {
         if (!(this.commentsByTaskId()[taskId]?.length)) {
-          this.toast.show('Failed to load comments', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't load comments. Please try again."), 'Comments Unavailable');
         }
         this.isLoading.set(false);
       },
@@ -120,6 +121,7 @@ export class CommentStoreService {
   postComment(task: Task): void {
     const body = this.commentDraft().trim();
     if (!body || this.isPosting()) return;
+    if (!this.members.ensureCanEdit()) return;
 
     if (!navigator.onLine) {
       const newComment: Comment = {
@@ -190,7 +192,7 @@ export class CommentStoreService {
           void this.offlineSync.enqueue('ADD_COMMENT', `/tasks/${task.id}/comments`, 'POST', { body }, task.projectId);
           this.toast.show('Comment posted (saved offline)', 'info');
         } else {
-          this.toast.show('Failed to post comment', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't post your comment. Please try again."), 'Comment Failed');
         }
       },
     });
@@ -198,6 +200,7 @@ export class CommentStoreService {
 
   deleteComment(taskId: string, commentId: string): void {
     if (this.deletingCommentIds.has(commentId)) return;
+    if (!this.members.ensureCanEdit()) return;
     this.deletingCommentIds.add(commentId);
 
     // Optimistic delete
@@ -228,7 +231,7 @@ export class CommentStoreService {
           void this.offlineSync.enqueue('DELETE_COMMENT', `/comments/${commentId}`, 'DELETE');
           this.toast.show('Comment deleted (offline)', 'info');
         } else {
-          this.toast.show('Failed to delete comment', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't delete the comment. Please try again."), 'Delete Failed');
           this.loadComments(taskId); // reload on rollback
         }
       },

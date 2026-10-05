@@ -15,6 +15,7 @@ import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
 import { KanbanBoardComponent } from './kanban-board.component';
 import { TaskDetailDrawerComponent } from './task-detail-drawer.component';
 import { TaskListViewComponent } from './task-list-view.component';
+import { apiErrorMessage } from '../../core/api/api-error';
 
 @Component({
   selector: 'app-board-page',
@@ -128,6 +129,7 @@ export class BoardPageComponent {
   }
 
   openCreateModal(): void {
+    if (!this.members.ensureCanEdit()) return;
     const user = this.auth.currentUser();
     const myId = user ? (user._id || (user as any).id || '') : '';
     this.newTitle.set('');
@@ -182,9 +184,9 @@ export class BoardPageComponent {
           this.showCreateModal.set(false);
           this.toast.show(`Created task: ${created.title}`, 'success');
         },
-        error: () => {
+        error: (err: unknown) => {
           this.isCreatingTask.set(false);
-          this.toast.show('Failed to create task. Please try again.', 'info');
+          this.toast.error(apiErrorMessage(err, "Couldn't create the task. Please try again."), 'Create Task Failed');
         },
       });
   }

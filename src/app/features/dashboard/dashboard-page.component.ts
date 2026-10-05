@@ -32,6 +32,7 @@ const METER_SEGMENTS = 20;
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 import { CollabSidebarComponent } from './collab-sidebar.component';
+import { VIEW_ONLY_MESSAGE, apiErrorMessage } from '../../core/api/api-error';
 
 interface StatusSegment {
   key: 'done' | 'in_progress' | 'todo';
@@ -95,6 +96,11 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
     const projectId = this.workspace.activeProjectId();
     const request = this.automationRequest().trim();
     if (!projectId || !request || this.automationBusy()) return;
+    if (!this.members.canEditContent()) {
+      this.automationError.set(true);
+      this.automationMessage.set(VIEW_ONLY_MESSAGE);
+      return;
+    }
     this.automationBusy.set(true);
     this.automationMessage.set('');
     this.automationError.set(false);
@@ -105,10 +111,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
         this.selectedAutomationActions.set(plan.actions.map((action) => action.id));
         this.automationMessage.set(plan.actions.length ? '' : 'No safe task changes were proposed. Try a more specific request.');
       },
-      error: () => {
+      error: (err: unknown) => {
         this.automationBusy.set(false);
         this.automationError.set(true);
-        this.automationMessage.set('Could not prepare a task change plan. Check your project access and try again.');
+        this.automationMessage.set(
+          apiErrorMessage(err, "Couldn't prepare a task change plan. Please try again."),
+        );
       },
       complete: () => this.automationBusy.set(false),
     });
@@ -148,10 +156,12 @@ export class DashboardPageComponent implements OnInit, OnDestroy {
           if (boardId) this.tasks.loadBoard(boardId);
         }
       },
-      error: () => {
+      error: (err: unknown) => {
         this.automationBusy.set(false);
         this.automationError.set(true);
-        this.automationMessage.set('The plan could not be applied. A task may have changed or your write access may have been removed; prepare a new plan.');
+        this.automationMessage.set(
+          apiErrorMessage(err, "The plan couldn't be applied. A task may have changed — prepare a new plan."),
+        );
       },
       complete: () => this.automationBusy.set(false),
     });
