@@ -16,7 +16,7 @@ import { WorkspaceContextService } from '../../core/workspace/workspace-context.
       <div class="invite-body">
         @if (!auth.isAuthenticated()) {
           <div class="invite-state is-auth-required">
-            <p>Please sign in with the invited email, or create an account first. Once signed in, you will be able to join the project.</p>
+            <p>Sign in with the email this invitation was sent to. New here? Create an account with that email — once you confirm it, you're added to the project automatically.</p>
             <div class="invite-actions">
               <a routerLink="/login" class="invite-btn primary">Sign in</a>
               <a routerLink="/signup" class="invite-btn ghost">Create account</a>
@@ -180,7 +180,12 @@ export class AcceptInviteComponent {
         }
       },
       error: (error) => {
-        const msg = error?.error?.message ?? 'This invitation is invalid, expired, or belongs to another email address.';
+        // API errors use the { success: false, error: { code, message } } envelope.
+        const apiMessage: string | undefined = error?.error?.error?.message ?? error?.error?.message;
+        const msg =
+          error?.status === 404
+            ? 'This invitation has already been used or was revoked. If you joined, the project is on your dashboard.'
+            : apiMessage ?? 'This invitation is invalid, expired, or belongs to another email address.';
         this.message.set(msg);
         if (msg.toLowerCase().includes('expired')) {
           this.isExpired.set(true);
