@@ -166,6 +166,9 @@
               <span class="tm-status-dot" aria-hidden="true"></span>
               {{ member.status }}
             </span>
+            @if (member.status === 'Pending' && member.expiresInLabel) {
+              <small class="tm-expires-tag" [class.is-expired]="member.isExpired">{{ member.expiresInLabel }}</small>
+            }
           </div>
 
           <div class="tm-cell">
@@ -281,18 +284,71 @@
       </header>
 
       <div class="tm-dialog-body">
-        <label class="tm-field">
-          <span>Email</span>
-          <input
-            type="email"
-            [value]="inviteEmail()"
-            (input)="inviteEmail.set($any($event.target).value)"
-            (keydown.enter)="sendInvite()"
-            placeholder="name@example.com"
-            autocomplete="email"
-            aria-required="true"
-          />
-        </label>
+        <div class="tm-field tm-autocomplete-wrap">
+          <label for="tm-invite-input"><span>Email or teammate name</span></label>
+          <div class="tm-input-box">
+            <input
+              id="tm-invite-input"
+              type="text"
+              [value]="inviteEmail()"
+              (input)="onInviteInput($any($event.target).value)"
+              (keydown.enter)="sendInvite()"
+              placeholder="Search platform user or enter email…"
+              autocomplete="off"
+              aria-required="true"
+            />
+            @if (isSearchingUsers()) {
+              <span class="tm-search-spinner" aria-hidden="true">⏳</span>
+            }
+          </div>
+
+          @if (selectedUser(); as user) {
+            <div class="tm-selected-user-card">
+              <div class="tm-selected-user-info">
+                <span class="material-symbols-rounded sm" aria-hidden="true">check_circle</span>
+                <span><strong>{{ user.name }}</strong> ({{ user.email }})</span>
+              </div>
+              <button
+                type="button"
+                class="tm-clear-user"
+                (click)="clearSelectedUser()"
+                aria-label="Clear selected user"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+              </button>
+            </div>
+          }
+
+          @if (searchSuggestions().length > 0 && !selectedUser()) {
+            <div class="tm-autocomplete-panel" role="listbox">
+              @for (user of searchSuggestions(); track user.email) {
+                <button
+                  type="button"
+                  class="tm-autocomplete-item"
+                  (click)="selectSuggestion(user)"
+                  [disabled]="isAlreadyMember(user.email)"
+                >
+                  <span class="ui-avatar sm" aria-hidden="true">
+                    @if (user.avatarUrl) {
+                      <img [src]="user.avatarUrl" [alt]="user.name" class="ui-avatar-img" />
+                    } @else {
+                      {{ user.name.slice(0, 1).toUpperCase() }}
+                    }
+                  </span>
+                  <div class="tm-autocomplete-text">
+                    <span class="tm-autocomplete-name">{{ user.name }}</span>
+                    <span class="tm-autocomplete-email">{{ user.email }}</span>
+                  </div>
+                  @if (isAlreadyMember(user.email)) {
+                    <span class="tm-already-pill">Already member</span>
+                  } @else {
+                    <span class="tm-platform-tag">Add user</span>
+                  }
+                </button>
+              }
+            </div>
+          }
+        </div>
         <div class="tm-field">
           <span>Role</span>
           <button

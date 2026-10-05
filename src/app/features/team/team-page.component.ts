@@ -1,7 +1,9 @@
-import { Component, HostListener, computed, inject, signal } from '@angular/core';
+import { Component, HostListener, OnDestroy, computed, inject, signal } from '@angular/core';
 import { MatRippleModule } from '@angular/material/core';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { UserApiService } from '../../core/api/user-api.service';
+import type { UserDto } from '../../core/api/api.types';
 import { MemberDirectoryService } from '../../core/state/member-directory.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { WorkspaceContextService } from '../../core/workspace/workspace-context.service';
@@ -17,8 +19,9 @@ type RoleFilter = 'all' | Member['role'];
   templateUrl: './team-page.component.html',
   styleUrl: './team-page.component.scss',
 })
-export class TeamPageComponent {
+export class TeamPageComponent implements OnDestroy {
   private readonly toast = inject(ToastService);
+  private readonly userApi = inject(UserApiService);
   readonly members = inject(MemberDirectoryService);
   readonly workspace = inject(WorkspaceContextService);
 
@@ -29,6 +32,12 @@ export class TeamPageComponent {
   readonly inviteOpen = signal(false);
   readonly inviteEmail = signal('');
   readonly inviteRole = signal<Member['role']>('Member');
+
+  // Autocomplete state
+  readonly searchSuggestions = signal<UserDto[]>([]);
+  readonly isSearchingUsers = signal(false);
+  readonly selectedUser = signal<UserDto | null>(null);
+  private searchDebounceTimer: any = null;
 
   /** Member selected for destructive remove (dialog pattern). */
   readonly removeTarget = signal<Member | null>(null);
@@ -55,6 +64,12 @@ export class TeamPageComponent {
     });
   });
 
+  ngOnDestroy(): void {
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+  }
+
   @HostListener('document:keydown.escape')
   onEscape(): void {
     if (this.removeTarget()) {
@@ -71,6 +86,7 @@ export class TeamPageComponent {
   @HostListener('document:click')
   onDocumentClick(): void {
     this.menuOpenId.set(null);
+    this.searchSuggestions.set([]);
   }
 
   setRoleFilter(filter: RoleFilter): void {
@@ -98,6 +114,61 @@ export class TeamPageComponent {
     this.inviteOpen.set(false);
     this.inviteEmail.set('');
     this.inviteRole.set('Member');
+    this.selectedUser.set(null);
+    this.searchSuggestions.set([]);
+    this.isSearchingUsers.set(false);
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+  }
+
+  onInviteInput(value: string): void {
+    this.inviteEmail.set(value);
+    if (this.selectedUser() && this.selectedUser()?.email !== value) {
+      this.selectedUser.set(null);
+    }
+
+    if (this.searchDebounceTimer) {
+      clearTimeout(this.searchDebounceTimer);
+    }
+
+    const term = value.trim();
+    if (term.length < 2) {
+      this.searchSuggestions.set([]);
+      this.isSearchingUsers.set(false);
+      return;
+    }
+
+    this.isSearchingUsers.set(true);
+    this.searchDebounceTimer = setTimeout(() => {
+      this.userApi.search(term).subscribe({
+        next: (results) => {
+          this.searchSuggestions.set(results || []);
+          this.isSearchingUsers.set(false);
+        },
+        error: () => {
+          this.searchSuggestions.set([]);
+          this.isSearchingUsers.set(false);
+        },
+      });
+    }, 250);
+  }
+
+  selectSuggestion(user: UserDto): void {
+    this.selectedUser.set(user);
+    this.inviteEmail.set(user.email);
+    this.searchSuggestions.set([]);
+  }
+
+  clearSelectedUser(): void {
+    this.selectedUser.set(null);
+    this.inviteEmail.set('');
+    this.searchSuggestions.set([]);
+  }
+
+  isAlreadyMember(email: string): boolean {
+    const norm = email.trim().toLowerCase();
+    return this.members.members().some((m) => m.email.toLowerCase() === norm);
   }
 
   sendInvite(): void {
@@ -107,14 +178,16 @@ export class TeamPageComponent {
       return;
     }
 
+    const sel = this.selectedUser();
     const added = this.members.inviteMember(email, this.inviteRole());
     if (!added) {
-      this.toast.error('That email is already on the team or cannot be added.', 'Invite Failed');
+      this.toast.error('That user is already on the team or cannot be added.', 'Invite Failed');
       return;
     }
 
+    const targetName = sel?.name || added.name;
     this.closeInvite();
-    this.toast.success(`Successfully invited ${added.name} as ${this.inviteRole()}`, 'Invitation Sent');
+    this.toast.success(`Successfully invited ${targetName} as ${this.inviteRole()}`, 'Invitation Sent');
   }
 
   onRoleChange(member: Member, role: Member['role']): void {

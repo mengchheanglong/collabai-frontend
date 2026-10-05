@@ -289,7 +289,23 @@ export class MemberDirectoryService {
 
 // ----- mapping: contract DTO <-> component model -----
 
+function formatExpiration(expiresAt?: string | null): { label?: string; isExpired: boolean } {
+  if (!expiresAt) return { isExpired: false };
+  const target = new Date(expiresAt).getTime();
+  const now = Date.now();
+  if (target <= now) {
+    return { label: 'Expired', isExpired: true };
+  }
+  const diffDays = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  if (diffDays <= 1) {
+    const diffHours = Math.max(1, Math.ceil((target - now) / (1000 * 60 * 60)));
+    return { label: diffHours <= 1 ? 'Expires in <1h' : `Expires in ${diffHours}h`, isExpired: false };
+  }
+  return { label: `Expires in ${diffDays} days`, isExpired: false };
+}
+
 function toMember(dto: ProjectMemberDto, index: number): Member {
+  const exp = dto.pending ? formatExpiration(dto.invitationExpiresAt) : { isExpired: false };
   return {
     id: dto.userId ?? `invitation-${dto.invitationId}`,
     name: dto.name,
@@ -301,6 +317,9 @@ function toMember(dto: ProjectMemberDto, index: number): Member {
     joined: dto.joinedAt ? new Date(dto.joinedAt).toLocaleDateString() : '',
     color: AVATAR_COLORS[index % AVATAR_COLORS.length],
     invitationId: dto.invitationId,
+    invitationExpiresAt: dto.invitationExpiresAt ?? null,
+    expiresInLabel: exp.label,
+    isExpired: exp.isExpired,
   };
 }
 

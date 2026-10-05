@@ -10,4 +10,7 @@ export interface Member {
   joined: string;
   color: string;
   invitationId?: string;
+  invitationExpiresAt?: string | null;
+  expiresInLabel?: string;
+  isExpired?: boolean;
 }
