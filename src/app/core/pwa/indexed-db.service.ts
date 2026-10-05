@@ -173,6 +173,18 @@ export class IndexedDbService {
     });
   }
 
+  /**
+   * Wipe everything cached for the signed-in user (data + unsynced outbox + meta).
+   * Called on logout and when a different account signs in on this browser.
+   */
+  async clearUserData(): Promise<void> {
+    await Promise.all(
+      ['tasks', 'projects', 'comments', 'boards', 'outbox', 'meta'].map((store) =>
+        this.clear(store),
+      ),
+    );
+  }
+
   // ── Outbox Queue Methods ───────────────────────────────────────────────────
 
   async enqueueMutation(mutation: OutboxMutation): Promise<void> {

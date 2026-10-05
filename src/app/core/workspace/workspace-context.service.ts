@@ -10,6 +10,7 @@ import type { ProjectDto, BoardDto } from '../api/api.types';
 import { ToastService } from '../toast/toast.service';
 import { IndexedDbService } from '../pwa/indexed-db.service';
 import { OfflineSyncService } from '../pwa/offline-sync.service';
+import { TokenStore } from '../api/token.store';
 
 const ACCENTS = ['#3b82f6', '#22c55e', '#06b6d4', '#f59e0b', '#0ea5e9', '#ef4444'];
 
@@ -29,6 +30,7 @@ export class WorkspaceContextService {
   private readonly boardApi = inject(BoardApiService);
   private readonly idb = inject(IndexedDbService);
   private readonly offlineSync = inject(OfflineSyncService);
+  private readonly tokens = inject(TokenStore);
 
   /** Real projects loaded from the backend. */
   private readonly projectsState = signal<Project[]>([]);
@@ -73,9 +75,11 @@ export class WorkspaceContextService {
   readonly boards = computed(() => this.boardsState());
 
   constructor() {
-    // 1. Immediately hydrate from IndexedDB cache
+    // 1. Immediately hydrate from the IndexedDB cache — only while someone is signed in,
+    //    so a signed-out visitor never sees the previous user's projects.
+    if (!this.tokens.get()) return;
     void this.idb.getAll<Project>('projects').then((cached) => {
-      if (cached.length > 0 && this.projectsState().length === 0) {
+      if (cached.length > 0 && this.projectsState().length === 0 && this.tokens.get()) {
         this.projectsState.set(cached);
         if (!this.activeProjectId()) {
           this.selectProject(cached[0].id);
@@ -91,7 +95,9 @@ export class WorkspaceContextService {
       next: ({ projects }) => {
         const mapped = projects.map(toProject);
         this.projectsState.set(mapped);
-        void this.idb.putMany('projects', mapped);
+        // The server list is the truth: replace the cache so deleted projects don't
+        // reappear ("ghosts") on the next page load.
+        void this.replaceCachedProjects(mapped);
 
         if (projects.length > 0) {
           const currentId = preferredProjectId || this.activeProjectId();
@@ -115,6 +121,48 @@ export class WorkspaceContextService {
         }
       },
     });
+  }
+
+  /**
+   * Called once the signed-in user is known. If this browser's offline cache belongs to a
+   * different account, wipe it before loading this user's projects.
+   */
+  async onSignedIn(userId: string): Promise<void> {
+    try {
+      const owner = await this.idb.getMeta<string>('ownerUserId');
+      if (owner && owner !== userId) {
+        this.reset();
+        await this.idb.clearUserData();
+      }
+      await this.idb.setMeta('ownerUserId', userId);
+    } catch {
+      /* IndexedDB unavailable (private mode etc.) — nothing cached to protect */
+    }
+    this.reloadProjects();
+  }
+
+  /** Forget everything about the signed-out user, in memory and in the offline cache. */
+  async signOut(): Promise<void> {
+    this.reset();
+    try {
+      await this.idb.clearUserData();
+    } catch {
+      /* IndexedDB unavailable — nothing to clear */
+    }
+  }
+
+  private reset(): void {
+    this.projectsState.set([]);
+    this.selectProject('');
+  }
+
+  private async replaceCachedProjects(projects: Project[]): Promise<void> {
+    try {
+      await this.idb.clear('projects');
+      await this.idb.putMany('projects', projects);
+    } catch {
+      /* cache is best-effort */
+    }
   }
 
   removeLiveProject(projectId: string): void {

@@ -54,7 +54,7 @@ export class AuthStoreService {
         this.auth.me().subscribe({
           next: ({ user }) => {
             this.currentUser.set(user);
-            this.workspace.reloadProjects();
+            void this.workspace.onSignedIn(user._id);
             this.isLoading.set(false);
             this.toast.show(`Welcome back, ${user.name}`, 'success');
             void this.router.navigate(['/dashboard']);
@@ -114,7 +114,7 @@ export class AuthStoreService {
     this.restoreSessionRequest = this.auth.me().pipe(
       tap(({ user }) => {
         this.currentUser.set(user);
-        this.workspace.reloadProjects();
+        void this.workspace.onSignedIn(user._id);
       }),
       map(() => true),
       catchError(() => {
@@ -146,6 +146,8 @@ export class AuthStoreService {
 
   private finishLogout(): void {
     this.clearSession();
+    // Explicit logout (e.g. on a shared computer): drop this user's offline data too.
+    void this.workspace.signOut();
     this.toast.show('Logged out', 'info');
     void this.router.navigate(['/login']);
   }
