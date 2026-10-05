@@ -8,7 +8,8 @@ import {
   signal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { forkJoin, from, of } from 'rxjs';
+import { concatMap, toArray, catchError } from 'rxjs/operators';
 import { MatRippleModule } from '@angular/material/core';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { AiService } from '../../core/api/ai.service';
@@ -928,9 +929,13 @@ export class AiCopilotComponent {
         : undefined;
 
     // Extract inline assignee if specified
-    const assignMatch = request.match(
-      /(?:assign(?:ed)?(?:\s+it)?\s+to|give(?:\s+it)?\s+to)\s+([A-Za-z0-9_.\s]+?)(?:,|$|\band\b|\bwith\b|\bdue\b|\bset\b|\burgency\b|\bpriority\b)/i,
-    );
+    const assignMatch =
+      request.match(
+        /(?:assign(?:ed)?(?:\s+it)?\s+to|give(?:\s+it)?\s+to)\s+([A-Za-z0-9_.\s]+?)(?:,|$|\band\b|\bwith\b|\bdue\b|\bset\b|\burgency\b|\bpriority\b)/i,
+      ) ||
+      request.match(
+        /\b(?:for)\s+([A-Za-z0-9_.\s]+?)(?:\s+to\s+(?:work|implement|do|build)|,|$|\band\b|\bwith\b|\bdue\b)/i,
+      );
     let inlineAssigneeId: string | undefined = undefined;
     let inlineAssigneeName: string | undefined = undefined;
     if (assignMatch) {
@@ -1045,60 +1050,91 @@ export class AiCopilotComponent {
                 return;
               }
 
-              const observables = list.map((item, idx) =>
-                this.tasks.createTaskFromAi(item.title, item.description, projectId, boardId, {
-                  status: item.status,
-                  subtasks: item.subtasks,
-                  priority: inlinePriority ?? item.priority,
-                  assigneeId: inlineAssigneeId,
-                  labels: item.labels,
-                  dueDate: inlineDueDate ?? item.dueDate,
-                  select: list.length === 1 || idx === 0,
-                }),
-              );
+              from(list)
+                .pipe(
+                  concatMap((item, idx) =>
+                    this.tasks
+                      .createTaskFromAi(
+                        item.title,
+                        item.description,
+                        projectId,
+                        boardId,
+                        {
+                          status: item.status,
+                          subtasks: item.subtasks,
+                          priority: inlinePriority ?? item.priority,
+                          assigneeId: inlineAssigneeId,
+                          labels: item.labels,
+                          dueDate: inlineDueDate ?? item.dueDate,
+                          select: list.length === 1 || idx === 0,
+                        },
+                      )
+                      .pipe(
+                        catchError((err) => {
+                          console.warn('Failed to create item:', item.title, err);
+                          return of(null);
+                        }),
+                      ),
+                  ),
+                  toArray(),
+                )
+                .subscribe({
+                  next: (results) => {
+                    const createdTasks = results.filter(
+                      (t): t is Task => Boolean(t),
+                    );
+                    if (createdTasks.length === 0) {
+                      this.finishCreateError(pendingId);
+                      return;
+                    }
+                    if (createdTasks.length > 0) {
+                      this.lastReferencedTask.set(createdTasks[0]);
+                    }
+                    const extraDetails: string[] = [];
+                    if (inlinePriority)
+                      extraDetails.push(`**${inlinePriority}** priority`);
+                    if (inlineAssigneeName)
+                      extraDetails.push(`assigned to **${inlineAssigneeName}**`);
+                    if (inlineDueDate) {
+                      const dateStr = new Date(inlineDueDate).toLocaleDateString(
+                        undefined,
+                        {
+                          month: 'short',
+                          day: 'numeric',
+                        },
+                      );
+                      extraDetails.push(`due **${dateStr}**`);
+                    }
+                    const detailsSuffix = extraDetails.length
+                      ? ` (${extraDetails.join(', ')})`
+                      : '';
 
-              forkJoin(observables).subscribe({
-                next: (createdTasks) => {
-                  if (createdTasks.length > 0) {
-                    this.lastReferencedTask.set(createdTasks[0]);
-                  }
-                  const extraDetails: string[] = [];
-                  if (inlinePriority) extraDetails.push(`**${inlinePriority}** priority`);
-                  if (inlineAssigneeName) extraDetails.push(`assigned to **${inlineAssigneeName}**`);
-                  if (inlineDueDate) {
-                    const dateStr = new Date(inlineDueDate).toLocaleDateString(undefined, {
-                      month: 'short',
-                      day: 'numeric',
-                    });
-                    extraDetails.push(`due **${dateStr}**`);
-                  }
-                  const detailsSuffix = extraDetails.length ? ` (${extraDetails.join(', ')})` : '';
+                    const label =
+                      createdTasks.length === 1
+                        ? `Created “**${createdTasks[0].title}**” on the active board${detailsSuffix} with description and ${createdTasks[0].subtasks.length} subtasks.`
+                        : `Created ${createdTasks.length} complete tasks on the active board with descriptions, subtasks, and priorities.`;
 
-                  const label =
-                    createdTasks.length === 1
-                      ? `Created “**${createdTasks[0].title}**” on the active board${detailsSuffix} with description and ${createdTasks[0].subtasks.length} subtasks.`
-                      : `Created ${createdTasks.length} complete tasks on the active board with descriptions, subtasks, and priorities.`;
-
-                  this.messages.update((msgs) =>
-                    msgs.map((msg) =>
-                      msg.id === pendingId
-                        ? {
-                            ...msg,
-                            text: label,
-                            tasks: createdTasks,
-                            pending: false,
-                          }
-                        : msg,
-                    ),
-                  );
-                  this.sending.set(false);
-                  this.toast.show(
-                    `Created ${createdTasks.length} task${createdTasks.length === 1 ? '' : 's'} with full details`,
-                    'success',
-                  );
-                },
-                error: (err: unknown) => this.finishCreateError(pendingId, err),
-              });
+                    this.messages.update((msgs) =>
+                      msgs.map((msg) =>
+                        msg.id === pendingId
+                          ? {
+                              ...msg,
+                              text: label,
+                              tasks: createdTasks,
+                              pending: false,
+                            }
+                          : msg,
+                      ),
+                    );
+                    this.sending.set(false);
+                    this.toast.show(
+                      `Created ${createdTasks.length} task${createdTasks.length === 1 ? '' : 's'} with full details`,
+                      'success',
+                    );
+                  },
+                  error: (err: unknown) =>
+                    this.finishCreateError(pendingId, err),
+                });
             },
             error: () => {
               // Fallback to single task creation
