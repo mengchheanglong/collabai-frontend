@@ -99,6 +99,21 @@
                   </div>
                 }
 
+                @if (msg.actionableTasks?.length) {
+                  <div class="ai-msg-action-block">
+                    <button
+                      type="button"
+                      class="ai-bulk-add-btn"
+                      matRipple
+                      (click)="addParsedTasksToBoard(msg)"
+                      [disabled]="bulkAddingTasks()"
+                    >
+                      <span class="material-symbols-rounded sm" aria-hidden="true">playlist_add_check</span>
+                      <span>{{ bulkAddingTasks() ? 'Creating tasks…' : 'Add all ' + msg.actionableTasks!.length + ' tasks to board' }}</span>
+                    </button>
+                  </div>
+                }
+
                 @if (msg.suggestions?.length) {
                   <div class="ai-msg-suggestions">
                     <span class="suggestions-label">Suggestions</span>

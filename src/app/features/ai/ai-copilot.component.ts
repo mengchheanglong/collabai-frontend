@@ -47,6 +47,11 @@ interface ChatMessage {
   tasks?: Task[];
   suggestions?: string[];
   pending?: boolean;
+  actionableTasks?: Array<{
+    title: string;
+    priority: Priority;
+    description?: string;
+  }>;
 }
 
 @Component({
@@ -79,6 +84,7 @@ export class AiCopilotComponent {
   readonly selectedCommandIndex = signal(0);
   readonly isInputFocused = signal(false);
   readonly lastReferencedTask = signal<Task | null>(null);
+  readonly bulkAddingTasks = signal(false);
   
   readonly messages = signal<ChatMessage[]>([
     {
@@ -338,7 +344,8 @@ export class AiCopilotComponent {
       })
       .subscribe({
         next: ({ reply }) => {
-          this.finishMessage(pendingId, reply);
+          const actionableTasks = this.extractActionableTasksFromReply(reply);
+          this.finishMessage(pendingId, reply, actionableTasks);
         },
         error: () => {
           // If chat API fails, fall back to smart search
@@ -875,22 +882,32 @@ export class AiCopilotComponent {
 
   private extractTaskCount(text: string): { count: number; error?: string } {
     if (/(?:^|\s)-\d+/.test(text)) {
-      return { count: 1, error: 'Task count must be a positive number between 1 and 15 (e.g. `/create 5 landing page tasks`).' };
+      return { count: 1, error: 'Task count must be a positive number between 1 and 50 (e.g. `/create 5 landing page tasks`).' };
     }
     if (/^0\b/.test(text) || /\b0\s+(?:tasks?|items?)?/i.test(text)) {
       return { count: 1, error: 'Task count must be at least 1 (e.g. `/create 1 login task`).' };
     }
     const match =
-      text.match(/\b(?:create|add|make|generate)\s+(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?(?:tasks?|items?|to-?dos?)\b/i) ||
-      text.match(/\b(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?tasks?\b/i) ||
+      text.match(/\b(?:create|add|make|generate|draft|build|setup|extract)\s+(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?(?:tasks?|items?|to-?dos?|tickets?)\b/i) ||
+      text.match(/\b(\d{1,2})\s+(?:distinct\s+|new\s+|experimental\s+)?(?:tasks?|items?|to-?dos?|tickets?)\b/i) ||
       text.match(/^(\d{1,2})\s+/);
     if (match) {
       const num = parseInt(match[1], 10);
       if (!isNaN(num) && num >= 1) {
-        return { count: Math.min(num, 15) };
+        return { count: Math.min(num, 50) };
       }
     }
-    return { count: 1 };
+    const numInText = text.match(/\b(\d{1,2})\b/);
+    if (numInText) {
+      const parsedNum = parseInt(numInText[1], 10);
+      if (parsedNum >= 1 && parsedNum <= 50) {
+        return { count: parsedNum };
+      }
+    }
+    if (/\b(?:all|full|entire)\b/i.test(text) || /\b(?:doc|document|srs|spec)\b/i.test(text)) {
+      return { count: 10 };
+    }
+    return { count: 5 };
   }
 
   private createTask(pendingId: string, projectId: string, request: string): void {
@@ -1142,13 +1159,27 @@ export class AiCopilotComponent {
   }
 
   private isTaskCreationRequest(text: string): boolean {
-    return /\b(create|add|make|generate)\b/i.test(text) && /\b(tasks?|to[ -]?dos?|work items?)\b/i.test(text);
+    const lower = text.toLowerCase().trim();
+    // Direct affirmative creation requests (e.g. "yes create them", "do it", "create these tasks", "add them to board")
+    if (
+      /^(?:yes\s*,?\s*)?(?:please\s*)?(?:create|add|generate|make|do|put)\s+(?:them|all|it|all\s+of\s+them|these|tasks?)\b/i.test(lower) ||
+      /^(?:yes|sure|okay|ok)\s*,?\s*(?:create|add|generate|proceed)\b/i.test(lower) ||
+      /^(?:add|put)\s+(?:them|these)\s+(?:to|on)\s+(?:the\s+)?(?:board|project)\b/i.test(lower) ||
+      /^do\s+(?:it|that)\b/i.test(lower)
+    ) {
+      return true;
+    }
+
+    const hasActionVerb = /\b(create|add|make|generate|draft|build|setup|set\s+up|populate|break\s+down|convert|turn|extract|plan)\b/i.test(lower);
+    const hasTaskNoun = /\b(tasks?|to[ -]?dos?|work\s+items?|tickets?|issues?|action\s+items?)\b/i.test(lower);
+
+    return hasActionVerb && hasTaskNoun;
   }
 
   private taskTitleFromRequest(request: string): string {
     let clean = request
       .replace(/^\s*(?:can|could|would)\s+you\s+(?:please\s+)?/i, '')
-      .replace(/^\s*(?:please\s+)?(?:help\s+me\s+)?(?:create|add|make|generate)\s+(?:a\s+|an\s+)?(?:new\s+)?(?:\d+\s+)?(?:distinct\s+)?(?:experimental\s+)?(?:tasks?|to[ -]?dos?|work items?)\s*(?:called|named|for|to|about|in|:|-)?\s*/i, '')
+      .replace(/^\s*(?:please\s+)?(?:help\s+me\s+)?(?:create|add|make|generate|draft|build|populate|extract|plan|break\s+down)\s+(?:a\s+|an\s+)?(?:new\s+)?(?:\d+\s+)?(?:distinct\s+)?(?:experimental\s+)?(?:tasks?|to[ -]?dos?|work\s+items?|tickets?)\s*(?:called|named|for|to|about|in|based\s+on|from|:|-)?\s*/i, '')
       .replace(/[.?!]+$/g, '')
       .trim();
 
@@ -1161,10 +1192,23 @@ export class AiCopilotComponent {
       .replace(/\s+\b(?:in|for)\s+(?:the\s+)?(?:project|workspace)\s+[“"]?[^”".?!]+[”"]?\s*$/i, '')
       .replace(/^[“"']+|[“"']+$/g, '')
       .replace(/[,;]+$/g, '')
-      .trim() || 'New task';
+      .trim();
+
+    if (
+      !clean ||
+      /^(?:them|these|it|all|all\s+of\s+them)$/i.test(clean) ||
+      /^(?:this|the|our)?\s*(?:document|documentation|srs|spec|project|workspace|database)$/i.test(clean)
+    ) {
+      const lastAssistant = this.messages()
+        .filter((m) => m.role === 'assistant' && !m.pending && m.text)
+        .pop();
+      clean = lastAssistant
+        ? `Project tasks based on: ${lastAssistant.text.slice(0, 300)}`
+        : 'Project requirements and specifications';
+    }
 
     const normalized = clean.charAt(0).toUpperCase() + clean.slice(1);
-    return normalized.slice(0, 150);
+    return normalized.slice(0, 300);
   }
 
   private isTaskIdeaRequest(text: string): boolean {
@@ -1724,11 +1768,155 @@ export class AiCopilotComponent {
     return /\b(what can you do|help|commands|capabilities)\b/i.test(text);
   }
 
-  private finishMessage(pendingId: string, text: string): void {
+  private finishMessage(
+    pendingId: string,
+    text: string,
+    actionableTasks?: Array<{ title: string; priority: Priority; description?: string }>,
+  ): void {
     this.messages.update((list) =>
-      list.map((msg) => (msg.id === pendingId ? { ...msg, text, pending: false } : msg)),
+      list.map((msg) =>
+        msg.id === pendingId
+          ? {
+              ...msg,
+              text,
+              pending: false,
+              actionableTasks: actionableTasks && actionableTasks.length > 0 ? actionableTasks : undefined,
+            }
+          : msg,
+      ),
     );
     this.sending.set(false);
+  }
+
+  extractActionableTasksFromReply(
+    reply: string,
+  ): Array<{ title: string; priority: Priority; description?: string }> {
+    const tasks: Array<{ title: string; priority: Priority; description?: string }> = [];
+    if (!reply || reply.length < 15) return tasks;
+
+    // Pattern 1: Title: ... Priority: ... blocks
+    const blockRegex =
+      /(?:^|\n)(?:Title|Task):\s*([^\n\r]+)(?:[\r\n]+Priority:\s*([^\n\r]+))?(?:[\r\n]+(?:Assignee|Assigned):\s*([^\n\r]+))?(?:[\r\n]+Description:\s*([^\n\r]+))?/gi;
+    let match: RegExpExecArray | null;
+    while ((match = blockRegex.exec(reply)) !== null) {
+      const title = match[1].trim().replace(/^[*_#\s]+|[*_#\s]+$/g, '');
+      const rawPriority = (match[2] || 'medium').trim().toLowerCase();
+      const priority: Priority = ['urgent', 'high', 'medium', 'low'].includes(rawPriority)
+        ? (rawPriority as Priority)
+        : 'medium';
+      const description = match[4]?.trim() || '';
+      if (title && title.length >= 2 && title.length <= 150) {
+        tasks.push({ title, priority, description });
+      }
+    }
+
+    if (tasks.length >= 2) return tasks.slice(0, 50);
+
+    // Pattern 2: Numbered or bullet markdown list with bold task titles
+    const listRegex =
+      /(?:^|\n)(?:\d+\.|\*|-|###\s*\d*[:.]?)\s+\*?\*?(?:Task\s*\d*[:.-]?\s*)?([^\n\r*:(]+)\*?\*?(?:\s*\((?:Priority:\s*)?(urgent|high|medium|low)[^)]*\))?[:\-–]\s*([^\n\r]+)/gi;
+    let listMatch: RegExpExecArray | null;
+    while ((listMatch = listRegex.exec(reply)) !== null) {
+      const title = listMatch[1].trim().replace(/^[*_#\s]+|[*_#\s]+$/g, '');
+      const prioStr = (listMatch[2] || '').trim().toLowerCase();
+      const rest = listMatch[3]?.trim() || '';
+
+      if (
+        title &&
+        title.length >= 3 &&
+        title.length <= 150 &&
+        !/^(?:note|warning|important|tip|summary|caveat|phase|section|overview|purpose|scope)/i.test(
+          title,
+        )
+      ) {
+        let priority: Priority = 'medium';
+        if (prioStr && ['urgent', 'high', 'medium', 'low'].includes(prioStr)) {
+          priority = prioStr as Priority;
+        } else if (/\b(?:urgent|critical)\b/i.test(rest)) {
+          priority = 'urgent';
+        } else if (/\b(?:high)\b/i.test(rest)) {
+          priority = 'high';
+        } else if (/\b(?:low)\b/i.test(rest)) {
+          priority = 'low';
+        }
+
+        tasks.push({
+          title,
+          priority,
+          description: rest.slice(0, 400),
+        });
+      }
+    }
+
+    return tasks.slice(0, 50);
+  }
+
+  addParsedTasksToBoard(msg: ChatMessage): void {
+    const list = msg.actionableTasks || [];
+    if (!list.length || this.bulkAddingTasks()) return;
+
+    const projectId = this.workspace.activeProjectId();
+    if (!projectId) {
+      this.toast.show('Select a project first', 'error');
+      return;
+    }
+
+    this.bulkAddingTasks.set(true);
+    this.boardApi.listBoards(projectId).subscribe({
+      next: (boards) => {
+        const boardId = boards[0]?._id || (boards[0] as any)?.id;
+        if (!boardId) {
+          this.bulkAddingTasks.set(false);
+          this.toast.show('No active board found', 'error');
+          return;
+        }
+
+        const observables = list.map((item, idx) =>
+          this.tasks.createTaskFromAi(
+            item.title,
+            item.description || '',
+            projectId,
+            boardId,
+            {
+              priority: item.priority ?? 'medium',
+              select: idx === 0,
+            },
+          ),
+        );
+
+        forkJoin(observables).subscribe({
+          next: (createdTasks) => {
+            this.bulkAddingTasks.set(false);
+            this.messages.update((msgs) =>
+              msgs.map((m) =>
+                m.id === msg.id
+                  ? {
+                      ...m,
+                      actionableTasks: undefined,
+                      tasks: createdTasks,
+                    }
+                  : m,
+              ),
+            );
+            this.toast.show(
+              `Created ${createdTasks.length} tasks on board!`,
+              'success',
+            );
+          },
+          error: (err: unknown) => {
+            this.bulkAddingTasks.set(false);
+            this.toast.show(
+              apiErrorMessage(err, 'Could not create tasks on board'),
+              'error',
+            );
+          },
+        });
+      },
+      error: (err: unknown) => {
+        this.bulkAddingTasks.set(false);
+        this.toast.show(apiErrorMessage(err, 'Could not list boards'), 'error');
+      },
+    });
   }
 
   private scrollToBottom(): void {
