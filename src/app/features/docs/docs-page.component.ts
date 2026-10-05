@@ -381,6 +381,8 @@ export class DocsPageComponent implements OnDestroy {
         const fetchedAtt = res.document.attachments?.[0];
         if (fetchedAtt?.dataUrl) {
           this.downloadAttachment(fetchedAtt);
+        } else if (res.document.fileType === "pdf" || doc.fileType === "pdf") {
+          this.error.set("Original PDF attachment is not available for download.");
         } else if (res.document.content) {
           const blob = new Blob([res.document.content], { type: "text/markdown;charset=utf-8" });
           const url = URL.createObjectURL(blob);
@@ -732,13 +734,46 @@ export class DocsPageComponent implements OnDestroy {
   }
 
   downloadAttachment(att: DocumentAttachment) {
-    if (!att.dataUrl) return;
-    const a = document.createElement("a");
-    a.href = att.dataUrl;
-    a.download = att.name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    if (!att.dataUrl) {
+      this.error.set(`Cannot download "${att.name}": file data is not available.`);
+      return;
+    }
+    try {
+      if (att.dataUrl.startsWith("data:")) {
+        const parts = att.dataUrl.split(",");
+        const mimeMatch = parts[0].match(/:(.*?);/);
+        const mime = mimeMatch ? mimeMatch[1] : (att.type || "application/octet-stream");
+        const byteCharacters = atob(parts[1] || "");
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = att.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      } else {
+        const a = document.createElement("a");
+        a.href = att.dataUrl;
+        a.download = att.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+    } catch {
+      const a = document.createElement("a");
+      a.href = att.dataUrl;
+      a.download = att.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   }
 
   togglePdfPreview(att: DocumentAttachment) {
