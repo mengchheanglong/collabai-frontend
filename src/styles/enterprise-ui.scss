@@ -131,6 +131,12 @@ body,
   scrollbar-color: rgba(148, 163, 184, 0.25) transparent;
 }
 
+.sidebar .brand,
+.sidebar .brand-collapsed-wrap,
+.sidebar app-logo {
+  color: #f4f7fb;
+}
+
 .sidebar .brand {
   height: 46px;
   padding: 0 8px;

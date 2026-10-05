@@ -40,7 +40,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
   styles: `
     :host {
       display: inline-flex;
-      color: var(--text, currentColor);
+      color: inherit;
     }
 
     .brand-logo {
@@ -64,7 +64,7 @@ import { ChangeDetectionStrategy, Component, input } from '@angular/core';
       font-weight: 700;
       font-size: 21px;
       letter-spacing: -0.02em;
-      color: var(--text, currentColor);
+      color: inherit;
     }
 
     .brand-ai {
