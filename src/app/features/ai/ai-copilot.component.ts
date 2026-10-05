@@ -326,7 +326,7 @@ export class AiCopilotComponent {
 
     // Conversational Chat with CollabAI!
     const history = this.messages()
-      .filter((m) => !m.pending && (m.role === 'user' || m.role === 'assistant'))
+      .filter((m) => !m.pending && m.id !== userMsg.id && (m.role === 'user' || m.role === 'assistant'))
       .slice(-6)
       .map((m) => ({ role: m.role as 'user' | 'assistant', content: m.text }));
 
