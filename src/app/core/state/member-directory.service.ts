@@ -216,6 +216,12 @@ export class MemberDirectoryService {
 
   /** Invite by email. Optimistic local add + POST to the backend. */
   inviteMember(email: string, role: Member['role']): Member | null {
+    const projectId = this.activeProjectId();
+    if (!projectId) {
+      this.toast.show('Please create or select a project from the sidebar first', 'info');
+      return null;
+    }
+
     const normalized = email.trim().toLowerCase();
     if (!normalized || !normalized.includes('@')) return null;
     if (this.membersState().some((m) => m.email.toLowerCase() === normalized)) {
@@ -243,20 +249,17 @@ export class MemberDirectoryService {
     };
     this.membersState.update((list) => [...list, member]);
 
-    const projectId = this.activeProjectId();
-    if (projectId) {
-      const backendRole = toBackendRole(role) as Exclude<ProjectRole, 'owner'>;
-      this.projectApi.addMember(projectId, normalized, backendRole).subscribe({
-        next: () => {
-          this.toast.show(`Added ${name} to team`, 'success');
-          this.reload(); // replace the optimistic row with the real member
-        },
-        error: () => {
-          this.toast.show('Failed to add member', 'info');
-          this.reload();
-        },
-      });
-    }
+    const backendRole = toBackendRole(role) as Exclude<ProjectRole, 'owner'>;
+    this.projectApi.addMember(projectId, normalized, backendRole).subscribe({
+      next: () => {
+        this.toast.show(`Added ${name} to team`, 'success');
+        this.reload(); // replace the optimistic row with the real member
+      },
+      error: () => {
+        this.toast.show('Failed to add member', 'info');
+        this.reload();
+      },
+    });
     return member;
   }
 

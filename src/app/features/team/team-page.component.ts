@@ -83,6 +83,13 @@ export class TeamPageComponent {
   }
 
   openInvite(): void {
+    if (this.workspace.activeProjectId && !this.workspace.activeProjectId()) {
+      this.toast.error(
+        'Please create or select a project from the sidebar first. Team members are invited to specific projects.',
+        'No Project Selected',
+      );
+      return;
+    }
     this.menuOpenId.set(null);
     this.inviteOpen.set(true);
   }
