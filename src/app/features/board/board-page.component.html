@@ -396,4 +396,73 @@
       </div>
     </div>
   }
+
+  <!-- ── Create Project Dialog ─────────────────────────────── -->
+  @if (isCreateProjectModalOpen()) {
+    <div
+      class="tm-scrim"
+      role="presentation"
+      (click)="$event.target === $event.currentTarget && closeProjectCreator()"
+      (keyup)="$event.key === 'Escape' && closeProjectCreator()"
+    >
+      <div
+        class="tm-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="create-project-dialog-title"
+      >
+        <header class="tm-dialog-head">
+          <h2 id="create-project-dialog-title">Create project</h2>
+          <button
+            type="button"
+            class="tm-more"
+            (click)="closeProjectCreator()"
+            aria-label="Close dialog"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+          </button>
+        </header>
+
+        <div class="tm-dialog-body">
+          <label class="tm-field">
+            <span>Project name</span>
+            <input
+              type="text"
+              [value]="newProjectName()"
+              (input)="newProjectName.set($any($event.target).value)"
+              (keydown.enter)="submitCreateProject()"
+              placeholder="e.g. Website Redesign"
+              autofocus
+            />
+          </label>
+
+          <label class="tm-field">
+            <span>Description (optional)</span>
+            <input
+              type="text"
+              [value]="newProjectDescription()"
+              (input)="newProjectDescription.set($any($event.target).value)"
+              (keydown.enter)="submitCreateProject()"
+              placeholder="What is this project about?"
+            />
+          </label>
+        </div>
+
+        <footer class="tm-dialog-foot">
+          <button type="button" class="ui-btn ghost sm" matRipple (click)="closeProjectCreator()">
+            Cancel
+          </button>
+          <button
+            type="button"
+            class="ui-btn primary sm"
+            matRipple
+            [disabled]="!newProjectName().trim() || isCreatingProject()"
+            (click)="submitCreateProject()"
+          >
+            {{ isCreatingProject() ? 'Creating…' : 'Create project' }}
+          </button>
+        </footer>
+      </div>
+    </div>
+  }
 </section>

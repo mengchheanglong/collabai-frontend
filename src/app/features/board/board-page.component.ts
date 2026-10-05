@@ -200,7 +200,29 @@ export class BoardPageComponent {
     if (boardId) this.tasks.loadBoard(boardId);
   }
 
+  readonly isCreateProjectModalOpen = signal(false);
+  readonly newProjectName = signal('');
+  readonly newProjectDescription = signal('');
+  readonly isCreatingProject = signal(false);
+
   openProjectCreator(): void {
+    this.newProjectName.set('');
+    this.newProjectDescription.set('');
+    this.isCreateProjectModalOpen.set(true);
     this.workspace.isWorkspaceCreatorOpen.set(true);
+  }
+
+  closeProjectCreator(): void {
+    this.isCreateProjectModalOpen.set(false);
+    this.workspace.isWorkspaceCreatorOpen.set(false);
+  }
+
+  submitCreateProject(): void {
+    const name = this.newProjectName().trim();
+    if (!name) return;
+    this.isCreatingProject.set(true);
+    this.workspace.createProject(name, this.newProjectDescription().trim() || undefined);
+    this.closeProjectCreator();
+    this.isCreatingProject.set(false);
   }
 }
