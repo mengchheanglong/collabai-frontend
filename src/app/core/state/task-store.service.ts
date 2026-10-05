@@ -325,8 +325,8 @@ export class TaskStoreService {
     const task = event.item.data as Task;
     if (!task) return;
 
-    // Viewers are read-only — stop here so the card never pretends to move.
-    if (!this.members.ensureCanEdit()) return;
+    // Viewers / other members' tasks — stop here so the card never pretends to move.
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
 
     const isSameColumn = event.previousContainer === event.container;
     if (isSameColumn && event.previousIndex === event.currentIndex) {
@@ -411,7 +411,7 @@ export class TaskStoreService {
   toggleSubtask(task: Task, index: number): void {
     const subtask = task.subtasks[index];
     if (!subtask) return;
-    if (!this.members.ensureCanEdit()) return;
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
     const subtaskId = subtask.id;
     if (this.togglingSubtaskIds.has(subtaskId)) return;
     this.togglingSubtaskIds.add(subtaskId);
@@ -481,7 +481,7 @@ export class TaskStoreService {
 
   generateSubtasks(task: Task): void {
     if (this.isGeneratingSubtasks()) return;
-    if (!this.members.ensureCanEdit()) return;
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
     this.isGeneratingSubtasks.set(true);
     this.ai
       .generateSubtasks({
@@ -541,7 +541,7 @@ export class TaskStoreService {
 
   improveDescription(task: Task): void {
     if (this.isImprovingDescription()) return;
-    if (!this.members.ensureCanEdit()) return;
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
     this.isImprovingDescription.set(true);
     this.ai
       .generateDescription({
@@ -606,8 +606,8 @@ export class TaskStoreService {
     taskId: string,
     patch: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'assigneeId' | 'dueDate' | 'labels'>>,
   ): Task | null {
-    if (!this.members.ensureCanEdit()) return null;
     const previousTask = this.tasks().find((item) => item.id === taskId) ?? null;
+    if (!this.members.ensureCanWorkOnTask(previousTask?.assigneeId ?? null)) return null;
     let updatedTask: Task | null = null;
     this.tasks.update((items) =>
       items.map((item) => {
@@ -705,8 +705,9 @@ export class TaskStoreService {
   addManualSubtask(taskId: string, title: string): void {
     const cleanTitle = title.trim();
     if (!cleanTitle) return;
-    if (!this.members.ensureCanEdit()) return;
     if (this.addingSubtaskTaskIds.has(taskId)) return;
+    const owner = this.tasks().find((t) => t.id === taskId);
+    if (!this.members.ensureCanWorkOnTask(owner?.assigneeId ?? null)) return;
     this.addingSubtaskTaskIds.add(taskId);
 
     const task = this.tasks().find((t) => t.id === taskId);
@@ -942,7 +943,8 @@ export class TaskStoreService {
 
   deleteTask(taskId: string): void {
     if (this.deletingTaskIds.has(taskId)) return;
-    if (!this.members.ensureCanEdit()) return;
+    const target = this.tasks().find((item) => item.id === taskId);
+    if (!this.members.ensureCanWorkOnTask(target?.assigneeId ?? null)) return;
     this.deletingTaskIds.add(taskId);
 
     const taskToDelete = this.tasks().find((item) => item.id === taskId);

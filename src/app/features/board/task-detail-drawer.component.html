@@ -17,7 +17,7 @@
           <button
             type="button"
             class="icon-btn"
-            [disabled]="tasks.isGeneratingSubtasks()"
+            [disabled]="tasks.isGeneratingSubtasks() || !members.canWorkOnTask(task.assigneeId ?? null)"
             (click)="tasks.generateSubtasks(task)"
             [attr.aria-label]="tasks.isGeneratingSubtasks() ? 'Generating subtasks' : 'Generate AI subtasks'"
             [title]="tasks.isGeneratingSubtasks() ? 'Generating subtasks…' : 'Generate AI subtasks'"
@@ -29,7 +29,7 @@
           <button
             type="button"
             class="icon-btn"
-            [disabled]="tasks.isImprovingDescription()"
+            [disabled]="tasks.isImprovingDescription() || !members.canWorkOnTask(task.assigneeId ?? null)"
             (click)="tasks.improveDescription(task)"
             [attr.aria-label]="tasks.isImprovingDescription() ? 'Improving description' : 'Improve description with AI'"
             [title]="tasks.isImprovingDescription() ? 'Improving description…' : 'Improve description with AI'"
@@ -39,7 +39,7 @@
             </span>
           </button>
           <span class="task-chrome-divider" aria-hidden="true"></span>
-          <button type="button" class="icon-btn" (click)="tasks.deleteTask(task.id)" aria-label="Delete task" title="Delete">
+          <button type="button" class="icon-btn" [disabled]="!members.canWorkOnTask(task.assigneeId ?? null)" (click)="tasks.deleteTask(task.id)" aria-label="Delete task" [title]="taskLockReason(task) ?? 'Delete'">
             <span class="material-symbols-rounded" aria-hidden="true">delete</span>
           </button>
           <button type="button" class="icon-btn" (click)="tasks.closeTask()" aria-label="Close task detail" title="Close">
@@ -60,6 +60,8 @@
             id="task-modal-title"
             #titleInput
             [value]="task.title"
+            [readOnly]="!members.canWorkOnTask(task.assigneeId ?? null)"
+            [attr.title]="taskLockReason(task)"
             (blur)="saveTitle(task, titleInput)"
             (keydown.enter)="titleInput.blur()"
             placeholder="Task title…"
@@ -81,7 +83,7 @@
                     Preview
                   </button>
                 } @else {
-                  <button type="button" class="btn-text-sm" (click)="isEditingDesc.set(true)">
+                  <button type="button" class="btn-text-sm" (click)="startEditingDescription(task)">
                     <span class="material-symbols-rounded sm">edit</span>
                     Edit
                   </button>
@@ -102,10 +104,10 @@
             } @else {
               <div
                 class="task-desc-rendered"
-                (click)="isEditingDesc.set(true)"
+                (click)="startEditingDescription(task)"
                 role="button"
                 tabindex="0"
-                (keydown.enter)="isEditingDesc.set(true)"
+                (keydown.enter)="startEditingDescription(task)"
                 [attr.aria-label]="task.description ? 'Click to edit description' : 'Add a description'"
               >
                 @if (task.description && task.description.trim()) {
@@ -130,12 +132,15 @@
             }
             <div class="subtasks">
               @for (sub of task.subtasks; track sub.id || $index; let i = $index) {
-                <label class="check" [class.done]="sub.done">
-                  <input type="checkbox" [checked]="sub.done" (change)="tasks.toggleSubtask(task, i)" [attr.aria-label]="(sub.done ? 'Mark incomplete: ' : 'Mark complete: ') + sub.title" />
+                <label class="check" [class.done]="sub.done" [attr.title]="taskLockReason(task)">
+                  <input type="checkbox" [checked]="sub.done" [disabled]="!members.canWorkOnTask(task.assigneeId ?? null)" (change)="tasks.toggleSubtask(task, i)" [attr.aria-label]="(sub.done ? 'Mark incomplete: ' : 'Mark complete: ') + sub.title" />
                   <span>{{ sub.title }}</span>
                 </label>
               }
             </div>
+            @if (taskLockReason(task); as reason) {
+              <p class="subtask-locked-note">{{ reason }}</p>
+            } @else {
             <div class="subtask-add-inline">
               <button
                 type="button"
@@ -154,6 +159,7 @@
                 aria-label="Add subtask"
               />
             </div>
+            }
           </section>
 
           <section class="task-section task-activity">
@@ -220,6 +226,8 @@
               type="button"
               class="prop-dropdown-btn"
               [matMenuTriggerFor]="modalStatusMenu"
+              [disabled]="!members.canWorkOnTask(task.assigneeId ?? null)"
+              [attr.title]="taskLockReason(task)"
               aria-label="Status"
               matRipple
             >
@@ -251,6 +259,8 @@
               type="button"
               class="prop-dropdown-btn"
               [matMenuTriggerFor]="modalPriorityMenu"
+              [disabled]="!members.canWorkOnTask(task.assigneeId ?? null)"
+              [attr.title]="taskLockReason(task)"
               aria-label="Priority"
               matRipple
             >
@@ -326,6 +336,8 @@
               type="button"
               class="prop-dropdown-btn"
               [matMenuTriggerFor]="modalDueDateMenu"
+              [disabled]="!members.canWorkOnTask(task.assigneeId ?? null)"
+              [attr.title]="taskLockReason(task)"
               aria-label="Due date"
               matRipple
             >

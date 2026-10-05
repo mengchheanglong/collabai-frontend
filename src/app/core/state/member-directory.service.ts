@@ -17,7 +17,7 @@ import type {
   ProjectMemberDto,
   ProjectRole,
 } from '../api/api.types';
-import { VIEW_ONLY_MESSAGE, apiErrorMessage } from '../api/api-error';
+import { NOT_YOUR_TASK_MESSAGE, VIEW_ONLY_MESSAGE, apiErrorMessage } from '../api/api-error';
 
 const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b'];
 
@@ -178,6 +178,21 @@ export class MemberDirectoryService {
     if (this.myRole() === 'Admin') return true;
     if (!this.canEditContent()) return false;
     return current === null || current === this.currentUser.id;
+  }
+
+  /** Owners/admins always; members on their own or unassigned tasks; viewers never. Mirrors the backend. */
+  canWorkOnTask(assigneeId: string | null): boolean {
+    if (this.myRole() === 'Admin') return true;
+    if (!this.canEditContent()) return false;
+    return assigneeId === null || assigneeId === this.currentUser.id;
+  }
+
+  /** Shows why and returns false when the user can't change this task (edit, move, delete, subtasks). */
+  ensureCanWorkOnTask(assigneeId: string | null): boolean {
+    if (!this.ensureCanEdit()) return false;
+    if (this.canWorkOnTask(assigneeId)) return true;
+    this.toast.error(NOT_YOUR_TASK_MESSAGE, 'Not Your Task');
+    return false;
   }
 
   /** People who may be picked as assignee when the task is currently assigned to `current`. */

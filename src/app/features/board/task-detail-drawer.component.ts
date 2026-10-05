@@ -91,6 +91,19 @@ export class TaskDetailDrawerComponent {
     }
   }
 
+  taskLockReason(task: Task): string | null {
+    if (this.members.canWorkOnTask(task.assigneeId ?? null)) return null;
+    return this.members.canEditContent()
+      ? 'Only the assignee or an owner/admin can change this task.'
+      : 'View-only access.';
+  }
+
+  /** Opens the description editor, or explains why this user can't edit the task. */
+  startEditingDescription(task: Task): void {
+    if (!this.members.ensureCanWorkOnTask(task.assigneeId ?? null)) return;
+    this.isEditingDesc.set(true);
+  }
+
   assigneeLockReason(task: Task): string | null {
     if (this.members.canChangeAssignee(task.assigneeId ?? null)) return null;
     return this.members.canEditContent()
