@@ -26,7 +26,7 @@ async function main(): Promise<void> {
 TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
 const boards: Subject<any>[] = [];
 const workspace = { activeProjectId: signal('project'), activeBoardId: signal('board'), reloadBoards: () => {}, reloadProjects: () => {}, removeLiveProject: () => {} };
-const socket = { events$: new Subject<any>(), joined$: new Subject<string>(), denied$: new Subject<string>(), setProject: () => {}, typing: () => {} };
+const socket = { events$: new Subject<any>(), joined$: new Subject<string>(), denied$: new Subject<string>(), setProject: () => {}, typing: () => {}, taskViewing: () => {} };
 const pendingCount = signal(0); const isSyncing = signal(false);
 let notificationLoads = 0;
 TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(),
@@ -75,6 +75,42 @@ Object.defineProperty(globalThis, 'navigator', { value: { onLine: true }, config
 comments.commentDraft.set('Comment'); comments.postComment({ ...tasks.tasks()[0], id: 'task', projectId: 'project' } as any);
 assert.equal(comments.commentsByTaskId()['task'].length, 1);
 comments.applyLiveComment('task', undefined, 'comment'); assert.equal(comments.commentsByTaskId()['task'].length, 0);
+// Phase 3: Project presence updates and active task viewers
+socket.events$.next({
+  name: 'presence:update',
+  event: {
+    projectId: 'project',
+    actorId: 'system',
+    data: { users: [{ userId: 'u-1', name: 'Alice' }, { userId: 'u-2', name: 'Bob' }] },
+    createdAt: new Date().toISOString(),
+  },
+});
+assert.equal(live.onlineUsers().length, 2);
+assert.ok(live.onlineUsersLabel().includes('Alice'));
+assert.ok(live.onlineUsersLabel().includes('Bob'));
+
+socket.events$.next({
+  name: 'task:viewing:started',
+  event: {
+    projectId: 'project',
+    actorId: 'u-2',
+    data: { taskId: 'task-1', userName: 'Bob' },
+    createdAt: new Date().toISOString(),
+  },
+});
+assert.equal(live.taskViewersFor('task-1').length, 1);
+assert.equal(live.taskViewersFor('task-1')[0].name, 'Bob');
+
+socket.events$.next({
+  name: 'task:viewing:stopped',
+  event: {
+    projectId: 'project',
+    actorId: 'u-2',
+    data: { taskId: 'task-1' },
+    createdAt: new Date().toISOString(),
+  },
+});
+assert.equal(live.taskViewersFor('task-1').length, 0);
 live.ngOnDestroy(); TestBed.resetTestingModule();
 console.log('Realtime state checks passed: same-user merge, deduplication, in-flight deletion, project isolation, offline precedence, reconnect refetch, and comments.');
 }

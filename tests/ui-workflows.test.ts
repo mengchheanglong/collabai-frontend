@@ -9,6 +9,10 @@ import { LoginComponent } from '../src/app/features/auth/login/login.component';
 import { SignupComponent } from '../src/app/features/auth/signup/signup.component';
 import { TaskDetailDrawerComponent } from '../src/app/features/board/task-detail-drawer.component';
 import { TeamPageComponent } from '../src/app/features/team/team-page.component';
+import { AcceptInviteComponent } from '../src/app/features/team/accept-invite.component';
+import { UserApiService } from '../src/app/core/api/user-api.service';
+import { ProjectApiService } from '../src/app/core/api/project-api.service';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthStoreService } from '../src/app/core/state/auth-store.service';
 import { TaskStoreService } from '../src/app/core/state/task-store.service';
 import { MemberDirectoryService } from '../src/app/core/state/member-directory.service';
@@ -18,10 +22,16 @@ import { CommentStoreService } from '../src/app/core/state/comment-store.service
 import { LiveCollaborationService } from '../src/app/core/realtime/live-collaboration.service';
 import { BoardPageComponent } from '../src/app/features/board/board-page.component';
 import { DocsPageComponent } from '../src/app/features/docs/docs-page.component';
+import { DashboardPageComponent } from '../src/app/features/dashboard/dashboard-page.component';
+import { AiService } from '../src/app/core/api/ai.service';
+import { ActivityStoreService } from '../src/app/core/state/activity-store.service';
+import { SuggestionStoreService } from '../src/app/core/state/suggestion-store.service';
+import { AnalyticsStoreService } from '../src/app/core/state/analytics-store.service';
+import { SocketService } from '../src/app/core/realtime/socket.service';
 import { DocsApiService } from '../src/app/core/api/docs-api.service';
 import { ProjectApiService } from '../src/app/core/api/project-api.service';
 import { ActivatedRoute } from '@angular/router';
-import { of } from 'rxjs';
+import { of, Subject, throwError } from 'rxjs';
 import { DOCUMENT } from '@angular/common';
 
 if (typeof (globalThis as any).document === 'undefined') {
@@ -298,14 +308,25 @@ async function testTeamPageWorkflow(): Promise<void> {
     },
   };
 
+  let searchedTerm = '';
+  const mockUserApi = {
+    search: (term: string) => {
+      searchedTerm = term;
+      return of([
+        { _id: 'u-99', name: 'Dave Partner', email: 'dave@example.com' },
+      ]);
+    },
+  };
+
   TestBed.resetTestingModule();
   TestBed.configureTestingModule({
     providers: [
       provideZonelessChangeDetection(),
       { provide: DOCUMENT, useValue: (globalThis as any).document },
       { provide: MemberDirectoryService, useValue: mockMembers },
-      { provide: WorkspaceContextService, useValue: {} },
+      { provide: WorkspaceContextService, useValue: { activeProjectId: () => 'proj-1' } },
       { provide: ToastService, useValue: mockToast },
+      { provide: UserApiService, useValue: mockUserApi },
     ],
   });
 
@@ -355,6 +376,25 @@ async function testTeamPageWorkflow(): Promise<void> {
   // Removing another user opens dialog
   comp.openRemoveDialog(clickEvent, membersList[1]); // user-2
   assert.equal(comp.removeTarget()?.id, 'user-2');
+
+  // 7. Autocomplete user search & suggestion selection
+  comp.openInvite();
+  comp.onInviteInput('dave');
+  assert.equal(comp.isSearchingUsers(), true);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(searchedTerm, 'dave');
+  assert.equal(comp.searchSuggestions().length, 1);
+  assert.equal(comp.searchSuggestions()[0].name, 'Dave Partner');
+
+  comp.selectSuggestion(comp.searchSuggestions()[0]);
+  assert.equal(comp.selectedUser()?.name, 'Dave Partner');
+  assert.equal(comp.inviteEmail(), 'dave@example.com');
+  assert.equal(comp.searchSuggestions().length, 0);
+
+  comp.sendInvite();
+  assert.equal(invitedEmail, 'dave@example.com');
+  assert.equal(comp.inviteOpen(), false);
+  assert.equal(comp.selectedUser(), null);
 
   console.log('✓ Team page component UI workflow passed.');
 }
@@ -435,6 +475,19 @@ async function testBoardWorkflow(): Promise<void> {
 
 async function testDocsWorkflow(): Promise<void> {
   let updatedDocPayload: any = null;
+  const mockEvents$ = new Subject<{ name: string; event: any }>();
+  let docEditingCall: any = null;
+  const mockSocket = {
+    connected: signal(true),
+    events$: mockEvents$,
+    joined$: of('proj-1'),
+    denied$: of(''),
+    setProject: () => {},
+    docEditing: (docId: string, active: boolean) => {
+      docEditingCall = { docId, active };
+    },
+    typing: () => {},
+  };
   const mockDocApi = {
     get: () =>
       of({
@@ -476,6 +529,7 @@ async function testDocsWorkflow(): Promise<void> {
       provideZonelessChangeDetection(),
       { provide: DOCUMENT, useValue: (globalThis as any).document },
       { provide: DocsApiService, useValue: mockDocApi },
+      { provide: SocketService, useValue: mockSocket },
       { provide: ProjectApiService, useValue: { get: () => of({ members: [] }) } },
       { provide: AuthStoreService, useValue: { currentUser: signal({ _id: 'user-1' }) } },
       { provide: WorkspaceContextService, useValue: { activeProjectId: signal('proj-1') } },
@@ -544,7 +598,276 @@ async function testDocsWorkflow(): Promise<void> {
   comp.removeAttachment(0);
   assert.equal(comp.attachments().length, 0);
 
+  // 7. Real-time document editing awareness & presence
+  comp.onEditorInput();
+  assert.deepEqual(docEditingCall, { docId: 'doc-1', active: true });
+
+  mockEvents$.next({
+    name: 'doc:editing:started',
+    event: {
+      projectId: 'proj-1',
+      actorId: 'user-2',
+      data: { documentId: 'doc-1', userId: 'user-2', userName: 'Bob' },
+      createdAt: new Date().toISOString(),
+    },
+  });
+  assert.ok(comp.activeEditorsLabel().includes('Bob'));
+
+  mockEvents$.next({
+    name: 'doc:editing:stopped',
+    event: {
+      projectId: 'proj-1',
+      actorId: 'user-2',
+      data: { documentId: 'doc-1', userId: 'user-2' },
+      createdAt: new Date().toISOString(),
+    },
+  });
+  assert.equal(comp.activeEditorsLabel(), '');
+
+  // 8. Remote update conflict detection & reload/dismiss
+  assert.equal(comp.remoteConflict(), false);
+  mockEvents$.next({
+    name: 'document:updated',
+    event: {
+      projectId: 'proj-1',
+      actorId: 'user-2',
+      data: { document: { id: 'doc-1', title: 'Remotely Updated' } },
+      createdAt: new Date().toISOString(),
+    },
+  });
+  assert.equal(comp.remoteConflict(), true);
+  comp.dismissRemoteConflict();
+  assert.equal(comp.remoteConflict(), false);
+
+  // 9. Document Export (Markdown and PDF)
+  comp.exportMarkdown();
+  assert.ok(comp.success().includes('Exported'));
+  comp.preview.set(false);
+  comp.exportPdf();
+  assert.equal(comp.preview(), true);
+
+  // 10. Viewer lock (read-only documents)
+  mockDocApi.get = () =>
+    of({
+      document: {
+        _id: 'doc-viewer',
+        projectId: 'proj-1',
+        title: 'Viewer Doc',
+        content: '# Read only spec',
+        version: 1,
+        createdAt: '2026-09-01T00:00:00.000Z',
+        updatedAt: '2026-09-01T00:00:00.000Z',
+      },
+      canEdit: false,
+    });
+  await comp.load('doc-viewer', 'proj-1');
+  assert.equal(comp.canEdit(), false);
+  assert.equal(comp.preview(), true);
+
   console.log('✓ Docs page component UI workflow passed.');
+}
+
+
+async function testAcceptInviteWorkflow(): Promise<void> {
+  let acceptedToken = '';
+  let selectedProjId = '';
+
+  const mockProjectApi = {
+    acceptInvitation: (token: string) => {
+      acceptedToken = token;
+      if (token === 'expired-token') {
+        return throwError(() => ({ error: { message: 'This invitation link has expired' } }));
+      }
+      return of({
+        project: { id: 'proj-100', name: 'Acme Space' },
+        message: 'Successfully joined the project',
+      });
+    },
+  };
+
+  const mockAuth = {
+    isAuthenticated: signal(true),
+  };
+
+  const mockWorkspace = {
+    selectProject: (id: string) => {
+      selectedProjId = id;
+    },
+  };
+
+  const mockRouter = {
+    navigate: () => Promise.resolve(true),
+  };
+
+  // 1. Successful acceptance
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({
+    providers: [
+      provideZonelessChangeDetection(),
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { queryParamMap: { get: (k: string) => (k === 'token' ? 'valid-token' : null) } } },
+      },
+      { provide: ProjectApiService, useValue: mockProjectApi },
+      { provide: AuthStoreService, useValue: mockAuth },
+      { provide: WorkspaceContextService, useValue: mockWorkspace },
+      { provide: Router, useValue: mockRouter },
+    ],
+  });
+
+  const compSuccess = TestBed.runInInjectionContext(() => new AcceptInviteComponent());
+  assert.equal(compSuccess.accepted(), true);
+  assert.equal(acceptedToken, 'valid-token');
+  assert.equal(compSuccess.acceptedProjectId(), 'proj-100');
+  assert.equal(selectedProjId, 'proj-100');
+
+  // 2. Expired invitation link
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({
+    providers: [
+      provideZonelessChangeDetection(),
+      {
+        provide: ActivatedRoute,
+        useValue: { snapshot: { queryParamMap: { get: (k: string) => (k === 'token' ? 'expired-token' : null) } } },
+      },
+      { provide: ProjectApiService, useValue: mockProjectApi },
+      { provide: AuthStoreService, useValue: mockAuth },
+      { provide: WorkspaceContextService, useValue: mockWorkspace },
+      { provide: Router, useValue: mockRouter },
+    ],
+  });
+
+  const compExpired = TestBed.runInInjectionContext(() => new AcceptInviteComponent());
+  assert.equal(compExpired.accepted(), false);
+  assert.equal(compExpired.isExpired(), true);
+  assert.ok(compExpired.message().includes('expired'));
+
+  console.log('✓ Accept invite component UI workflow passed.');
+}
+
+
+async function testAiTaskAutomationWorkflow(): Promise<void> {
+  let proposedRequest = '';
+  let appliedActionIds: string[] = [];
+  let planIdApplied = '';
+
+  const mockAiService = {
+    proposeTaskActions: (projectId: string, request: string) => {
+      proposedRequest = request;
+      return of({
+        id: 'plan-xyz',
+        projectId,
+        request,
+        actions: [
+          {
+            id: 'act-1',
+            taskId: 'task-1',
+            taskTitle: 'Fix auth cookies',
+            rationale: 'Mark urgent due to security impact',
+            previous: { status: 'todo', priority: 'medium', assigneeId: null, dueDate: null },
+            changes: { priority: 'urgent' },
+          },
+          {
+            id: 'act-2',
+            taskId: 'task-2',
+            taskTitle: 'Update readme',
+            rationale: 'Move to done',
+            previous: { status: 'in_progress', priority: 'low', assigneeId: null, dueDate: null },
+            changes: { status: 'done' },
+          },
+        ],
+        source: 'ai' as const,
+        status: 'pending' as const,
+        expiresAt: new Date(Date.now() + 900000).toISOString(),
+      });
+    },
+    applyTaskActions: (planId: string, actionIds: string[]) => {
+      planIdApplied = planId;
+      appliedActionIds = actionIds;
+      return of({
+        planId,
+        status: 'applied' as const,
+        appliedActionIds: actionIds,
+        appliedAt: new Date().toISOString(),
+      });
+    },
+  };
+
+  const mockWorkspace = {
+    activeProjectId: signal('proj-1'),
+    activeProject: signal({ id: 'proj-1', name: 'CollabAI' }),
+    activeBoardId: signal('board-1'),
+  };
+
+  const mockTasks = {
+    tasks: signal([]),
+    tasksForProject: () => [],
+    loadBoard: () => {},
+  };
+
+  const mockActivities = {
+    activities: signal([]),
+    loadForProject: () => {},
+    applyLive: () => {},
+  };
+
+  const mockSuggestions = {
+    suggestions: signal([]),
+    refresh: () => {},
+  };
+
+  const mockAnalytics = {
+    loadForProject: () => {},
+    summary: signal(null),
+  };
+
+  const mockMembers = {
+    members: signal([]),
+  };
+
+  TestBed.resetTestingModule();
+  TestBed.configureTestingModule({
+    providers: [
+      provideZonelessChangeDetection(),
+      { provide: DOCUMENT, useValue: (globalThis as any).document },
+      { provide: Router, useValue: { navigate: async () => true } },
+      { provide: WorkspaceContextService, useValue: mockWorkspace },
+      { provide: TaskStoreService, useValue: mockTasks },
+      { provide: ActivityStoreService, useValue: mockActivities },
+      { provide: SuggestionStoreService, useValue: mockSuggestions },
+      { provide: AnalyticsStoreService, useValue: mockAnalytics },
+      { provide: MemberDirectoryService, useValue: mockMembers },
+      { provide: AiService, useValue: mockAiService },
+    ],
+  });
+
+  const comp = TestBed.runInInjectionContext(() => new DashboardPageComponent());
+
+  // 1. Initial State
+  assert.equal(comp.automationPlan(), null);
+  assert.equal(comp.selectedAutomationActions().length, 0);
+
+  // 2. Propose Task Changes
+  comp.automationRequest.set('Set security tasks urgent');
+  comp.proposeTaskChanges();
+
+  assert.equal(proposedRequest, 'Set security tasks urgent');
+  assert.notEqual(comp.automationPlan(), null);
+  assert.equal(comp.automationPlan()?.id, 'plan-xyz');
+  assert.equal(comp.selectedAutomationActions().length, 2);
+
+  // 3. Toggle selection
+  comp.toggleAutomationAction('act-2', false);
+  assert.deepEqual(comp.selectedAutomationActions(), ['act-1']);
+
+  // 4. Approve and apply changes
+  comp.approveTaskChanges();
+  assert.equal(planIdApplied, 'plan-xyz');
+  assert.deepEqual(appliedActionIds, ['act-1']);
+  assert.equal(comp.automationPlan(), null);
+  assert.ok(comp.automationMessage().includes('Applied 1 approved task change'));
+
+  console.log('✓ AI Task Automation dashboard workflow passed.');
 }
 
 async function main(): Promise<void> {
@@ -556,8 +879,10 @@ async function main(): Promise<void> {
   await testSignupWorkflow();
   await testTaskDetailDrawerWorkflow();
   await testTeamPageWorkflow();
+  await testAcceptInviteWorkflow();
   await testBoardWorkflow();
   await testDocsWorkflow();
+  await testAiTaskAutomationWorkflow();
 
   console.log('\nAll comprehensive frontend UI workflow tests passed successfully!');
 }
