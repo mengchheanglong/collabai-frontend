@@ -25,11 +25,12 @@ import { ProjectApiService } from "../../core/api/project-api.service";
 import { AuthStoreService } from "../../core/state/auth-store.service";
 import { renderMarkdown } from "./markdown";
 import { SocketService } from "../../core/realtime/socket.service";
+import { MatRippleModule } from "@angular/material/core";
 
 @Component({
   selector: "app-docs-page",
   standalone: true,
-  imports: [FormsModule, RouterLink, DatePipe],
+  imports: [FormsModule, RouterLink, DatePipe, MatRippleModule],
   templateUrl: "./docs-page.component.html",
   styleUrl: "./docs-page.component.scss",
 })
@@ -71,6 +72,7 @@ export class DocsPageComponent implements OnDestroy {
   readonly isDraggingOver = signal(false);
   readonly page = signal(1);
   readonly totalPages = signal(0);
+  readonly viewMode = signal<"grid" | "list">("grid");
   search = "";
 
   readonly html = computed(() => renderMarkdown(this.content()));
@@ -291,6 +293,15 @@ export class DocsPageComponent implements OnDestroy {
     void this.load();
   }
 
+  clearSearch() {
+    this.search = "";
+    this.searchDocs();
+  }
+
+  setViewMode(mode: "grid" | "list") {
+    this.viewMode.set(mode);
+  }
+
   changePage(delta: number) {
     this.page.update((p) => p + delta);
     void this.load();
@@ -385,24 +396,29 @@ export class DocsPageComponent implements OnDestroy {
     return parts.length > 1 ? parts.pop()!.toLowerCase() : "";
   }
 
-  getFileBadge(name: string, type?: string | null): { label: string; class: string; icon: string } {
+  getFileBadge(name: string, type?: string | null): { label: string; class: string; icon: string; matIcon: string } {
     const ext = this.getFileExtension(name);
     if (ext === "pdf" || type === "application/pdf") {
-      return { label: "PDF", class: "badge-pdf", icon: "📕" };
+      return { label: "PDF", class: "badge-pdf", icon: "📕", matIcon: "picture_as_pdf" };
     }
     if (["doc", "docx"].includes(ext) || type?.includes("word") || type?.includes("officedocument")) {
-      return { label: ext ? ext.toUpperCase() : "DOCX", class: "badge-doc", icon: "📘" };
+      return { label: ext ? ext.toUpperCase() : "DOCX", class: "badge-doc", icon: "📘", matIcon: "description" };
     }
     if (["md", "markdown"].includes(ext)) {
-      return { label: "MD", class: "badge-md", icon: "📑" };
+      return { label: "MD", class: "badge-md", icon: "📑", matIcon: "article" };
     }
     if (["txt", "log", "json", "csv", "xml"].includes(ext)) {
-      return { label: ext ? ext.toUpperCase() : "TXT", class: "badge-txt", icon: "📝" };
+      return {
+        label: ext ? ext.toUpperCase() : "TXT",
+        class: "badge-txt",
+        icon: "📝",
+        matIcon: ext === "csv" ? "table_chart" : "text_snippet",
+      };
     }
     if (["png", "jpg", "jpeg", "gif", "svg", "webp"].includes(ext) || type?.startsWith("image/")) {
-      return { label: "IMG", class: "badge-img", icon: "🖼️" };
+      return { label: "IMG", class: "badge-img", icon: "🖼️", matIcon: "image" };
     }
-    return { label: ext ? ext.toUpperCase() : "FILE", class: "badge-file", icon: "📎" };
+    return { label: ext ? ext.toUpperCase() : "FILE", class: "badge-file", icon: "📎", matIcon: "draft" };
   }
 
   formatBytes(bytes: number): string {

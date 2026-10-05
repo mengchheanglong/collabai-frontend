@@ -1,14 +1,32 @@
-<main class="docs-page">
-  <header>
-    <div>
-      <p class="eyebrow">WORKSPACE FILES</p>
+<main class="page docs-page ui-page">
+  <!-- ── Hero Header ─────────────────────────────────────────── -->
+  <header class="ui-hero docs-hero">
+    <div class="ui-hero-copy">
+      <p class="ui-eyebrow">
+        <span>WORKSPACE REPOSITORY</span>
+        <span class="ui-eyebrow-sep" aria-hidden="true">·</span>
+        <span class="ui-eyebrow-date">{{ workspace.activeProjectName() || 'No project selected' }}</span>
+      </p>
       <h1>Documents &amp; Files</h1>
-      <p>Upload and manage project files, PDFs, specifications, and docs.</p>
+      <p class="ui-sub">
+        Centralized repository for project specifications, PDFs, assets, and documentation.
+      </p>
     </div>
-    @if (!id() && canEdit()) {
-      <div class="header-actions">
-        <label class="primary btn-upload-header" title="Upload files (PDF, Word docs, text, markdown, spreadsheets, images)">
-          📤 Upload file(s)
+
+    <div class="ui-hero-actions">
+      @if (id()) {
+        <a class="ui-btn ghost" routerLink="/docs" matRipple>
+          <span class="material-symbols-rounded sm" aria-hidden="true">arrow_back</span>
+          <span>All documents</span>
+        </a>
+      } @else if (canEdit() && workspace.activeProjectId()) {
+        <label
+          class="ui-btn primary btn-upload-header"
+          matRipple
+          title="Upload files (PDF, Word, Markdown, Text, Spreadsheets, Images)"
+        >
+          <span class="material-symbols-rounded sm" aria-hidden="true">upload_file</span>
+          <span>Upload files</span>
           <input
             type="file"
             multiple
@@ -17,41 +35,56 @@
             (change)="onFilesSelectedForNew($event)"
           />
         </label>
-      </div>
-    }
-    @if (id()) {
-      <a routerLink="/docs">← All documents</a>
-    }
+      }
+    </div>
   </header>
 
+  <!-- ── Alerts & Status Banners ────────────────────────────── -->
   @if (error()) {
-    <div role="alert" class="error">
-      {{ error() }}
-      <button (click)="load()" [disabled]="busy() || dirty()">
-        Retry / reload
+    <div role="alert" class="docs-banner banner-error">
+      <span class="material-symbols-rounded" aria-hidden="true">error</span>
+      <div class="banner-content">
+        <span class="banner-text">{{ error() }}</span>
+      </div>
+      <button type="button" class="ui-btn ghost sm" (click)="load()" [disabled]="busy() || dirty()">
+        <span class="material-symbols-rounded sm" aria-hidden="true">refresh</span>
+        Retry
       </button>
     </div>
   }
   @if (success()) {
-    <p role="status" class="success">{{ success() }}</p>
+    <div role="status" class="docs-banner banner-success">
+      <span class="material-symbols-rounded" aria-hidden="true">check_circle</span>
+      <span class="banner-text">{{ success() }}</span>
+    </div>
   }
+
+  <!-- ── Loading State ──────────────────────────────────────── -->
   @if (loading()) {
-    <p role="status">Loading documents…</p>
+    <div class="docs-loading-state" role="status" aria-live="polite">
+      <div class="loading-spinner"></div>
+      <p>Loading documents…</p>
+    </div>
   } @else if (!id()) {
-    <h2>{{ workspace.activeProjectName() }}</h2>
+    <!-- ── Main List / Repository View ──────────────────────── -->
     @if (!workspace.activeProjectId()) {
-      <p>Select or create a project to start uploading documents.</p>
+      <div class="ui-empty docs-no-project">
+        <span class="material-symbols-rounded" aria-hidden="true">folder_off</span>
+        <strong>No project selected</strong>
+        <p>Select or create a project from the sidebar to view and manage workspace files.</p>
+      </div>
     } @else {
-      <!-- Direct drag-and-drop file upload zone -->
+      <!-- Modern Drag & Drop Zone -->
       @if (canEdit()) {
         <button
           type="button"
-          class="main-dropzone"
+          class="docs-dropzone"
           [class.drag-over]="isDraggingOver()"
           (dragover)="onDragOver($event)"
           (dragleave)="onDragLeave($event)"
           (drop)="onMainFileDrop($event)"
           (click)="mainFileDropInput.click()"
+          aria-label="Upload files dropzone"
         >
           <input
             #mainFileDropInput
@@ -61,108 +94,286 @@
             accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
             (change)="onFilesSelectedForNew($event)"
           />
-          <span class="dropzone-inner">
-            <span class="dropzone-icon">📁</span>
-            <span class="dropzone-text-group">
-              <strong class="dropzone-title">Upload project documents &amp; files</strong>
-              <span class="dropzone-desc">Drop PDF, Word docs, text, markdown, or spreadsheets here, or <span class="browse-link">browse files</span></span>
+          <div class="dropzone-body">
+            <div class="dropzone-icon-badge">
+              <span class="material-symbols-rounded" aria-hidden="true">cloud_upload</span>
+            </div>
+            <div class="dropzone-copy">
+              <strong class="dropzone-headline">
+                Drop documents &amp; files here, or <span class="dropzone-link">browse</span>
+              </strong>
+              <p class="dropzone-sub">
+                Supports PDF, DOCX, Markdown, Text, CSV, JSON, and Images (up to 20MB)
+              </p>
+            </div>
+            <span class="ui-btn ghost sm dropzone-btn">
+              <span class="material-symbols-rounded sm" aria-hidden="true">add</span>
+              Select files
             </span>
-            <span class="btn-browse-action">Select files</span>
-          </span>
+          </div>
         </button>
       }
 
-      <form class="search" (ngSubmit)="searchDocs()">
-        <input
-          aria-label="Search document titles"
-          name="search"
-          [(ngModel)]="search"
-          placeholder="Search documents…"
-          maxlength="150"
-        /><button type="submit">Search</button>
-      </form>
+      <!-- Search & View Mode Toolbar -->
+      <div class="docs-toolbar">
+        <form class="ui-search docs-search-bar" (ngSubmit)="searchDocs()">
+          <span class="material-symbols-rounded" aria-hidden="true">search</span>
+          <input
+            aria-label="Search document titles"
+            name="search"
+            [(ngModel)]="search"
+            placeholder="Search documents by name…"
+            maxlength="150"
+          />
+          @if (search) {
+            <button
+              type="button"
+              class="search-clear-btn"
+              (click)="clearSearch()"
+              aria-label="Clear search"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+            </button>
+          }
+          <button type="submit" class="sr-only">Search</button>
+        </form>
 
-      <section class="document-list" aria-label="Documents">
-        @for (doc of items(); track doc._id) {
-          <div class="doc-card-wrapper">
-            <a class="document-card" [routerLink]="['/docs', doc._id]">
-              <span class="doc-icon">{{ getFileBadge(doc.title, doc.fileType ?? '').icon }}</span>
-              <div class="doc-info-col">
-                <div class="doc-card-title-row">
-                  <h3 class="doc-title-text">{{ doc.title }}</h3>
-                  @if (doc.fileType) {
-                    <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType).class">
-                      {{ getFileBadge(doc.title, doc.fileType).label }}
+        <div class="docs-toolbar-controls">
+          <span class="docs-count-chip">
+            <span class="material-symbols-rounded sm" aria-hidden="true">inventory_2</span>
+            {{ items().length }} {{ items().length === 1 ? 'file' : 'files' }}
+          </span>
+
+          <div class="ui-tabs view-switcher" role="radiogroup" aria-label="View layout mode">
+            <button
+              type="button"
+              class="ui-tab"
+              [class.active]="viewMode() === 'grid'"
+              (click)="setViewMode('grid')"
+              title="Grid layout"
+              aria-label="Grid layout"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">grid_view</span>
+            </button>
+            <button
+              type="button"
+              class="ui-tab"
+              [class.active]="viewMode() === 'list'"
+              (click)="setViewMode('list')"
+              title="List layout"
+              aria-label="List layout"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">view_list</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- File Display: Grid vs List -->
+      @if (items().length > 0) {
+        @if (viewMode() === 'grid') {
+          <!-- Grid View -->
+          <section class="docs-cards-grid" aria-label="Documents Grid">
+            @for (doc of items(); track doc._id) {
+              <div class="doc-item-card">
+                <div class="doc-card-top-bar">
+                  <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType ?? '').class">
+                    <span class="material-symbols-rounded sm" aria-hidden="true">
+                      {{ getFileBadge(doc.title, doc.fileType ?? '').matIcon }}
                     </span>
-                  }
-                  @if (doc.attachments && doc.attachments.length > 0) {
-                    <span class="attachment-count-badge">📎 {{ doc.attachments.length }}</span>
+                    <span>{{ getFileBadge(doc.title, doc.fileType ?? '').label }}</span>
+                  </span>
+                  @if (doc.attachments && doc.attachments[0]) {
+                    <button
+                      type="button"
+                      class="card-icon-action"
+                      (click)="downloadAttachment(doc.attachments[0])"
+                      title="Download original file"
+                      aria-label="Download original file"
+                    >
+                      <span class="material-symbols-rounded sm" aria-hidden="true">download</span>
+                    </button>
                   }
                 </div>
-                <p class="doc-meta-text">
-                  Updated {{ doc.updatedAt | date: "medium" }}
-                  @if (doc.attachments && doc.attachments[0]?.size) {
-                    · {{ formatBytes(doc.attachments[0].size) }}
+
+                <a class="doc-card-content-link" [routerLink]="['/docs', doc._id]">
+                  <div class="doc-icon-preview" [class]="getFileBadge(doc.title, doc.fileType ?? '').class">
+                    <span class="material-symbols-rounded preview-glyph" aria-hidden="true">
+                      {{ getFileBadge(doc.title, doc.fileType ?? '').matIcon }}
+                    </span>
+                  </div>
+                  <div class="doc-card-meta-copy">
+                    <h3 class="doc-card-heading" [title]="doc.title">{{ doc.title }}</h3>
+                    <p class="doc-card-timestamp">
+                      Updated {{ doc.updatedAt | date: "mediumDate" }}
+                      @if (doc.attachments && doc.attachments[0]?.size) {
+                        <span class="meta-dot">·</span>
+                        {{ formatBytes(doc.attachments[0].size) }}
+                      }
+                    </p>
+                  </div>
+                </a>
+
+                <div class="doc-card-bottom-bar">
+                  <a class="doc-open-button" [routerLink]="['/docs', doc._id]">
+                    <span>Open</span>
+                    <span class="material-symbols-rounded sm" aria-hidden="true">arrow_forward</span>
+                  </a>
+                  @if (doc.attachments && doc.attachments.length > 1) {
+                    <span class="doc-multi-att-pill" title="{{ doc.attachments.length }} files attached">
+                      <span class="material-symbols-rounded sm" aria-hidden="true">attach_file</span>
+                      {{ doc.attachments.length }}
+                    </span>
                   }
-                </p>
+                </div>
               </div>
-              <span class="doc-arrow">→</span>
-            </a>
-            @if (doc.attachments && doc.attachments[0]) {
-              <button
-                type="button"
-                class="btn-card-download"
-                (click)="downloadAttachment(doc.attachments[0])"
-                title="Download original file"
-              >
-                ⬇️
-              </button>
             }
-          </div>
-        } @empty {
-          @if (!error()) {
-            <div class="empty">
-              <h3>
-                {{
-                  search
-                    ? "No matching documents"
-                    : "No documents uploaded yet"
-                }}
-              </h3>
-              <p>
-                {{
-                  search
-                    ? "Try another search term."
-                    : "Upload a PDF, Word document, text file, or markdown to get started."
-                }}
-              </p>
+          </section>
+        } @else {
+          <!-- List View -->
+          <section class="docs-table-shell" aria-label="Documents List">
+            <div class="docs-table-scroll">
+              <table class="docs-table">
+                <thead>
+                  <tr>
+                    <th class="th-name">Name</th>
+                    <th class="th-type">Type</th>
+                    <th class="th-size">Size</th>
+                    <th class="th-updated">Modified</th>
+                    <th class="th-actions">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (doc of items(); track doc._id) {
+                    <tr class="docs-table-row">
+                      <td class="td-name">
+                        <a class="table-doc-link" [routerLink]="['/docs', doc._id]">
+                          <span class="table-type-icon" [class]="getFileBadge(doc.title, doc.fileType ?? '').class">
+                            <span class="material-symbols-rounded sm" aria-hidden="true">
+                              {{ getFileBadge(doc.title, doc.fileType ?? '').matIcon }}
+                            </span>
+                          </span>
+                          <span class="table-doc-title" [title]="doc.title">{{ doc.title }}</span>
+                          @if (doc.attachments && doc.attachments.length > 1) {
+                            <span class="table-multi-badge">
+                              +{{ doc.attachments.length - 1 }}
+                            </span>
+                          }
+                        </a>
+                      </td>
+                      <td class="td-type">
+                        <span class="file-badge" [class]="getFileBadge(doc.title, doc.fileType ?? '').class">
+                          {{ getFileBadge(doc.title, doc.fileType ?? '').label }}
+                        </span>
+                      </td>
+                      <td class="td-size">
+                        {{ doc.attachments && doc.attachments[0]?.size ? formatBytes(doc.attachments[0].size) : '—' }}
+                      </td>
+                      <td class="td-updated">
+                        {{ doc.updatedAt | date: "mediumDate" }}
+                      </td>
+                      <td class="td-actions">
+                        <div class="table-action-row">
+                          <a class="ui-btn ghost sm" [routerLink]="['/docs', doc._id]">
+                            <span class="material-symbols-rounded sm" aria-hidden="true">visibility</span>
+                            <span>View</span>
+                          </a>
+                          @if (doc.attachments && doc.attachments[0]) {
+                            <button
+                              type="button"
+                              class="ui-btn ghost sm icon-only"
+                              (click)="downloadAttachment(doc.attachments[0])"
+                              title="Download file"
+                              aria-label="Download original file"
+                            >
+                              <span class="material-symbols-rounded sm" aria-hidden="true">download</span>
+                            </button>
+                          }
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
             </div>
-          }
+          </section>
         }
-      </section>
+      } @else if (!error()) {
+        <!-- Empty State -->
+        <div class="ui-empty docs-empty-box">
+          <div class="empty-icon-ring">
+            <span class="material-symbols-rounded" aria-hidden="true">
+              {{ search ? 'search_off' : 'draft' }}
+            </span>
+          </div>
+          <strong>
+            {{ search ? "No matching documents" : "No documents uploaded yet" }}
+          </strong>
+          <p>
+            {{
+              search
+                ? "No documents match \"" + search + "\". Try a different search term or clear the filter."
+                : "Upload a PDF, specification, or notes to give your team and AI copilot instant context."
+            }}
+          </p>
+          @if (search) {
+            <button type="button" class="ui-btn ghost sm" (click)="clearSearch()">
+              <span class="material-symbols-rounded sm" aria-hidden="true">clear</span>
+              Clear search
+            </button>
+          } @else if (canEdit()) {
+            <label class="ui-btn primary sm" title="Upload files">
+              <span class="material-symbols-rounded sm" aria-hidden="true">upload_file</span>
+              <span>Upload your first file</span>
+              <input
+                type="file"
+                multiple
+                class="sr-only"
+                accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
+                (change)="onFilesSelectedForNew($event)"
+              />
+            </label>
+          }
+        </div>
+      }
+
+      <!-- Pagination -->
       @if (totalPages() > 1) {
-        <nav class="pagination" aria-label="Document pages">
-          <button [disabled]="page() === 1" (click)="changePage(-1)">
-            Previous
+        <nav class="docs-pagination" aria-label="Document pages">
+          <button
+            type="button"
+            class="ui-btn ghost sm"
+            [disabled]="page() === 1"
+            (click)="changePage(-1)"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">chevron_left</span>
+            <span>Previous</span>
           </button>
-          <span>Page {{ page() }} of {{ totalPages() }}</span>
-          <button [disabled]="page() >= totalPages()" (click)="changePage(1)">
-            Next
+          <span class="pagination-indicator">Page {{ page() }} of {{ totalPages() }}</span>
+          <button
+            type="button"
+            class="ui-btn ghost sm"
+            [disabled]="page() >= totalPages()"
+            (click)="changePage(1)"
+          >
+            <span>Next</span>
+            <span class="material-symbols-rounded sm" aria-hidden="true">chevron_right</span>
           </button>
         </nav>
       }
     }
   } @else if (id() === "new") {
-    <!-- Upload New Document Screen -->
-    <div class="new-doc-upload-view">
+    <!-- ── Upload New Document Hero Screen ──────────────────── -->
+    <div class="new-doc-wrapper">
       <button
         type="button"
-        class="new-upload-box"
+        class="new-doc-hero-drop"
         [class.drag-over]="isDraggingOver()"
         (dragover)="onDragOver($event)"
         (dragleave)="onDragLeave($event)"
         (drop)="onMainFileDrop($event)"
         (click)="newDocFileInput.click()"
+        aria-label="Upload new file"
       >
         <input
           #newDocFileInput
@@ -172,212 +383,288 @@
           accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,.xlsx,.pptx,image/*"
           (change)="onFilesSelectedForNew($event)"
         />
-        <span class="upload-giant-icon">📄</span>
-        <h2>Select or drop a file to upload</h2>
-        <p>Supports PDF, DOC, DOCX, Markdown, Text, CSV, and images (up to 20MB)</p>
-        <span class="primary btn-hero-span">Browse Files</span>
+        <div class="new-doc-circle">
+          <span class="material-symbols-rounded hero-upload-icon" aria-hidden="true">cloud_upload</span>
+        </div>
+        <h2>Upload New Document or File</h2>
+        <p class="new-doc-lead">
+          Drop files here to upload directly to <strong>{{ workspace.activeProjectName() }}</strong>
+        </p>
+        <p class="new-doc-formats">
+          Supports PDF, Word, Markdown, Text, CSV, JSON, and Images (up to 20MB)
+        </p>
+        <span class="ui-btn primary">
+          <span class="material-symbols-rounded sm" aria-hidden="true">folder_open</span>
+          <span>Browse files</span>
+        </span>
       </button>
     </div>
   } @else if (document()) {
+    <!-- ── Document Detail & Viewer Screen ─────────────────── -->
     @if (activeEditorsLabel()) {
-      <div class="active-collab-badge" role="status">
-        <span class="pulse-dot"></span>
-        <span>✍️ {{ activeEditorsLabel() }}</span>
+      <div class="active-collab-pill" role="status">
+        <span class="pulse-indicator"></span>
+        <span class="material-symbols-rounded sm" aria-hidden="true">edit_note</span>
+        <span>{{ activeEditorsLabel() }}</span>
       </div>
     }
     @if (remoteConflict()) {
       <div class="remote-conflict-banner" role="alert">
-        <span>⚠️ A teammate updated this document remotely.</span>
+        <div class="conflict-copy">
+          <span class="material-symbols-rounded" aria-hidden="true">warning_amber</span>
+          <span>A teammate updated this document remotely.</span>
+        </div>
         <div class="conflict-actions">
-          <button type="button" class="btn-conflict-reload" (click)="reloadRemoteVersion()">Reload Latest</button>
-          <button type="button" class="btn-conflict-dismiss" (click)="dismissRemoteConflict()">Keep My Changes</button>
+          <button type="button" class="ui-btn primary sm" (click)="reloadRemoteVersion()">
+            Reload Latest
+          </button>
+          <button type="button" class="ui-btn ghost sm" (click)="dismissRemoteConflict()">
+            Keep My Changes
+          </button>
         </div>
       </div>
     }
 
-    <!-- Document Detail & Viewer -->
-    <div class="doc-detail-view">
-      <div class="doc-detail-header">
-        <div class="doc-detail-title-group">
-          <span class="doc-badge-large" [class]="getFileBadge(title(), fileType()).class">
-            {{ getFileBadge(title(), fileType()).icon }} {{ getFileBadge(title(), fileType()).label }}
+    <!-- Document Detail Hero Card -->
+    <div class="doc-detail-card">
+      <div class="doc-detail-info">
+        <div class="doc-detail-badge-row">
+          <span class="file-badge large" [class]="getFileBadge(title(), fileType()).class">
+            <span class="material-symbols-rounded sm" aria-hidden="true">
+              {{ getFileBadge(title(), fileType()).matIcon }}
+            </span>
+            <span>{{ getFileBadge(title(), fileType()).label }}</span>
           </span>
-          <div>
-            <h2 class="doc-detail-title">{{ title() }}</h2>
-            <p class="doc-detail-meta">
-              Updated {{ document()?.updatedAt | date: "medium" }}
-              @if (attachments().length > 0 && attachments()[0].size) {
-                · {{ formatBytes(attachments()[0].size) }}
-              }
-            </p>
-          </div>
-        </div>
-
-        <div class="doc-detail-actions">
-          @if (attachments().length > 0) {
-            <button
-              type="button"
-              class="primary btn-download-hero"
-              (click)="downloadAttachment(attachments()[0])"
-              title="Download original file"
-            >
-              ⬇️ Download File
-            </button>
-          }
-          <button type="button" class="btn-export" (click)="exportPdf()" title="Print / Export as PDF">
-            🖨️ PDF
-          </button>
-          @if (canEdit()) {
-            <button
-              class="danger"
-              type="button"
-              [disabled]="busy()"
-              (click)="remove()"
-              title="Delete document"
-            >
-              🗑️ Delete
-            </button>
+          <span class="doc-meta-item">
+            <span class="material-symbols-rounded sm" aria-hidden="true">schedule</span>
+            Updated {{ document()?.updatedAt | date: "medium" }}
+          </span>
+          @if (attachments().length > 0 && attachments()[0].size) {
+            <span class="doc-meta-item">
+              <span class="material-symbols-rounded sm" aria-hidden="true">storage</span>
+              {{ formatBytes(attachments()[0].size) }}
+            </span>
           }
         </div>
+        <h2 class="doc-detail-title">{{ title() }}</h2>
       </div>
 
-      <!-- Embedded PDF preview viewer -->
-      @if (safePdfUrl()) {
-        <div class="pdf-viewer-container">
-          <div class="pdf-viewer-header">
-            <span>📕 PDF Preview: {{ activePreviewAttachment()?.name || title() }}</span>
-            <div class="pdf-header-actions">
-              @if (activePreviewAttachment() || attachments()[0]) {
-                <button
-                  type="button"
-                  class="btn-subtle"
-                  (click)="downloadAttachment(activePreviewAttachment() || attachments()[0])"
-                >
-                  ⬇️ Download PDF
-                </button>
-              }
-            </div>
-          </div>
-          <iframe
-            [src]="safePdfUrl()!"
-            class="pdf-iframe"
-            title="PDF Preview"
-          ></iframe>
-        </div>
-      }
-
-      <!-- Attached files section -->
-      @if (attachments().length > 0) {
-        <section class="attachments-section" aria-label="Attached files">
-          <h4>Attached Files ({{ attachments().length }})</h4>
-          <div class="attachment-cards-grid">
-            @for (att of attachments(); track att.id; let i = $index) {
-              <div class="attachment-card">
-                <div class="attachment-info">
-                  <span class="file-badge" [class]="getFileBadge(att.name, att.type).class">
-                    {{ getFileBadge(att.name, att.type).icon }} {{ getFileBadge(att.name, att.type).label }}
-                  </span>
-                  <div class="attachment-details">
-                    <strong class="attachment-name" [title]="att.name">{{ att.name }}</strong>
-                    <span class="attachment-size">{{ formatBytes(att.size) }}</span>
-                  </div>
-                </div>
-                <div class="attachment-actions">
-                  @if (att.type === 'application/pdf' || att.name.toLowerCase().endsWith('.pdf')) {
-                    <button
-                      type="button"
-                      class="btn-subtle"
-                      (click)="togglePdfPreview(att)"
-                    >
-                      {{ activePreviewAttachment()?.id === att.id ? "✕ Close PDF" : "👁 View PDF" }}
-                    </button>
-                  }
-                  <button
-                    type="button"
-                    class="btn-subtle"
-                    (click)="downloadAttachment(att)"
-                    title="Download original file"
-                  >
-                    ⬇ Download
-                  </button>
-                  @if (canEdit()) {
-                    <button
-                      type="button"
-                      class="btn-subtle btn-danger-icon"
-                      (click)="removeAttachment(i)"
-                      title="Remove attachment"
-                    >
-                      ✕
-                    </button>
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        </section>
-      }
-
-      <!-- Drag & drop zone to attach additional files -->
-      @if (canEdit()) {
+      <div class="doc-detail-actions">
+        @if (attachments().length > 0) {
+          <button
+            type="button"
+            class="ui-btn primary"
+            matRipple
+            (click)="downloadAttachment(attachments()[0])"
+            title="Download original file"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">download</span>
+            <span>Download</span>
+          </button>
+        }
         <button
           type="button"
-          class="dropzone"
-          [class.drag-over]="isDraggingOver()"
-          (dragover)="onDragOver($event)"
-          (dragleave)="onDragLeave($event)"
-          (drop)="onFileDrop($event)"
-          (click)="detailFileDropInput.click()"
+          class="ui-btn ghost"
+          matRipple
+          (click)="exportPdf()"
+          title="Print / Export as PDF"
         >
-          <input
-            #detailFileDropInput
-            type="file"
-            multiple
-            class="sr-only"
-            accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
-            (change)="onFilesSelected($event)"
-          />
-          <span class="dropzone-text">
-            📎 Drop files here to attach to this document, or <span class="browse-link">browse</span>
-          </span>
+          <span class="material-symbols-rounded sm" aria-hidden="true">print</span>
+          <span>Print / PDF</span>
         </button>
-      }
+        @if (canEdit()) {
+          <button
+            class="ui-btn danger"
+            type="button"
+            matRipple
+            [disabled]="busy()"
+            (click)="remove()"
+            title="Delete document"
+          >
+            <span class="material-symbols-rounded sm" aria-hidden="true">delete</span>
+            <span>Delete</span>
+          </button>
+        }
+      </div>
+    </div>
 
-      <!-- Optional Content/Notes view (only if content exists and not pure PDF) -->
-      @if (content().trim() && !fileType()?.includes('pdf')) {
-        <section class="doc-notes-section">
-          <div class="notes-header">
-            <h4>Document Notes</h4>
-            <div class="notes-actions">
-              <button type="button" class="btn-subtle" (click)="preview.set(!preview())">
-                {{ preview() ? "Edit notes" : "Preview" }}
+    <!-- Embedded PDF Preview Viewer -->
+    @if (safePdfUrl()) {
+      <div class="pdf-viewer-shell">
+        <div class="pdf-viewer-bar">
+          <div class="pdf-viewer-title-group">
+            <span class="material-symbols-rounded sm text-red" aria-hidden="true">picture_as_pdf</span>
+            <span class="pdf-viewer-filename">{{ activePreviewAttachment()?.name || title() }}</span>
+          </div>
+          <div class="pdf-viewer-actions">
+            @if (activePreviewAttachment() || attachments()[0]) {
+              <button
+                type="button"
+                class="ui-btn ghost sm"
+                (click)="downloadAttachment(activePreviewAttachment() || attachments()[0])"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">download</span>
+                <span>Download PDF</span>
               </button>
-              <button type="button" class="btn-export" (click)="exportMarkdown()" title="Export notes as Markdown">
-                ⬇️ .MD
+            }
+          </div>
+        </div>
+        <iframe
+          [src]="safePdfUrl()!"
+          class="pdf-iframe"
+          title="PDF Preview"
+        ></iframe>
+      </div>
+    }
+
+    <!-- Attached Files Section -->
+    @if (attachments().length > 0) {
+      <section class="doc-attachments-section" aria-label="Attached files">
+        <div class="section-header">
+          <h3 class="section-title">
+            <span class="material-symbols-rounded sm" aria-hidden="true">attachment</span>
+            Attached Files ({{ attachments().length }})
+          </h3>
+        </div>
+        <div class="attachment-cards-grid">
+          @for (att of attachments(); track att.id; let i = $index) {
+            <div class="attachment-item-card">
+              <div class="attachment-left">
+                <span class="file-badge" [class]="getFileBadge(att.name, att.type).class">
+                  <span class="material-symbols-rounded sm" aria-hidden="true">
+                    {{ getFileBadge(att.name, att.type).matIcon }}
+                  </span>
+                  <span>{{ getFileBadge(att.name, att.type).label }}</span>
+                </span>
+                <div class="attachment-info-copy">
+                  <strong class="attachment-name" [title]="att.name">{{ att.name }}</strong>
+                  <span class="attachment-size">{{ formatBytes(att.size) }}</span>
+                </div>
+              </div>
+              <div class="attachment-right-actions">
+                @if (att.type === 'application/pdf' || att.name.toLowerCase().endsWith('.pdf')) {
+                  <button
+                    type="button"
+                    class="ui-btn ghost sm"
+                    (click)="togglePdfPreview(att)"
+                  >
+                    <span class="material-symbols-rounded sm" aria-hidden="true">
+                      {{ activePreviewAttachment()?.id === att.id ? 'visibility_off' : 'visibility' }}
+                    </span>
+                    <span>{{ activePreviewAttachment()?.id === att.id ? "Close PDF" : "View PDF" }}</span>
+                  </button>
+                }
+                <button
+                  type="button"
+                  class="ui-btn ghost sm icon-only"
+                  (click)="downloadAttachment(att)"
+                  title="Download file"
+                  aria-label="Download attachment"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">download</span>
+                </button>
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="ui-btn ghost sm icon-only btn-remove-att"
+                    (click)="removeAttachment(i)"
+                    title="Remove attachment"
+                    aria-label="Remove attachment"
+                  >
+                    <span class="material-symbols-rounded sm" aria-hidden="true">close</span>
+                  </button>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      </section>
+    }
+
+    <!-- Drag & drop zone to attach additional files -->
+    @if (canEdit()) {
+      <button
+        type="button"
+        class="doc-sub-dropzone"
+        [class.drag-over]="isDraggingOver()"
+        (dragover)="onDragOver($event)"
+        (dragleave)="onDragLeave($event)"
+        (drop)="onFileDrop($event)"
+        (click)="detailFileDropInput.click()"
+        aria-label="Attach additional files"
+      >
+        <input
+          #detailFileDropInput
+          type="file"
+          multiple
+          class="sr-only"
+          accept=".md,.markdown,.txt,.pdf,.doc,.docx,.json,.csv,image/*"
+          (change)="onFilesSelected($event)"
+        />
+        <span class="material-symbols-rounded sm" aria-hidden="true">add_circle</span>
+        <span>Drop additional files here to attach, or <span class="browse-link">browse</span></span>
+      </button>
+    }
+
+    <!-- Optional Content/Notes view (only if content exists and not pure PDF) -->
+    @if (content().trim() && !fileType()?.includes('pdf')) {
+      <section class="doc-notes-card">
+        <div class="notes-header">
+          <div class="notes-title-group">
+            <span class="material-symbols-rounded sm" aria-hidden="true">notes</span>
+            <h4>Document Notes &amp; Specifications</h4>
+          </div>
+          <div class="notes-actions">
+            <button
+              type="button"
+              class="ui-btn ghost sm"
+              (click)="preview.set(!preview())"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">
+                {{ preview() ? 'edit' : 'visibility' }}
+              </span>
+              <span>{{ preview() ? "Edit notes" : "Preview" }}</span>
+            </button>
+            <button
+              type="button"
+              class="ui-btn ghost sm"
+              (click)="exportMarkdown()"
+              title="Export notes as Markdown"
+            >
+              <span class="material-symbols-rounded sm" aria-hidden="true">file_download</span>
+              <span>.MD</span>
+            </button>
+          </div>
+        </div>
+
+        @if (preview() || !canEdit()) {
+          <article class="notes-markdown-preview" [innerHTML]="html()"></article>
+        } @else {
+          <form (ngSubmit)="save()" class="notes-form">
+            <textarea
+              id="doc-content"
+              name="content"
+              [ngModel]="content()"
+              (ngModelChange)="content.set($event)"
+              maxlength="100000"
+              [disabled]="busy()"
+              (input)="onEditorInput()"
+              placeholder="Document notes and details…"
+              class="notes-textarea"
+            ></textarea>
+            <div class="notes-save-bar">
+              <span class="save-status" [class.is-dirty]="dirty()">
+                <span class="status-indicator-dot"></span>
+                {{ dirty() ? "Unsaved changes" : "All changes saved" }}
+              </span>
+              <button class="ui-btn primary sm" type="submit" [disabled]="busy() || !dirty()">
+                <span class="material-symbols-rounded sm" aria-hidden="true">save</span>
+                <span>Save notes</span>
               </button>
             </div>
-          </div>
-          @if (preview() || !canEdit()) {
-            <article class="preview" [innerHTML]="html()"></article>
-          } @else {
-            <form (ngSubmit)="save()">
-              <textarea
-                id="doc-content"
-                name="content"
-                [ngModel]="content()"
-                (ngModelChange)="content.set($event)"
-                maxlength="100000"
-                [disabled]="busy()"
-                (input)="onEditorInput()"
-                placeholder="Optional document notes…"
-              ></textarea>
-              <div class="notes-save-bar">
-                <span class="save-status">{{ dirty() ? "Unsaved changes" : "All changes saved" }}</span>
-                <button class="primary" type="submit" [disabled]="busy()">Save notes</button>
-              </div>
-            </form>
-          }
-        </section>
-      }
-    </div>
+          </form>
+        }
+      </section>
+    }
   }
 </main>
