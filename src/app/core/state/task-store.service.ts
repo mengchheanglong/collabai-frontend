@@ -1,7 +1,7 @@
 import type { TaskDto } from '../api/api.types';
 import { Injectable, computed, effect, inject, signal } from '@angular/core';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { Observable, concatMap, from, map, of, switchMap, throwError, toArray } from 'rxjs';
+import { Observable, catchError, concatMap, from, map, of, switchMap, throwError, toArray } from 'rxjs';
 import { BOARD_COLUMNS, columnConnectedIds, statusLabel } from '../../shared/lib/board-columns';
 import { priorityClass, priorityRank } from '../../shared/lib/person-display';
 import type { BoardView } from '../../shared/models/navigation.models';
@@ -782,7 +782,7 @@ export class TaskStoreService {
     };
 
     if (!navigator.onLine) {
-      const offlineId = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const offlineId = newClientId(); // real id: later edits/moves of this task sync too
       const task: Task = {
         id: offlineId,
         boardId,
@@ -800,12 +800,13 @@ export class TaskStoreService {
         subtasks: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
+        pendingSync: true,
       };
       this.tasks.update((items) => [task, ...items]);
       this.selectTask(task);
       this.setBoardView('kanban');
       void this.idb.put('tasks', task);
-      void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
+      void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { id: offlineId, projectId, boardId, ...payload }, projectId);
       this.isCreatingTask.set(false);
       this.toast.show('Task created (saved offline)', 'info');
       return;
@@ -846,7 +847,7 @@ export class TaskStoreService {
       error: (err) => {
         this.isCreatingTask.set(false);
         if (err.status === 0 || !navigator.onLine) {
-          const offlineId = `offline-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+          const offlineId = newClientId(); // real id: later edits/moves of this task sync too
           const task: Task = {
             id: offlineId,
             boardId,
@@ -864,12 +865,13 @@ export class TaskStoreService {
             subtasks: [],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
+            pendingSync: true,
           };
           this.tasks.update((items) => [task, ...items]);
           this.selectTask(task);
           this.setBoardView('kanban');
           void this.idb.put('tasks', task);
-          void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { projectId, boardId, ...payload }, projectId);
+          void this.offlineSync.enqueue('CREATE_TASK', '/tasks', 'POST', { id: offlineId, projectId, boardId, ...payload }, projectId);
           this.toast.show('Task created (saved offline)', 'info');
         } else {
           this.toast.error(apiErrorMessage(err, "Couldn't create the task. Please try again."), 'Create Task Failed');
@@ -903,17 +905,62 @@ export class TaskStoreService {
       return throwError(() => new Error('No active board found'));
     }
 
+    const payload = {
+      title,
+      description,
+      status: options?.status ?? ('todo' as TaskStatus),
+      priority: options?.priority ?? ('medium' as Priority),
+      labels: options?.labels ?? [],
+      subtasks: options?.subtasks ?? [],
+      dueDate: options?.dueDate ?? undefined,
+      assigneeId: options?.assigneeId ?? undefined,
+    };
+
+    // Offline: keep the task locally and queue it — it syncs when the connection returns.
+    const saveOffline = (): Task => {
+      const now = new Date().toISOString();
+      const task: Task = {
+        id: newClientId(),
+        boardId: targetBoardId,
+        projectId: targetProjectId,
+        title: payload.title,
+        description: payload.description,
+        status: payload.status,
+        priority: payload.priority,
+        position: 1024,
+        assigneeId: payload.assigneeId ?? null,
+        createdById: this.members.currentUser.id,
+        dueDate: payload.dueDate ?? null,
+        labels: payload.labels,
+        comments: 0,
+        subtasks: payload.subtasks.map((subtitle, i) => ({
+          id: `offline-sub-${Date.now()}-${i}`,
+          title: subtitle,
+          done: false,
+        })),
+        createdAt: now,
+        updatedAt: now,
+        pendingSync: true,
+      };
+      this.tasks.update((items) => [task, ...items]);
+      void this.idb.put('tasks', task);
+      void this.offlineSync.enqueue(
+        'CREATE_TASK',
+        '/tasks',
+        'POST',
+        { id: task.id, projectId: targetProjectId, boardId: targetBoardId, ...payload },
+        targetProjectId,
+      );
+      if (options?.select !== false) this.selectTask(task);
+      this.setBoardView('kanban');
+      this.toast.show('Task created (saved offline — it will sync when you are back online)', 'info');
+      return task;
+    };
+
+    if (!navigator.onLine) return of(saveOffline());
+
     return this.taskApi
-      .createTask(targetProjectId, targetBoardId, {
-        title,
-        description,
-        status: options?.status ?? 'todo',
-        priority: options?.priority ?? 'medium',
-        labels: options?.labels ?? [],
-        subtasks: options?.subtasks ?? [],
-        dueDate: options?.dueDate ?? undefined,
-        assigneeId: options?.assigneeId ?? undefined,
-      })
+      .createTask(targetProjectId, targetBoardId, payload)
       .pipe(
         map((dto) => {
           const task: Task = {
@@ -947,6 +994,9 @@ export class TaskStoreService {
           this.loadBoard(targetBoardId);
           return task;
         }),
+        catchError((err: { status?: number }) =>
+          err?.status === 0 || !navigator.onLine ? of(saveOffline()) : throwError(() => err),
+        ),
       );
   }
 
@@ -1008,4 +1058,15 @@ export class TaskStoreService {
       },
     });
   }
+}
+
+/** Client-generated UUID, accepted by POST /tasks as `id` (idempotent offline replay). */
+function newClientId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
 }

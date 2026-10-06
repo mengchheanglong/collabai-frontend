@@ -211,6 +211,25 @@ export class IndexedDbService {
     });
   }
 
+  // ── Offline copies of API reads (boards, members, docs, …) ─────────────────
+  // Stored in the user-scoped meta store, so logout / account switch wipes them too.
+
+  async cacheSet<T>(key: string, value: T): Promise<void> {
+    try {
+      await this.setMeta(`cache:${key}`, value);
+    } catch {
+      /* best-effort */
+    }
+  }
+
+  async cacheGet<T>(key: string): Promise<T | undefined> {
+    try {
+      return await this.getMeta<T>(`cache:${key}`);
+    } catch {
+      return undefined;
+    }
+  }
+
   // ── Meta Key/Value Methods ─────────────────────────────────────────────────
 
   async setMeta(key: string, value: any): Promise<void> {

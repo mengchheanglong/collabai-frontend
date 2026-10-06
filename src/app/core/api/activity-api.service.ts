@@ -1,6 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { ApiClient } from './api-client.service';
+import { IndexedDbService } from '../pwa/indexed-db.service';
+import { withOfflineCopy } from '../pwa/offline-copy';
 
 export interface ActivityDto {
   _id?: string;
@@ -24,11 +26,15 @@ export interface ActivityListDto {
 @Injectable({ providedIn: 'root' })
 export class ActivityApiService {
   private readonly apiClient = inject(ApiClient);
+  private readonly idb = inject(IndexedDbService);
 
   getProjectActivity(projectId: string, page = 1, limit = 30): Observable<ActivityDto[]> {
     return this.apiClient.get<ActivityListDto>(
       `/projects/${projectId}/activity`,
       { page, limit },
-    ).pipe(map(({ items }) => (items ?? []).map((item) => ({ ...item, _id: item._id ?? item.id }))));
+    ).pipe(
+      map(({ items }) => (items ?? []).map((item) => ({ ...item, _id: item._id ?? item.id }))),
+      withOfflineCopy(this.idb, `activity:${projectId}:${page}`),
+    );
   }
 }

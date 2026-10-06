@@ -198,18 +198,29 @@ export class WorkspaceContextService {
       this.activeBoardId.set(null);
       return;
     }
+    const apply = (boards: BoardDto[]) => {
+      if (this.activeProjectId() !== projectId) return;
+      this.boardsState.set(boards);
+      const firstBoardId = boards.length > 0 ? (boards[0]._id || (boards[0] as any).id) : null;
+      const current = this.activeBoardId();
+      const boardExists = current && boards.some(board => (board._id || (board as any).id) === current);
+      this.activeBoardId.set(boardExists ? current : firstBoardId);
+    };
     this.boardApi.listBoards(projectId).subscribe({
       next: (boards) => {
-        if (this.activeProjectId() !== projectId) return;
-        this.boardsState.set(boards);
-        const firstBoardId = boards.length > 0 ? (boards[0]._id || (boards[0] as any).id) : null;
-        const current = this.activeBoardId();
-        const boardExists = current && boards.some(board => (board._id || (board as any).id) === current);
-        this.activeBoardId.set(boardExists ? current : firstBoardId);
+        apply(boards);
+        void this.idb.cacheSet(`boards:${projectId}`, boards);
       },
       error: () => {
-        this.boardsState.set([]);
-        this.activeBoardId.set(null);
+        // Offline / server down: use the last copy so the board (and its tasks) still open.
+        void this.idb.cacheGet<BoardDto[]>(`boards:${projectId}`).then((cached) => {
+          if (cached?.length) {
+            apply(cached);
+          } else if (this.activeProjectId() === projectId) {
+            this.boardsState.set([]);
+            this.activeBoardId.set(null);
+          }
+        });
       },
     });
   }

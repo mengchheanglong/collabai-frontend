@@ -18,6 +18,7 @@ import type {
   ProjectRole,
 } from '../api/api.types';
 import { NOT_YOUR_TASK_MESSAGE, VIEW_ONLY_MESSAGE, apiErrorMessage } from '../api/api-error';
+import { IndexedDbService } from '../pwa/indexed-db.service';
 
 const AVATAR_COLORS = ['#3b82f6', '#06b6d4', '#22c55e', '#0ea5e9', '#f59e0b', '#ef4444', '#64748b'];
 
@@ -27,6 +28,7 @@ export class MemberDirectoryService {
   private readonly auth = inject(AuthStoreService);
   private readonly workspace = inject(WorkspaceContextService);
   private readonly toast = inject(ToastService);
+  private readonly idb = inject(IndexedDbService);
 
   private readonly membersState = signal<Member[]>([]);
   /** The project whose members are currently shown, tracked reactively. */
@@ -100,9 +102,14 @@ export class MemberDirectoryService {
           }
         }
         this.membersState.set(list);
+        void this.idb.cacheSet(`members:${projectId}`, dtos);
       },
       error: () => {
-        this.membersState.set([]);
+        // Offline: keep names, roles and permissions working from the last copy.
+        void this.idb.cacheGet<ProjectMemberDto[]>(`members:${projectId}`).then((cached) => {
+          if (this.activeProjectId() !== projectId) return;
+          this.membersState.set((cached ?? []).map(toMember));
+        });
       },
     });
   }

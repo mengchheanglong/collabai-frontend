@@ -182,7 +182,10 @@ export class BoardPageComponent {
         next: (created) => {
           this.isCreatingTask.set(false);
           this.showCreateModal.set(false);
-          this.toast.show(`Created task: ${created.title}`, 'success');
+          // Offline creations already got a "saved offline" message from the store.
+          if (!created.pendingSync) {
+            this.toast.show(`Created task: ${created.title}`, 'success');
+          }
         },
         error: (err: unknown) => {
           this.isCreatingTask.set(false);

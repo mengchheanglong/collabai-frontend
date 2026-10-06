@@ -5,6 +5,8 @@ import { firstValueFrom, Subject } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { IndexedDbService, OutboxMutation } from './indexed-db.service';
 import { ToastService } from '../toast/toast.service';
+import { TokenStore } from '../api/token.store';
+import { apiErrorMessage } from '../api/api-error';
 
 export interface DeltaSyncResult {
   serverTime: string;
@@ -26,6 +28,7 @@ export class OfflineSyncService {
   private readonly http = inject(HttpClient);
   private readonly idb = inject(IndexedDbService);
   private readonly toast = inject(ToastService);
+  private readonly tokens = inject(TokenStore);
 
   readonly pendingCount = signal<number>(0);
   readonly isSyncing = signal<boolean>(false);
@@ -38,6 +41,10 @@ export class OfflineSyncService {
       window.addEventListener('online', () => {
         void this.flushOutboxAndSync();
       });
+      // Changes queued in an earlier session (app closed while offline) upload on next open.
+      setTimeout(() => {
+        if (navigator.onLine) void this.flushOutboxAndSync();
+      }, 3000);
     }
   }
 
@@ -76,8 +83,8 @@ export class OfflineSyncService {
   }
 
   async flushOutboxAndSync(activeProjectId?: string): Promise<void> {
-    if (this.isSyncing() || !navigator.onLine) {
-      return;
+    if (this.isSyncing() || !navigator.onLine || !this.tokens.get()) {
+      return; // offline, or signed out — keep the queue for later
     }
 
     this.isSyncing.set(true);
@@ -85,6 +92,7 @@ export class OfflineSyncService {
     try {
       const mutations = await this.idb.getPendingMutations();
       let succeededCount = 0;
+      const rejected: string[] = [];
 
       for (const m of mutations) {
         const fullUrl = `${environment.apiBaseUrl}${m.url.startsWith('/') ? m.url : `/${m.url}`}`;
@@ -103,9 +111,14 @@ export class OfflineSyncService {
           succeededCount++;
         } catch (err: any) {
           console.warn('[OfflineSync] Mutation replay failed:', m.type, err);
-          // If unrecoverable 4xx client error (except 408/429), remove from queue
+          if (err.status === 401) {
+            break; // session expired — keep everything queued until the user signs in again
+          }
+          // Rejected by the server (e.g. no permission, task deleted meanwhile): drop it, but
+          // tell the user instead of losing the change silently.
           if (err.status >= 400 && err.status < 500 && err.status !== 408 && err.status !== 429) {
             await this.idb.removeMutation(m.id);
+            rejected.push(apiErrorMessage(err, 'The server rejected the change.'));
           } else {
             m.retryCount = (m.retryCount || 0) + 1;
             if (m.retryCount > 5) {
@@ -128,6 +141,12 @@ export class OfflineSyncService {
         this.toast.success(
           `Synced ${succeededCount} offline change${succeededCount > 1 ? 's' : ''} with the server.`,
           'Workspace Synchronized',
+        );
+      }
+      if (rejected.length > 0) {
+        this.toast.error(
+          `${rejected.length} offline change${rejected.length > 1 ? 's' : ''} couldn't be saved: ${rejected[0]}`,
+          'Some Changes Not Saved',
         );
       }
     } catch (err) {

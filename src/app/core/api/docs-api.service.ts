@@ -1,5 +1,7 @@
 import { Injectable, inject } from "@angular/core";
 import { ApiClient } from "./api-client.service";
+import { IndexedDbService } from '../pwa/indexed-db.service';
+import { withOfflineCopy } from '../pwa/offline-copy';
 export interface DocumentAttachment {
   id: string;
   name: string;
@@ -25,17 +27,20 @@ export interface WorkspaceDocument extends DocumentSummary {
 @Injectable({ providedIn: "root" })
 export class DocsApiService {
   private readonly api = inject(ApiClient);
+  private readonly idb = inject(IndexedDbService);
   list(projectId: string, page = 1, q = "") {
-    return this.api.getList<DocumentSummary[]>(`/projects/${projectId}/docs`, {
-      page,
-      limit: 20,
-      q,
-    });
+    return this.api
+      .getList<DocumentSummary[]>(`/projects/${projectId}/docs`, {
+        page,
+        limit: 20,
+        q,
+      })
+      .pipe(withOfflineCopy(this.idb, `docs:${projectId}:${page}:${q}`));
   }
   get(id: string) {
-    return this.api.get<{ document: WorkspaceDocument; canEdit: boolean }>(
-      `/docs/${id}`,
-    );
+    return this.api
+      .get<{ document: WorkspaceDocument; canEdit: boolean }>(`/docs/${id}`)
+      .pipe(withOfflineCopy(this.idb, `doc:${id}`));
   }
   create(
     projectId: string,

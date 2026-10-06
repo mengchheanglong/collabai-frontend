@@ -24,4 +24,6 @@ export interface Task {
   subtasks: Subtask[];
   createdAt: string;
   updatedAt: string;
+  /** Created offline and not yet saved to the server. */
+  pendingSync?: boolean;
 }
