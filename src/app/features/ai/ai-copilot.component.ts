@@ -569,21 +569,56 @@ export class AiCopilotComponent {
         this.finishMessage(pendingId, `Please specify a task and due date. Example: \`/due Login page tomorrow\` or \`/due Homepage 2026-10-15\``);
         return;
       }
-      const parsed = parseDueDate(rest);
       const words = rest.split(/\s+/);
-      const lastWord = words[words.length - 1];
-      const lastTwo = words.slice(-2).join(' ');
-      const parsedPart = parseDueDate(lastTwo) || parseDueDate(lastWord);
+      let targetDate: Date | null = null;
+      let taskQuery = '';
 
-      if (!parsed && !parsedPart) {
+      if (words.length >= 2) {
+        const lastTwo = words.slice(-2).join(' ');
+        targetDate = parseDueDate(lastTwo);
+        if (targetDate) {
+          taskQuery = words.slice(0, -2).join(' ').trim();
+        }
+      }
+      if (!targetDate && words.length >= 1) {
+        const lastWord = words[words.length - 1];
+        targetDate = parseDueDate(lastWord);
+        if (targetDate) {
+          taskQuery = words.slice(0, -1).join(' ').trim();
+        }
+      }
+      if (!targetDate) {
+        targetDate = parseDueDate(rest);
+        if (targetDate) {
+          taskQuery = 'this task';
+        }
+      }
+
+      if (!targetDate) {
         this.finishMessage(pendingId, `Could not parse due date from “${rest}”. Please use formats like “today”, “tomorrow”, “Friday”, “in 3 days”, or “YYYY-MM-DD”.`);
         return;
       }
 
-      const handled = this.runTaskAction(pendingId, targetProjectId, `set due date of ${rest}`);
-      if (!handled) {
-        this.finishMessage(pendingId, `Could not set due date for “${rest}”.`);
+      if (!taskQuery) {
+        taskQuery = 'this task';
       }
+
+      this.resolveTask(targetProjectId, taskQuery, pendingId, (task) => {
+        this.taskApi.updateTask(task.id, { dueDate: targetDate.toISOString() }).subscribe({
+          next: () => {
+            this.reloadActiveBoard();
+            const formattedDate = targetDate.toLocaleDateString(undefined, {
+              month: 'short',
+              day: 'numeric',
+              year: 'numeric',
+            });
+            this.finishMessage(pendingId, `Set due date of “**${task.title}**” to ${formattedDate}.`);
+            this.toast.show(`Due date set to ${formattedDate}`, 'success');
+          },
+          error: (err: unknown) =>
+            this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
+        });
+      });
       return;
     }
 
@@ -1572,9 +1607,10 @@ export class AiCopilotComponent {
     }
 
     // 5. Due date: "set due date of X to tomorrow", "make X due on Friday", "clear due date of X"
-    const clearDue = text.match(/(?:clear|remove)\s+(?:the\s+)?due\s*date\s+(?:of|for|from)\s+(.+?)$/i);
+    const clearDue = text.match(/(?:clear|remove)\s+(?:the\s+)?due\s*date(?:\s+(?:of|for|from)\s+(.+?))?$/i);
     if (clearDue) {
-      this.resolveTask(projectId, clearDue[1], pendingId, (task) => {
+      const taskQuery = clearDue[1] ? clearDue[1].trim() : 'this task';
+      this.resolveTask(projectId, taskQuery, pendingId, (task) => {
         this.taskApi.updateTask(task.id, { dueDate: null }).subscribe({
           next: () => {
             this.reloadActiveBoard();
@@ -1587,13 +1623,11 @@ export class AiCopilotComponent {
       return true;
     }
 
-    const setDue = text.match(/(?:set|change|make)\s+(?:the\s+)?(?:due\s*date\s+(?:of|for)\s+)?(.+?)\s+(?:(?:to|as)\s+due\s+on\s+|(?:to|as)\s+due\s+|(?:due\s*date\s+(?:to|as)\s+)|(?:due\s+(?:on\s+)?))(.+?)$/i);
-    if (setDue) {
-      const taskQuery = setDue[1].trim();
-      const dateText = setDue[2].trim();
-      const parsedDate = parseDueDate(dateText);
+    const dueRequest = parseDueDateRequest(text);
+    if (dueRequest) {
+      const parsedDate = parseDueDate(dueRequest.dateText);
       if (parsedDate) {
-        this.resolveTask(projectId, taskQuery, pendingId, (task) => {
+        this.resolveTask(projectId, dueRequest.taskQuery, pendingId, (task) => {
           this.taskApi.updateTask(task.id, { dueDate: parsedDate.toISOString() }).subscribe({
             next: () => {
               this.reloadActiveBoard();
@@ -1602,7 +1636,7 @@ export class AiCopilotComponent {
                 day: 'numeric',
                 year: 'numeric',
               });
-              this.finishMessage(pendingId, `Set due date of “${task.title}” to ${formattedDate}.`);
+              this.finishMessage(pendingId, `Set due date of “**${task.title}**” to ${formattedDate}.`);
               this.toast.show(`Due date set to ${formattedDate}`, 'success');
             },
             error: (err: unknown) => this.finishMessage(pendingId, apiErrorMessage(err, `I could not update “${task.title}”. Please try again.`)),
@@ -2105,19 +2139,27 @@ function parseDueDate(text: string): Date | null {
 
   const now = new Date();
   if (clean === 'today') {
-    now.setHours(23, 59, 59, 999);
+    now.setHours(12, 0, 0, 0);
     return now;
   }
   if (clean === 'tomorrow') {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    d.setHours(23, 59, 59, 999);
+    d.setHours(12, 0, 0, 0);
     return d;
   }
   if (clean === 'next week') {
     const d = new Date();
     d.setDate(d.getDate() + 7);
-    d.setHours(23, 59, 59, 999);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  }
+  if (clean === 'end of week' || clean === 'this weekend') {
+    const d = new Date();
+    const currentDay = now.getDay();
+    const daysUntilFriday = currentDay <= 5 ? 5 - currentDay : 6;
+    d.setDate(d.getDate() + daysUntilFriday);
+    d.setHours(12, 0, 0, 0);
     return d;
   }
   const inDaysMatch = clean.match(/^in\s+(\d+)\s+days?$/i);
@@ -2126,7 +2168,7 @@ function parseDueDate(text: string): Date | null {
     if (days >= 0 && days <= 3650) {
       const d = new Date();
       d.setDate(d.getDate() + days);
-      d.setHours(23, 59, 59, 999);
+      d.setHours(12, 0, 0, 0);
       return d;
     }
   }
@@ -2139,7 +2181,7 @@ function parseDueDate(text: string): Date | null {
     if (diff <= 0) diff += 7;
     const d = new Date();
     d.setDate(d.getDate() + diff);
-    d.setHours(23, 59, 59, 999);
+    d.setHours(12, 0, 0, 0);
     return d;
   }
 
@@ -2150,17 +2192,96 @@ function parseDueDate(text: string): Date | null {
     const m = parseInt(isoMatch[2], 10);
     const day = parseInt(isoMatch[3], 10);
     if (y < 1970 || y > 2100 || m < 1 || m > 12 || day < 1 || day > 31) return null;
-    const d = new Date(Date.UTC(y, m - 1, day, 23, 59, 59, 999));
+    const d = new Date(Date.UTC(y, m - 1, day, 12, 0, 0, 0));
     if (d.getUTCFullYear() !== y || d.getUTCMonth() !== m - 1 || d.getUTCDate() !== day) {
       return null; // catches Feb 29 on non-leap years
     }
     return d;
   }
 
-  const parsed = new Date(text);
+  // Ordinal replacement and month names (e.g. "oct 15", "october 20th", "15 nov")
+  const normalizedText = clean.replace(/(\d+)(?:st|nd|rd|th)\b/gi, '$1');
+  const monthMatch =
+    normalizedText.match(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\s+(\d{1,2})\b/i) ||
+    normalizedText.match(/\b(\d{1,2})\s+(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\b/i);
+  if (monthMatch) {
+    const withYear = `${normalizedText} ${now.getFullYear()}`;
+    const parsedWithYear = new Date(withYear);
+    if (!isNaN(parsedWithYear.getTime())) {
+      parsedWithYear.setHours(12, 0, 0, 0);
+      return parsedWithYear;
+    }
+  }
+
+  const parsed = new Date(normalizedText);
   if (!isNaN(parsed.getTime())) {
     const yr = parsed.getFullYear();
-    if (yr >= 1970 && yr <= 2100) return parsed;
+    if (yr >= 1970 && yr <= 2100) {
+      parsed.setHours(12, 0, 0, 0);
+      return parsed;
+    }
   }
+  return null;
+}
+
+function parseDueDateRequest(rawText: string): { taskQuery: string; dateText: string } | null {
+  const text = rawText
+    .replace(/^(?:please\s+|can\s+you\s+(?:please\s+)?|could\s+you\s+(?:please\s+)?|would\s+you\s+(?:please\s+)?|help\s+me\s+|i\s+want\s+to\s+)/i, '')
+    .trim();
+
+  // 1. "set/change/update/make the due date of/for/on <task> to/as/is/on/by <date>"
+  let match = text.match(
+    /^(?:set|change|update|make)\s+(?:the\s+)?due\s*date\s+(?:of|for|on)\s+(.+?)\s+(?:to|as|is|on|by|=|:)\s+(.+?)$/i,
+  );
+  if (match) {
+    return { taskQuery: match[1].trim(), dateText: match[2].trim() };
+  }
+
+  // 2. "set/change/update/make the due date to/as/on/by <date> for/of/on <task>"
+  match = text.match(
+    /^(?:set|change|update|make)\s+(?:the\s+)?due\s*date\s+(?:to|as|on|by|=|:)\s+(.+?)\s+(?:for|of|on)\s+(.+?)$/i,
+  );
+  if (match) {
+    return { taskQuery: match[2].trim(), dateText: match[1].trim() };
+  }
+
+  // 3. "set/change/make <task> due date to/as/is/on/by <date>"
+  match = text.match(
+    /^(?:set|change|update|make)\s+(.+?)\s+(?:the\s+)?due\s*date\s+(?:to|as|is|on|by|=|:)\s+(.+?)$/i,
+  );
+  if (match) {
+    return { taskQuery: match[1].trim(), dateText: match[2].trim() };
+  }
+
+  // 4. "make/set <task> due on/by/at/to <date>" or "make <task> due <date>"
+  match = text.match(
+    /^(?:set|change|update|make)\s+(.+?)\s+(?:(?:to\s+be\s+)?due\s*(?:on|by|at|to|for)?)\s+(.+?)$/i,
+  );
+  if (match) {
+    return { taskQuery: match[1].trim(), dateText: match[2].trim() };
+  }
+
+  // 5. "schedule <task> for/on/at/by/to <date>"
+  match = text.match(
+    /^(?:schedule)\s+(.+?)\s+(?:for|on|at|by|to)\s+(.+?)$/i,
+  );
+  if (match) {
+    return { taskQuery: match[1].trim(), dateText: match[2].trim() };
+  }
+
+  // 6. Contextual due date setting: "set due date to tomorrow", "set due date tomorrow", "due date tomorrow", "due tomorrow"
+  match = text.match(
+    /^(?:(?:set|change|update|make)\s+(?:the\s+)?)?(?:due\s*date|due)\s*(?:to|as|is|on|by|=|:)?\s+([A-Za-z0-9\s-]+?)$/i,
+  );
+  if (match && parseDueDate(match[1].trim())) {
+    return { taskQuery: 'this task', dateText: match[1].trim() };
+  }
+
+  // 7. Direct command syntax: "due date <task> <date>" or "due <task> <date>"
+  match = text.match(/^(?:due\s*date|due)\s+(.+?)\s+([A-Za-z0-9_.-]+(?:\s+[A-Za-z0-9_.-]+)?)$/i);
+  if (match && match[1].trim().toLowerCase() !== 'date' && parseDueDate(match[2].trim())) {
+    return { taskQuery: match[1].trim(), dateText: match[2].trim() };
+  }
+
   return null;
 }

@@ -318,18 +318,32 @@
 
             <div class="tm-field">
               <span>Due date</span>
-              <button
-                type="button"
-                class="prop-dropdown-btn"
-                [matMenuTriggerFor]="createDueDateMenu"
-                aria-label="Select due date"
-                matRipple
-              >
-                <span class="prop-dropdown-val" [class.is-empty]="!newDueDate()">
-                  {{ formatDueDateLabel(newDueDate()) }}
-                </span>
-                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">calendar_today</span>
-              </button>
+              <div class="prop-date-picker-group">
+                <button
+                  type="button"
+                  class="prop-dropdown-btn prop-date-btn"
+                  [matMenuTriggerFor]="createDueDateMenu"
+                  aria-label="Due date presets"
+                  matRipple
+                >
+                  <span class="prop-dropdown-val" [class.is-empty]="!newDueDate()">
+                    {{ formatDueDateLabel(newDueDate()) }}
+                  </span>
+                  <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+                </button>
+
+                <label class="prop-date-native-trigger" title="Choose date from calendar">
+                  <span class="material-symbols-rounded sm" aria-hidden="true">calendar_month</span>
+                  <input
+                    #createDateInput
+                    type="date"
+                    class="prop-native-date-input"
+                    [value]="newDueDate()"
+                    (change)="newDueDate.set($any($event.target).value)"
+                    aria-label="Pick due date from calendar"
+                  />
+                </label>
+              </div>
 
               <mat-menu #createDueDateMenu="matMenu" class="ui-dropdown-panel ui-date-dropdown-panel">
                 <button
@@ -379,17 +393,14 @@
 
                 <div class="ui-dropdown-divider"></div>
 
-                <div class="ui-dropdown-custom-date">
-                  <label class="custom-date-label">
-                    <span class="custom-date-title">Custom date</span>
-                    <input
-                      type="date"
-                      class="custom-date-input"
-                      [value]="newDueDate()"
-                      (change)="newDueDate.set($any($event.target).value)"
-                    />
-                  </label>
-                </div>
+                <button
+                  mat-menu-item
+                  class="ui-dropdown-item"
+                  (click)="openCalendarPicker(createDateInput)"
+                >
+                  <span class="material-symbols-rounded sm" aria-hidden="true">calendar_month</span>
+                  <span>Choose date...</span>
+                </button>
               </mat-menu>
             </div>
           </div>

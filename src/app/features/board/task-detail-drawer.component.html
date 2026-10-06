@@ -343,20 +343,39 @@
           <!-- Due date -->
           <div class="prop-row">
             <span class="prop-label">Due date</span>
-            <button
-              type="button"
-              class="prop-dropdown-btn"
-              [matMenuTriggerFor]="modalDueDateMenu"
-             
-              [attr.title]="taskLockReason(task)"
-              aria-label="Due date"
-              matRipple
-            >
-              <span class="prop-dropdown-val" [class.is-empty]="!task.dueDate">
-                {{ formatDueDateLabel(task.dueDate) }}
-              </span>
-              <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">calendar_today</span>
-            </button>
+            <div class="prop-date-picker-group">
+              <button
+                type="button"
+                class="prop-dropdown-btn prop-date-btn"
+                [matMenuTriggerFor]="modalDueDateMenu"
+                [disabled]="!canEdit(task)"
+                [attr.title]="taskLockReason(task)"
+                aria-label="Due date options"
+                matRipple
+              >
+                <span class="prop-dropdown-val" [class.is-empty]="!task.dueDate">
+                  {{ formatDueDateLabel(task.dueDate) }}
+                </span>
+                <span class="material-symbols-rounded sm prop-dropdown-chevron" aria-hidden="true">expand_more</span>
+              </button>
+
+              <label
+                class="prop-date-native-trigger"
+                title="Choose date from calendar"
+                [class.is-disabled]="!canEdit(task)"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">calendar_month</span>
+                <input
+                  #drawerDateInput
+                  type="date"
+                  class="prop-native-date-input"
+                  [disabled]="!canEdit(task)"
+                  [value]="task.dueDate ? (task.dueDate | date:'yyyy-MM-dd') : ''"
+                  (change)="updateDueDate(task, $any($event.target).value)"
+                  aria-label="Pick due date from calendar"
+                />
+              </label>
+            </div>
 
             <mat-menu #modalDueDateMenu="matMenu" class="ui-dropdown-panel ui-date-dropdown-panel">
               <button
@@ -406,17 +425,14 @@
 
               <div class="ui-dropdown-divider"></div>
 
-              <div class="ui-dropdown-custom-date">
-                <label class="custom-date-label">
-                  <span class="custom-date-title">Custom date</span>
-                  <input
-                    type="date"
-                    class="custom-date-input"
-                    [value]="task.dueDate ? (task.dueDate | date:'yyyy-MM-dd') : ''"
-                    (change)="updateDueDate(task, $any($event.target).value)"
-                  />
-                </label>
-              </div>
+              <button
+                mat-menu-item
+                class="ui-dropdown-item"
+                (click)="openCalendarPicker(drawerDateInput)"
+              >
+                <span class="material-symbols-rounded sm" aria-hidden="true">calendar_month</span>
+                <span>Choose date...</span>
+              </button>
             </mat-menu>
           </div>
           <div class="prop-row">

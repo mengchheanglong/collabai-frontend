@@ -125,6 +125,10 @@ export class TaskDetailDrawerComponent {
     }
   }
 
+  canEdit(task: Task): boolean {
+    return this.members.canWorkOnTask(task.assigneeId ?? null);
+  }
+
   taskLockReason(task: Task): string | null {
     if (this.members.canWorkOnTask(task.assigneeId ?? null)) return null;
     return this.members.canEditContent()
@@ -147,7 +151,10 @@ export class TaskDetailDrawerComponent {
 
   formatDueDateLabel(dueDate?: string | null): string {
     if (!dueDate) return 'No due date';
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
     if (isNaN(date.getTime())) return 'No due date';
 
     const now = new Date();
@@ -168,7 +175,11 @@ export class TaskDetailDrawerComponent {
 
   isDateToday(dueDate?: string | null): boolean {
     if (!dueDate) return false;
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
+    if (isNaN(date.getTime())) return false;
     const now = new Date();
     return (
       date.getFullYear() === now.getFullYear() &&
@@ -179,7 +190,11 @@ export class TaskDetailDrawerComponent {
 
   isDateTomorrow(dueDate?: string | null): boolean {
     if (!dueDate) return false;
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
+    if (isNaN(date.getTime())) return false;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return (
@@ -205,13 +220,36 @@ export class TaskDetailDrawerComponent {
 
   updateDueDate(task: Task, dateStr: string): void {
     let val: string | null = null;
-    if (dateStr) {
-      const d = new Date(dateStr);
-      if (!isNaN(d.getTime())) {
-        val = d.toISOString();
+    if (dateStr && dateStr.trim()) {
+      const parts = dateStr.trim().split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          val = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0)).toISOString();
+        }
+      } else {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          val = d.toISOString();
+        }
       }
     }
     this.tasks.updateTask(task.id, { dueDate: val });
+  }
+
+  openCalendarPicker(input: HTMLInputElement): void {
+    try {
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    input.focus();
+    input.click();
   }
 
   handleAddSubtask(task: Task, inputEl: HTMLInputElement): void {

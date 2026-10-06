@@ -68,7 +68,10 @@ export class BoardPageComponent {
 
   formatDueDateLabel(dueDate?: string | null): string {
     if (!dueDate) return 'No due date';
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
     if (isNaN(date.getTime())) return 'No due date';
 
     const now = new Date();
@@ -89,7 +92,11 @@ export class BoardPageComponent {
 
   isDateToday(dueDate?: string | null): boolean {
     if (!dueDate) return false;
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
+    if (isNaN(date.getTime())) return false;
     const now = new Date();
     return (
       date.getFullYear() === now.getFullYear() &&
@@ -100,7 +107,11 @@ export class BoardPageComponent {
 
   isDateTomorrow(dueDate?: string | null): boolean {
     if (!dueDate) return false;
-    const date = new Date(dueDate);
+    const match = typeof dueDate === 'string' ? dueDate.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/) : null;
+    const date = match
+      ? new Date(parseInt(match[1], 10), parseInt(match[2], 10) - 1, parseInt(match[3], 10))
+      : new Date(dueDate);
+    if (isNaN(date.getTime())) return false;
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     return (
@@ -122,6 +133,19 @@ export class BoardPageComponent {
     const dd = String(d.getDate()).padStart(2, '0');
     const dateStr = `${yyyy}-${mm}-${dd}`;
     this.newDueDate.set(dateStr);
+  }
+
+  openCalendarPicker(input: HTMLInputElement): void {
+    try {
+      if (typeof input.showPicker === 'function') {
+        input.showPicker();
+        return;
+      }
+    } catch {
+      // Fallback
+    }
+    input.focus();
+    input.click();
   }
 
   setBoardView(view: BoardView): void {
@@ -162,10 +186,20 @@ export class BoardPageComponent {
 
     this.isCreatingTask.set(true);
     let dueDateVal: string | undefined;
-    if (this.newDueDate()) {
-      const d = new Date(this.newDueDate());
-      if (!isNaN(d.getTime())) {
-        dueDateVal = d.toISOString();
+    if (this.newDueDate() && this.newDueDate().trim()) {
+      const parts = this.newDueDate().trim().split('-');
+      if (parts.length === 3) {
+        const y = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        const d = parseInt(parts[2], 10);
+        if (!isNaN(y) && !isNaN(m) && !isNaN(d)) {
+          dueDateVal = new Date(Date.UTC(y, m - 1, d, 12, 0, 0, 0)).toISOString();
+        }
+      } else {
+        const d = new Date(this.newDueDate());
+        if (!isNaN(d.getTime())) {
+          dueDateVal = d.toISOString();
+        }
       }
     }
     const assigneeVal = this.newAssigneeId() || undefined;
