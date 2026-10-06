@@ -11,6 +11,8 @@ import { ToastService } from '../toast/toast.service';
 import { WorkspaceContextService } from '../workspace/workspace-context.service';
 import type { AuthUser } from '../../shared/models/auth.models';
 
+const PROFILE_KEY = 'collabai.profile';
+
 @Injectable({ providedIn: 'root' })
 export class AuthStoreService {
   private readonly auth = inject(AuthService);
@@ -54,6 +56,7 @@ export class AuthStoreService {
         this.auth.me().subscribe({
           next: ({ user }) => {
             this.currentUser.set(user);
+            this.cacheProfile(user);
             void this.workspace.onSignedIn(user._id);
             this.isLoading.set(false);
             this.toast.show(`Welcome back, ${user.name}`, 'success');
@@ -114,10 +117,20 @@ export class AuthStoreService {
     this.restoreSessionRequest = this.auth.me().pipe(
       tap(({ user }) => {
         this.currentUser.set(user);
+        this.cacheProfile(user);
         void this.workspace.onSignedIn(user._id);
       }),
       map(() => true),
-      catchError(() => {
+      catchError((err: { status?: number }) => {
+        // Offline / server unreachable: keep the session and use the last known profile so
+        // the app still opens with cached data. Only a real rejection (401/403) signs out.
+        const unreachable = err?.status === 0 || (typeof navigator !== 'undefined' && !navigator.onLine);
+        const cached = unreachable ? this.cachedProfile() : null;
+        if (cached) {
+          this.currentUser.set(cached);
+          void this.workspace.onSignedIn(cached._id);
+          return of(true);
+        }
         this.clearSession();
         return of(false);
       }),
@@ -135,6 +148,7 @@ export class AuthStoreService {
     return this.auth.updateProfile(fields).pipe(
       map(({ user }) => {
         this.currentUser.set(user);
+        this.cacheProfile(user);
         return user;
       }),
     );
@@ -159,9 +173,32 @@ export class AuthStoreService {
 
   clearSession(): void {
     this.tokens.clear();
+    try {
+      localStorage.removeItem(PROFILE_KEY);
+    } catch {
+      /* storage unavailable */
+    }
     this.accessToken.set(null);
     this.currentUser.set(null);
     this.workspace.selectProject('');
+  }
+
+  /** Last known profile, so the app can open offline with the user's name and id. */
+  private cacheProfile(user: AuthUser): void {
+    try {
+      localStorage.setItem(PROFILE_KEY, JSON.stringify(user));
+    } catch {
+      /* storage unavailable — offline start just won't have a profile */
+    }
+  }
+
+  private cachedProfile(): AuthUser | null {
+    try {
+      const raw = localStorage.getItem(PROFILE_KEY);
+      return raw ? (JSON.parse(raw) as AuthUser) : null;
+    } catch {
+      return null;
+    }
   }
 
   private errorMessage(err: unknown): string {

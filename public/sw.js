@@ -1,25 +1,30 @@
 // CollabAI Progressive Web App Service Worker
-const CACHE_NAME = 'collabai-shell-v1';
-const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.webmanifest',
-  '/favicon.svg',
-  '/logo.svg',
-  '/collab small.png',
-];
+//
+// Offline app shell: every built file is pre-cached at install, so the whole app opens
+// offline after one online visit. scripts/build-sw.js rewrites BUILD_VERSION and
+// PRECACHE_ASSETS after `ng build`; the values below are only the dev fallback.
+// Data (projects/tasks/comments + queued changes) lives in IndexedDB, not here.
+const BUILD_VERSION = 'dev';
+const PRECACHE_ASSETS = ['/', '/index.html', '/manifest.webmanifest', '/favicon.svg', '/logo.svg'];
+const CACHE_NAME = `collabai-shell-${BUILD_VERSION}`;
 
-// Install event - precache core shell
+// Install: pre-cache the full app. One missing file must not block the rest.
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_ASSETS))
+      .then((cache) =>
+        Promise.all(
+          PRECACHE_ASSETS.map((url) =>
+            cache.add(new Request(url, { cache: 'reload' })).catch(() => undefined),
+          ),
+        ),
+      )
       .then(() => self.skipWaiting()),
   );
 });
 
-// Activate event - cleanup stale caches
+// Activate: drop caches from previous deploys.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches
@@ -27,7 +32,7 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key !== CACHE_NAME)
+            .filter((key) => key.startsWith('collabai-shell-') && key !== CACHE_NAME)
             .map((key) => caches.delete(key)),
         ),
       )
@@ -35,46 +40,47 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch event - network-first with cache fallback for navigation and static assets
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
 
-  // Do not cache API or Socket.io traffic
-  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) {
-    return;
-  }
+  // Only this site's files — never API, sockets or other origins (IndexedDB covers data).
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith('/api') || url.pathname.startsWith('/socket.io')) return;
 
-  // Navigation requests: Network first, fall back to cached index.html
-  if (event.request.mode === 'navigate') {
+  // Page loads: network first (fresh deploys), cached app shell when offline.
+  if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html')),
-    );
-    return;
-  }
-
-  // Static assets: Stale-while-revalidate
-  if (
-    url.origin === self.location.origin &&
-    (url.pathname.endsWith('.js') ||
-      url.pathname.endsWith('.css') ||
-      url.pathname.endsWith('.svg') ||
-      url.pathname.endsWith('.png') ||
-      url.pathname.endsWith('.woff2'))
-  ) {
-    event.respondWith(
-      caches.match(event.request).then((cached) => {
-        const fetchPromise = fetch(event.request).then((networkResponse) => {
-          if (networkResponse && networkResponse.status === 200) {
-            const clone = networkResponse.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+      fetch(request)
+        .then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
           }
-          return networkResponse;
-        }).catch(() => cached);
-
-        return cached || fetchPromise;
-      }),
+          return response;
+        })
+        .catch(() =>
+          caches.match('/index.html').then((cached) => cached || caches.match('/')),
+        ),
     );
+    return;
   }
+
+  // Built files are content-hashed, so a cached copy is always correct: cache first.
+  event.respondWith(
+    caches.match(request).then(
+      (cached) =>
+        cached ||
+        fetch(request).then((response) => {
+          if (response && response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        }),
+    ),
+  );
 });
 
 // ── Web Push Notifications ──────────────────────────────────────────────

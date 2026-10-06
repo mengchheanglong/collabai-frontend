@@ -6,7 +6,7 @@
     "ng": "ng",
     "dev": "ng serve --host=0.0.0.0 --port=4200",
     "start": "ng serve --host=0.0.0.0 --port=4200",
-    "build": "node ./scripts/set-env.js && ng build",
+    "build": "node ./scripts/set-env.js && ng build && node ./scripts/build-sw.js",
     "build:render": "node ./scripts/set-env.js && ng build",
     "lint": "eslint \"src/**/*.{ts,html}\" \"tests/**/*.ts\"",
     "test": "tsx tests/realtime-state.test.ts && tsx tests/edge-cases.test.ts && tsx tests/ui-workflows.test.ts && tsx tests/member-permissions.test.ts",
