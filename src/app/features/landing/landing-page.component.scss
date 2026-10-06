@@ -1908,3 +1908,23 @@ $font-display: 'Pilcrow Rounded', Archivo, ui-sans-serif, system-ui, sans-serif;
     }
   }
 }
+
+.hero-install {
+  margin: 14px auto 0;
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hero-install-hint {
+  margin: 14px auto 0;
+  max-width: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted, #64748b);
+  text-align: center;
+}

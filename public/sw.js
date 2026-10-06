@@ -89,7 +89,7 @@ self.addEventListener('push', (event) => {
     title: 'CollabAI',
     body: 'You have a new update in your workspace.',
     url: '/board',
-    icon: '/collab small.png',
+    icon: '/icon-192.png',
     badge: '/favicon.svg',
   };
 
@@ -104,7 +104,7 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: data.icon || '/collab small.png',
+    icon: data.icon || '/icon-192.png',
     badge: data.badge || '/favicon.svg',
     data: {
       url: data.url || '/board',

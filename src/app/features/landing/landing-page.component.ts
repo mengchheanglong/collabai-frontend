@@ -7,6 +7,7 @@ import {
 } from '@angular/cdk/drag-drop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { ThemeService } from '../../core/theme/theme.service';
+import { PwaInstallService } from '../../core/pwa/pwa-install.service';
 import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
 
 @Component({
@@ -18,6 +19,7 @@ import { ThemeToggleComponent } from '../../shared/theme-toggle.component';
 })
 export class LandingPageComponent implements OnDestroy {
   readonly theme = inject(ThemeService);
+  readonly pwa = inject(PwaInstallService);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   activeDemoPage: 'dashboard' | 'board' | 'team' | 'profile' | 'settings' = 'board';

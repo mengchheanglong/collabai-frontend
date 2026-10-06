@@ -89,6 +89,18 @@
       </button>
     </div>
 
+    @if (pwa.canInstall()) {
+      <button class="btn btn-ghost hero-install" type="button" (click)="pwa.promptInstall()">
+        <span class="material-symbols-rounded" style="font-size:18px" aria-hidden="true">install_mobile</span>
+        Install the app
+      </button>
+    } @else if (pwa.installHint(); as hint) {
+      <p class="hero-install-hint">
+        <span class="material-symbols-rounded" style="font-size:16px" aria-hidden="true">install_mobile</span>
+        {{ hint }}
+      </p>
+    }
+
     <!-- Product window -->
     <div id="dashboard-demo" class="product-frame" aria-label="Interactive CollabAI dashboard demo">
       <div class="frame-glow"></div>

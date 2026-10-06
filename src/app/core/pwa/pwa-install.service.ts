@@ -20,6 +20,8 @@ export class PwaInstallService {
   readonly canInstall = signal<boolean>(false);
   readonly isInstalled = signal<boolean>(false);
   readonly isOnline = signal<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  /** How to install when the browser can't show an install prompt (iPhone, in-app browsers). */
+  readonly installHint = signal<string | null>(null);
 
   init(): void {
     if (typeof window === 'undefined') return;
@@ -32,18 +34,21 @@ export class PwaInstallService {
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true;
     this.isInstalled.set(isStandalone);
+    this.installHint.set(isStandalone ? null : manualInstallHint(navigator.userAgent));
 
     // 3. Capture beforeinstallprompt
     window.addEventListener('beforeinstallprompt', (e: Event) => {
       e.preventDefault();
       this.deferredPrompt = e as BeforeInstallPromptEvent;
       this.canInstall.set(true);
+      this.installHint.set(null);
     });
 
     window.addEventListener('appinstalled', () => {
       this.deferredPrompt = null;
       this.canInstall.set(false);
       this.isInstalled.set(true);
+      this.installHint.set(null);
       this.toast.success('CollabAI was installed successfully!', 'App Installed');
     });
 
@@ -91,4 +96,16 @@ export class PwaInstallService {
         });
     }
   }
+}
+
+/** iPhone/iPad never show an install prompt; in-app browsers (Facebook, Instagram, …) can't install. */
+function manualInstallHint(ua: string): string | null {
+  const isIos = /iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && 'ontouchend' in document);
+  if (/FBAN|FBAV|Instagram|Line\/|MicroMessenger|; wv\)/.test(ua)) {
+    return isIos
+      ? 'To install, open this page in Safari, then tap Share → Add to Home Screen.'
+      : 'To install, open this page in Chrome (⋮ → Open in Chrome), then tap ⋮ → Install app.';
+  }
+  if (isIos) return 'To install on iPhone/iPad: tap Share, then “Add to Home Screen”.';
+  return null;
 }

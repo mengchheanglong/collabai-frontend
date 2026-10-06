@@ -11,22 +11,28 @@
   "scope": "/",
   "icons": [
     {
-      "src": "/collab small.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/collab small.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "shortcuts": [
@@ -35,22 +41,44 @@
       "short_name": "Board",
       "description": "Open Kanban & List Board",
       "url": "/board",
-      "icons": [{ "src": "/collab small.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Your Work",
       "short_name": "Work",
       "description": "View assigned tasks and deadlines",
       "url": "/work",
-      "icons": [{ "src": "/collab small.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     },
     {
       "name": "Team",
       "short_name": "Team",
       "description": "Collaborate with workspace members",
       "url": "/team",
-      "icons": [{ "src": "/collab small.png", "sizes": "192x192" }]
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
+        }
+      ]
     }
   ],
-  "categories": ["productivity", "business", "utilities"]
+  "categories": [
+    "productivity",
+    "business",
+    "utilities"
+  ]
 }
